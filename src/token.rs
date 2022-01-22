@@ -1,6 +1,8 @@
 use std::mem::swap;
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+use serde::Serialize;
+
+#[derive(Debug, Clone, Copy, PartialEq, Serialize)]
 pub enum Token {
     PtrIncrement,
     PtrDecrement,
@@ -46,7 +48,7 @@ pub fn tokenize(source: &str) -> Vec<Token> {
     source.chars().map(Token::from_char).collect()
 }
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Serialize)]
 pub enum MiddleToken {
     Token(Token, usize),
     WhileBegin,
