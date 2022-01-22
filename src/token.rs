@@ -39,3 +39,7 @@ impl Token {
         }
     }
 }
+
+pub fn tokenize(source: &str) -> Vec<Token> {
+    source.chars().map(Token::from_char).collect()
+}
