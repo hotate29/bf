@@ -61,20 +61,15 @@ pub fn middle_token(tokens: &[Token]) -> Vec<MiddleToken> {
 
     for token in tokens.iter().copied() {
         match token {
-            Token::WhileBegin => {
+            Token::WhileBegin | Token::WhileEnd => {
                 if prev_count != 0 {
                     middle_tokens.push(MiddleToken::Token(prev.unwrap(), prev_count));
                 }
-                middle_tokens.push(MiddleToken::WhileBegin);
-                prev = None;
-                prev_count = 0;
-                continue;
-            }
-            Token::WhileEnd => {
-                if prev_count != 0 {
-                    middle_tokens.push(MiddleToken::Token(prev.unwrap(), prev_count));
+                match token {
+                    Token::WhileBegin => middle_tokens.push(MiddleToken::WhileBegin),
+                    Token::WhileEnd => middle_tokens.push(MiddleToken::WhileEnd),
+                    _ => unreachable!(),
                 }
-                middle_tokens.push(MiddleToken::WhileEnd);
                 prev = None;
                 prev_count = 0;
                 continue;
