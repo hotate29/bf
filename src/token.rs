@@ -103,6 +103,64 @@ pub fn middle_token(tokens: &[Token]) -> Vec<MiddleToken> {
 
     middle_tokens
 }
+// [++[>>]-][]+
+// root Node
+//   |-while
+//   | |-(+2)
+//   | |-while
+//   | |  |-(>2)
+//   | |-(-1)
+//   |
+//   |-while
+//   |-(+1)
+#[derive(Debug, Serialize)]
+pub enum ExprKind<'a> {
+    Tokens(&'a [MiddleToken]),
+    While(Node<'a>),
+}
+
+#[derive(Debug, Serialize)]
+pub struct Node<'a>(pub Vec<ExprKind<'a>>);
+
+pub fn node(tokens: &[MiddleToken]) -> Node<'_> {
+    fn inner(tokens: &[MiddleToken]) -> (usize, Node<'_>) // (どれだけ進んだか, Node)
+    {
+        let mut exprs = Vec::new();
+        let mut index = 0; // スライスなので0から始めても良い
+
+        let mut last_while_end = None;
+
+        while index < tokens.len() {
+            let token = &tokens[index];
+            match token {
+                MiddleToken::Token(_, _) => index += 1,
+                MiddleToken::WhileBegin => {
+                    let range = last_while_end.map(|ind| ind + 1).unwrap_or(0)..index;
+                    if !range.is_empty() {
+                        exprs.push(ExprKind::Tokens(&tokens[range]))
+                    };
+                    let (c, node) = inner(&tokens[(index + 1)..]);
+                    index += c;
+                    exprs.push(ExprKind::While(node));
+                }
+                MiddleToken::WhileEnd => {
+                    if exprs.is_empty() {
+                        exprs.push(ExprKind::Tokens(&tokens[..index]))
+                    }
+                    last_while_end = Some(index);
+                    index += 1
+                }
+            }
+        }
+        if exprs.is_empty() {
+            exprs.push(ExprKind::Tokens(&tokens[..index]))
+        }
+        (index, Node(exprs))
+    }
+    let (c, node) = inner(tokens);
+    assert_eq!(c, tokens.len());
+    node
+}
 
 #[cfg(test)]
 mod test {
