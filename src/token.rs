@@ -109,7 +109,9 @@ pub fn middle_token(tokens: &[Token]) -> Vec<MiddleToken> {
 
 #[cfg(test)]
 mod test {
-    use super::Token;
+    use crate::token::MiddleToken;
+
+    use super::{middle_token, tokenize, Token};
 
     #[test]
     fn test_token_from_char() {
@@ -129,5 +131,47 @@ mod test {
 
         helper('a', Token::Other('a'));
         helper('1', Token::Other('1'));
+    }
+
+    #[test]
+    fn test_middle_token() {
+        use Token::*;
+
+        fn helper(source: &str, assert_middle_token: &[MiddleToken]) {
+            let tokens = tokenize(source);
+            let middle_tokens = middle_token(&tokens);
+            assert_eq!(middle_tokens, assert_middle_token);
+        }
+
+        helper("", &[]);
+        helper("brainfuck", &[]);
+
+        helper("+", &[MiddleToken::Token(Increment, 1)]);
+
+        helper("+++", &[MiddleToken::Token(Increment, 3)]);
+        helper("---", &[MiddleToken::Token(Decrement, 3)]);
+        helper(">>>", &[MiddleToken::Token(PtrIncrement, 3)]);
+        helper("<<<", &[MiddleToken::Token(PtrDecrement, 3)]);
+        helper("...", &[MiddleToken::Token(Output, 3)]);
+        helper(",,,", &[MiddleToken::Token(Input, 3)]);
+
+        helper(
+            "[[]]",
+            &[
+                MiddleToken::WhileBegin,
+                MiddleToken::WhileBegin,
+                MiddleToken::WhileEnd,
+                MiddleToken::WhileEnd,
+            ],
+        );
+        helper(
+            "[+++-]",
+            &[
+                MiddleToken::WhileBegin,
+                MiddleToken::Token(Increment, 3),
+                MiddleToken::Token(Decrement, 1),
+                MiddleToken::WhileEnd,
+            ],
+        );
     }
 }
