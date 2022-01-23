@@ -4,41 +4,41 @@ use serde::Serialize;
 
 #[derive(Debug, Clone, Copy, PartialEq, Serialize)]
 pub enum Token {
-    PtrIncrement,
-    PtrDecrement,
-    Increment,
-    Decrement,
-    Output,
-    Input,
-    WhileBegin,
-    WhileEnd,
+    Greater,
+    Less,
+    Plus,
+    Minus,
+    Period,
+    Comma,
+    LeftBracket,
+    RightBracket,
     Other(char),
 }
 impl Token {
     pub fn from_char(c: char) -> Token {
         use Token::*;
         match c {
-            '>' => PtrIncrement,
-            '<' => PtrDecrement,
-            '+' => Increment,
-            '-' => Decrement,
-            '.' => Output,
-            ',' => Input,
-            '[' => WhileBegin,
-            ']' => WhileEnd,
+            '>' => Greater,
+            '<' => Less,
+            '+' => Plus,
+            '-' => Minus,
+            '.' => Period,
+            ',' => Comma,
+            '[' => LeftBracket,
+            ']' => RightBracket,
             c => Other(c),
         }
     }
     pub fn as_char(&self) -> char {
         match self {
-            Token::PtrIncrement => '>',
-            Token::PtrDecrement => '<',
-            Token::Increment => '+',
-            Token::Decrement => '-',
-            Token::Output => '.',
-            Token::Input => ',',
-            Token::WhileBegin => '[',
-            Token::WhileEnd => ']',
+            Token::Greater => '>',
+            Token::Less => '<',
+            Token::Plus => '+',
+            Token::Minus => '-',
+            Token::Period => '.',
+            Token::Comma => ',',
+            Token::LeftBracket => '[',
+            Token::RightBracket => ']',
             Token::Other(c) => *c,
         }
     }
@@ -62,13 +62,13 @@ impl MiddleToken {
             | MiddleToken::WhileBegin
             | MiddleToken::WhileEnd => None,
             MiddleToken::Token(token, count) => match token {
-                Token::PtrIncrement => Some(Instruction::PtrIncrement(count)),
-                Token::PtrDecrement => Some(Instruction::PtrDecrement(count)),
-                Token::Increment => Some(Instruction::Increment(count)),
-                Token::Decrement => Some(Instruction::Decrement(count)),
-                Token::Output => Some(Instruction::Output(count)),
-                Token::Input => Some(Instruction::Input(count)),
-                Token::WhileBegin | Token::WhileEnd | Token::Other(_) => unreachable!(),
+                Token::Greater => Some(Instruction::PtrIncrement(count)),
+                Token::Less => Some(Instruction::PtrDecrement(count)),
+                Token::Plus => Some(Instruction::Increment(count)),
+                Token::Minus => Some(Instruction::Decrement(count)),
+                Token::Period => Some(Instruction::Output(count)),
+                Token::Comma => Some(Instruction::Input(count)),
+                Token::LeftBracket | Token::RightBracket | Token::Other(_) => unreachable!(),
             },
         }
     }
@@ -86,13 +86,13 @@ pub fn middle_token(tokens: &[Token]) -> Vec<MiddleToken> {
         .copied()
     {
         match token {
-            Token::WhileBegin | Token::WhileEnd => {
+            Token::LeftBracket | Token::RightBracket => {
                 if prev_count != 0 {
                     middle_tokens.push(MiddleToken::Token(prev.unwrap(), prev_count));
                 }
                 match token {
-                    Token::WhileBegin => middle_tokens.push(MiddleToken::WhileBegin),
-                    Token::WhileEnd => middle_tokens.push(MiddleToken::WhileEnd),
+                    Token::LeftBracket => middle_tokens.push(MiddleToken::WhileBegin),
+                    Token::RightBracket => middle_tokens.push(MiddleToken::WhileEnd),
                     _ => unreachable!(),
                 }
                 prev = None;
@@ -111,7 +111,7 @@ pub fn middle_token(tokens: &[Token]) -> Vec<MiddleToken> {
             swap(&mut prev, &mut token);
 
             match token.unwrap() {
-                Token::WhileBegin | Token::WhileEnd | Token::Other(_) => (),
+                Token::LeftBracket | Token::RightBracket | Token::Other(_) => (),
                 token => middle_tokens.push(MiddleToken::Token(token, prev_count)),
             }
             prev_count = 1;
@@ -119,7 +119,7 @@ pub fn middle_token(tokens: &[Token]) -> Vec<MiddleToken> {
     }
     if let Some(token) = prev {
         match token {
-            Token::WhileBegin | Token::WhileEnd | Token::Other(_) => (),
+            Token::LeftBracket | Token::RightBracket | Token::Other(_) => (),
             token => middle_tokens.push(MiddleToken::Token(token, prev_count)),
         }
     }
@@ -237,14 +237,14 @@ mod test {
             assert_eq!(token, assert_token);
         }
 
-        helper('>', Token::PtrIncrement);
-        helper('<', Token::PtrDecrement);
-        helper('+', Token::Increment);
-        helper('-', Token::Decrement);
-        helper('.', Token::Output);
-        helper(',', Token::Input);
-        helper('[', Token::WhileBegin);
-        helper(']', Token::WhileEnd);
+        helper('>', Token::Greater);
+        helper('<', Token::Less);
+        helper('+', Token::Plus);
+        helper('-', Token::Minus);
+        helper('.', Token::Period);
+        helper(',', Token::Comma);
+        helper('[', Token::LeftBracket);
+        helper(']', Token::RightBracket);
 
         helper('a', Token::Other('a'));
         helper('1', Token::Other('1'));
@@ -262,16 +262,16 @@ mod test {
 
         helper("", &[]);
         helper("brainfuck", &[]);
-        helper("bra+inf+uck", &[MiddleToken::Token(Increment, 2)]);
+        helper("bra+inf+uck", &[MiddleToken::Token(Plus, 2)]);
 
-        helper("+", &[MiddleToken::Token(Increment, 1)]);
+        helper("+", &[MiddleToken::Token(Plus, 1)]);
 
-        helper("+++", &[MiddleToken::Token(Increment, 3)]);
-        helper("---", &[MiddleToken::Token(Decrement, 3)]);
-        helper(">>>", &[MiddleToken::Token(PtrIncrement, 3)]);
-        helper("<<<", &[MiddleToken::Token(PtrDecrement, 3)]);
-        helper("...", &[MiddleToken::Token(Output, 3)]);
-        helper(",,,", &[MiddleToken::Token(Input, 3)]);
+        helper("+++", &[MiddleToken::Token(Plus, 3)]);
+        helper("---", &[MiddleToken::Token(Minus, 3)]);
+        helper(">>>", &[MiddleToken::Token(Greater, 3)]);
+        helper("<<<", &[MiddleToken::Token(Less, 3)]);
+        helper("...", &[MiddleToken::Token(Period, 3)]);
+        helper(",,,", &[MiddleToken::Token(Comma, 3)]);
 
         helper(
             "[[]]",
@@ -286,8 +286,8 @@ mod test {
             "[+++-]",
             &[
                 MiddleToken::WhileBegin,
-                MiddleToken::Token(Increment, 3),
-                MiddleToken::Token(Decrement, 1),
+                MiddleToken::Token(Plus, 3),
+                MiddleToken::Token(Minus, 1),
                 MiddleToken::WhileEnd,
             ],
         );
