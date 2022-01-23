@@ -130,34 +130,47 @@ pub fn node(tokens: &[MiddleToken]) -> Node<'_> {
     fn inner(tokens: &[MiddleToken]) -> (usize, Node<'_>) // (どれだけ進んだか, Node)
     {
         let mut exprs = Vec::new();
-        let mut index = 0; // スライスなので0から始めても良い
-
-        let mut last_while_end = None;
+        let mut index = 0;
+        let mut last_while_end_index = None;
 
         while index < tokens.len() {
-            let token = &tokens[index];
+            let token = tokens[index];
+
             match token {
                 MiddleToken::Token(_, _) => index += 1,
                 MiddleToken::WhileBegin => {
-                    let range = last_while_end.map(|ind| ind + 1).unwrap_or(0)..index;
-                    if !range.is_empty() {
-                        exprs.push(ExprKind::Tokens(&tokens[range]))
-                    };
-                    let (c, node) = inner(&tokens[(index + 1)..]);
-                    index += c;
-                    exprs.push(ExprKind::While(node));
+                    {
+                        let sub_tokens = &tokens[..index];
+                        if !sub_tokens.is_empty() {
+                            exprs.push(ExprKind::Tokens(sub_tokens));
+                        }
+                    }
+                    {
+                        index += 1;
+                        let (count, while_node) = inner(&tokens[index..]);
+                        index += count;
+                        last_while_end_index = Some(index);
+                        exprs.push(ExprKind::While(while_node));
+                    }
                 }
                 MiddleToken::WhileEnd => {
-                    if exprs.is_empty() {
-                        exprs.push(ExprKind::Tokens(&tokens[..index]))
+                    {
+                        let sub_tokens = &tokens[..index];
+                        if !sub_tokens.is_empty() {
+                            let expr = ExprKind::Tokens(sub_tokens);
+                            exprs.push(expr)
+                        }
                     }
-                    last_while_end = Some(index);
-                    index += 1
+
+                    let node = Node(exprs);
+                    return (index + 1, node);
                 }
             }
         }
-        if exprs.is_empty() {
-            exprs.push(ExprKind::Tokens(&tokens[..index]))
+
+        let range = last_while_end_index.unwrap_or(0)..index;
+        if !range.is_empty() {
+            exprs.push(ExprKind::Tokens(&tokens[range]))
         }
         (index, Node(exprs))
     }
