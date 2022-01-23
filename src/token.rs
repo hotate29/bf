@@ -128,7 +128,7 @@ pub fn middle_token(tokens: &[Token]) -> Vec<MiddleToken> {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Serialize)]
-enum Instruction {
+pub enum Instruction {
     PtrIncrement(usize),
     PtrDecrement(usize),
     Increment(usize),
@@ -170,7 +170,7 @@ pub fn node(tokens: &[MiddleToken]) -> Node {
                 MiddleToken::Token(_, _) => index += 1,
                 MiddleToken::WhileBegin => {
                     {
-                        let sub_tokens = &tokens[..index];
+                        let sub_tokens = &tokens[last_while_end_index.unwrap_or(0)..index];
                         if !sub_tokens.is_empty() {
                             exprs.push(ExprKind::Tokens(
                                 sub_tokens
@@ -190,7 +190,7 @@ pub fn node(tokens: &[MiddleToken]) -> Node {
                 }
                 MiddleToken::WhileEnd => {
                     {
-                        let sub_tokens = &tokens[..index];
+                        let sub_tokens = &tokens[last_while_end_index.unwrap_or(0)..index];
                         if !sub_tokens.is_empty() {
                             let expr = ExprKind::Tokens(
                                 sub_tokens
