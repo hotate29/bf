@@ -303,7 +303,9 @@ mod test {
 
         helper(
             "+++",
-            Node(vec![ExprKind::Instructions(vec![Instruction::Increment(3)])]),
+            Node(vec![ExprKind::Instructions(vec![Instruction::Increment(
+                3,
+            )])]),
         );
         helper(
             "+++[]",
@@ -316,18 +318,18 @@ mod test {
             "+++[---]",
             Node(vec![
                 ExprKind::Instructions(vec![Instruction::Increment(3)]),
-                ExprKind::While(Node(vec![ExprKind::Instructions(vec![Instruction::Decrement(
-                    3,
-                )])])),
+                ExprKind::While(Node(vec![ExprKind::Instructions(vec![
+                    Instruction::Decrement(3),
+                ])])),
             ]),
         );
         helper(
             "+++[---]+++",
             Node(vec![
                 ExprKind::Instructions(vec![Instruction::Increment(3)]),
-                ExprKind::While(Node(vec![ExprKind::Instructions(vec![Instruction::Decrement(
-                    3,
-                )])])),
+                ExprKind::While(Node(vec![ExprKind::Instructions(vec![
+                    Instruction::Decrement(3),
+                ])])),
                 ExprKind::Instructions(vec![Instruction::Increment(3)]),
             ]),
         );
@@ -346,7 +348,7 @@ mod test {
             ]),
         );
         helper(
-            "+++[--[]]>>><<<[]",
+            "+++[--[]]>>><<<[.,]",
             Node(vec![
                 ExprKind::Instructions(vec![Instruction::Increment(3)]),
                 ExprKind::While(Node(vec![
@@ -357,7 +359,10 @@ mod test {
                     Instruction::PtrIncrement(3),
                     Instruction::PtrDecrement(3),
                 ]),
-                ExprKind::While(Node(vec![])),
+                ExprKind::While(Node(vec![ExprKind::Instructions(vec![
+                    Instruction::Output(1),
+                    Instruction::Input(1),
+                ])])),
             ]),
         );
     }
