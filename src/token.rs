@@ -55,6 +55,25 @@ pub enum MiddleToken {
     WhileEnd,
 }
 
+impl MiddleToken {
+    fn to_instruction(self) -> Option<Instruction> {
+        match self {
+            MiddleToken::Token(Token::Other(_), _)
+            | MiddleToken::WhileBegin
+            | MiddleToken::WhileEnd => None,
+            MiddleToken::Token(token, count) => match token {
+                Token::PtrIncrement => Some(Instruction::PtrIncrement(count)),
+                Token::PtrDecrement => Some(Instruction::PtrDecrement(count)),
+                Token::Increment => Some(Instruction::Increment(count)),
+                Token::Decrement => Some(Instruction::Decrement(count)),
+                Token::Output => Some(Instruction::Output(count)),
+                Token::Input => Some(Instruction::Input(count)),
+                Token::WhileBegin | Token::WhileEnd | Token::Other(_) => unreachable!(),
+            },
+        }
+    }
+}
+
 pub fn middle_token(tokens: &[Token]) -> Vec<MiddleToken> {
     let mut middle_tokens = Vec::new();
 
@@ -107,6 +126,17 @@ pub fn middle_token(tokens: &[Token]) -> Vec<MiddleToken> {
 
     middle_tokens
 }
+
+#[derive(Debug, Clone, Copy, PartialEq, Serialize)]
+enum Instruction {
+    PtrIncrement(usize),
+    PtrDecrement(usize),
+    Increment(usize),
+    Decrement(usize),
+    Output(usize),
+    Input(usize),
+}
+
 // [++[>>]-][]+
 // root Node
 //   |-while
@@ -118,16 +148,16 @@ pub fn middle_token(tokens: &[Token]) -> Vec<MiddleToken> {
 //   |-while
 //   |-(+1)
 #[derive(Debug, Serialize)]
-pub enum ExprKind<'a> {
-    Tokens(&'a [MiddleToken]),
-    While(Node<'a>),
+pub enum ExprKind {
+    Tokens(Vec<Instruction>),
+    While(Node),
 }
 
 #[derive(Debug, Serialize)]
-pub struct Node<'a>(pub Vec<ExprKind<'a>>);
+pub struct Node(pub Vec<ExprKind>);
 
-pub fn node(tokens: &[MiddleToken]) -> Node<'_> {
-    fn inner(tokens: &[MiddleToken]) -> (usize, Node<'_>) // (どれだけ進んだか, Node)
+pub fn node(tokens: &[MiddleToken]) -> Node {
+    fn inner(tokens: &[MiddleToken]) -> (usize, Node) // (どれだけ進んだか, Node)
     {
         let mut exprs = Vec::new();
         let mut index = 0;
@@ -142,7 +172,12 @@ pub fn node(tokens: &[MiddleToken]) -> Node<'_> {
                     {
                         let sub_tokens = &tokens[..index];
                         if !sub_tokens.is_empty() {
-                            exprs.push(ExprKind::Tokens(sub_tokens));
+                            exprs.push(ExprKind::Tokens(
+                                sub_tokens
+                                    .iter()
+                                    .map(|token| token.to_instruction().unwrap())
+                                    .collect(),
+                            ));
                         }
                     }
                     {
@@ -157,7 +192,12 @@ pub fn node(tokens: &[MiddleToken]) -> Node<'_> {
                     {
                         let sub_tokens = &tokens[..index];
                         if !sub_tokens.is_empty() {
-                            let expr = ExprKind::Tokens(sub_tokens);
+                            let expr = ExprKind::Tokens(
+                                sub_tokens
+                                    .iter()
+                                    .map(|token| token.to_instruction().unwrap())
+                                    .collect(),
+                            );
                             exprs.push(expr)
                         }
                     }
@@ -170,7 +210,12 @@ pub fn node(tokens: &[MiddleToken]) -> Node<'_> {
 
         let range = last_while_end_index.unwrap_or(0)..index;
         if !range.is_empty() {
-            exprs.push(ExprKind::Tokens(&tokens[range]))
+            exprs.push(ExprKind::Tokens(
+                tokens[range]
+                    .iter()
+                    .map(|token| token.to_instruction().unwrap())
+                    .collect(),
+            ))
         }
         (index, Node(exprs))
     }
