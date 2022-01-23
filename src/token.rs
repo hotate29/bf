@@ -147,13 +147,13 @@ pub enum Instruction {
 //   |
 //   |-while
 //   |-(+1)
-#[derive(Debug, Serialize)]
+#[derive(Debug, PartialEq, Serialize)]
 pub enum ExprKind {
     Tokens(Vec<Instruction>),
     While(Node),
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, PartialEq, Serialize)]
 pub struct Node(pub Vec<ExprKind>);
 
 pub fn node(tokens: &[MiddleToken]) -> Node {
