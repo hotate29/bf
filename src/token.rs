@@ -61,7 +61,11 @@ pub fn middle_token(tokens: &[Token]) -> Vec<MiddleToken> {
     let mut prev = None;
     let mut prev_count = 0;
 
-    for token in tokens.iter().copied() {
+    for token in tokens
+        .iter()
+        .filter(|token| !matches!(token, Token::Other(_)))
+        .copied()
+    {
         match token {
             Token::WhileBegin | Token::WhileEnd => {
                 if prev_count != 0 {
@@ -200,6 +204,7 @@ mod test {
 
         helper("", &[]);
         helper("brainfuck", &[]);
+        helper("bra+inf+uck", &[MiddleToken::Token(Increment, 2)]);
 
         helper("+", &[MiddleToken::Token(Increment, 1)]);
 
