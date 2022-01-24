@@ -31,3 +31,23 @@ fn opt_zeroset(expr: &ExprKind) -> Option<ExprKind> {
 
     None
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::token::{ExprKind, Instruction, Node};
+
+    use super::opt_zeroset;
+
+    #[test]
+    fn test_opt_zeroset() {
+        let expr = ExprKind::While(Node(vec![ExprKind::Instructions(vec![
+            Instruction::Decrement(1),
+        ])]));
+
+        let optimized_expr = opt_zeroset(&expr).unwrap();
+        assert_eq!(
+            optimized_expr,
+            ExprKind::Instructions(vec![Instruction::SetValue(0)])
+        );
+    }
+}
