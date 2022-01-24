@@ -135,6 +135,7 @@ pub enum Instruction {
     Decrement(usize),
     Output(usize),
     Input(usize),
+    SetValue(u8),
 }
 
 // [++[>>]-][]+
@@ -147,13 +148,13 @@ pub enum Instruction {
 //   |
 //   |-while
 //   |-(+1)
-#[derive(Debug, PartialEq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Serialize)]
 pub enum ExprKind {
     Instructions(Vec<Instruction>),
     While(Node),
 }
 
-#[derive(Debug, PartialEq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct Node(pub Vec<ExprKind>);
 
 pub fn node(tokens: &[MiddleToken]) -> Node {

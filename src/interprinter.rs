@@ -19,6 +19,9 @@ impl State {
     fn pointer_sub(&mut self, value: usize) {
         self.pointer -= value;
     }
+    fn set_value(&mut self, value: u8) {
+        self.memory[self.pointer] = value
+    }
     fn output(&self) {
         print!(
             "{}",
@@ -29,7 +32,7 @@ impl State {
     fn input(&mut self) {
         let mut buf = [0];
         stdin().read_exact(&mut buf).unwrap();
-        self.memory[self.pointer] = buf[0];
+        self.set_value(buf[0]);
     }
 }
 
@@ -71,6 +74,7 @@ impl InterPrinter {
                                         state.input()
                                     }
                                 }
+                                Instruction::SetValue(v) => state.set_value(*v),
                             }
                         }
                     }
