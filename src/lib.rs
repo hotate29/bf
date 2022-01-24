@@ -1,3 +1,3 @@
-mod interprinter;
-mod optimize;
-mod token;
+pub mod interprinter;
+pub mod optimize;
+pub mod token;
