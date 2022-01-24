@@ -89,5 +89,11 @@ mod tests {
             optimized_expr,
             ExprKind::Instructions(vec![Instruction::SetToValue(0, 0)])
         );
+
+        let expr = ExprKind::While(Node(vec![ExprKind::Instructions(vec![
+            Instruction::PtrIncrement(1),
+        ])]));
+
+        assert!(opt_zeroset(&expr).is_none());
     }
 }
