@@ -24,6 +24,9 @@ impl<R: Read, W: Write> State<R, W> {
     fn set_value(&mut self, value: u8) {
         self.memory[self.pointer] = value
     }
+    fn set_to_value(&mut self, offset: usize, value: u8) {
+        self.memory[self.pointer + offset] = value;
+    }
     fn output(&mut self) {
         write!(
             self.output_writer,
@@ -81,6 +84,9 @@ impl<R: Read, W: Write> InterPrinter<R, W> {
                                     }
                                 }
                                 Instruction::SetValue(v) => state.set_value(*v),
+                                Instruction::SetToValue(offset, v) => {
+                                    state.set_to_value(*offset, *v)
+                                }
                             }
                         }
                     }
