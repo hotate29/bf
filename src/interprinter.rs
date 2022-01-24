@@ -1,4 +1,4 @@
-use crate::token::{middle_token, node, tokenize, ExprKind, Instruction, Node};
+use crate::token::{ExprKind, Instruction, Node};
 
 use std::io::{prelude::*, stdin, stdout};
 
@@ -38,11 +38,7 @@ pub struct InterPrinter {
     root_node: Node,
 }
 impl InterPrinter {
-    pub fn new(source: &str, memory_len: usize) -> Self {
-        let tokens = tokenize(source);
-        let middle_tokens = middle_token(&tokens);
-        let root_node = node(&middle_tokens);
-
+    pub fn new(root_node: Node, memory_len: usize) -> Self {
         let state = State {
             pointer: 0,
             memory: vec![0; memory_len],
