@@ -39,6 +39,7 @@ fn opt_zeroset(expr: &ExprKind) -> Option<ExprKind> {
     }
 }
 
+/// +n[-x>+m<x]>をSetToValue(x, n*m)に変換する
 fn opt_set_value(node: &Node) -> Option<Node> {
     for i in 0..node.0.len() {
         let front_kinds = &node.0[0..i];
