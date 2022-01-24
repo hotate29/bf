@@ -73,7 +73,7 @@ fn opt_set_value(node: &Node) -> Option<Node> {
 }
 
 #[cfg(test)]
-mod tests {
+mod test {
     use crate::token::{ExprKind, Instruction, Node};
 
     use super::{opt_set_value, opt_zeroset};
