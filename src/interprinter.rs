@@ -89,14 +89,13 @@ impl<R: Read, W: Write> InterPrinter<R, W> {
                                         state.input()
                                     }
                                 }
-                                Instruction::SetValue(v) => state.set_value(*v),
                                 Instruction::SetToValue(offset, v) => {
                                     state.set_to_value(*offset, *v)
                                 }
                             }
                         }
                     }
-                    crate::token::ExprKind::While(node) => {
+                    ExprKind::While(node) => {
                         while state.memory[state.pointer] != 0 {
                             inner(state, node)
                         }

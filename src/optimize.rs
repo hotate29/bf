@@ -31,7 +31,7 @@ fn opt_zeroset(expr: &ExprKind) -> Option<ExprKind> {
         if let [ExprKind::Instructions(instructions)] = while_node.0.as_slice();
         if let [Instruction::Decrement(1)] = instructions.as_slice();
         then {
-            Some(ExprKind::Instructions(vec![Instruction::SetValue(0)]))
+            Some(ExprKind::Instructions(vec![Instruction::SetToValue(0, 0)]))
         }
         else {
             None
@@ -87,7 +87,7 @@ mod tests {
         let optimized_expr = opt_zeroset(&expr).unwrap();
         assert_eq!(
             optimized_expr,
-            ExprKind::Instructions(vec![Instruction::SetValue(0)])
+            ExprKind::Instructions(vec![Instruction::SetToValue(0, 0)])
         );
     }
 }

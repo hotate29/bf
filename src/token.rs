@@ -135,7 +135,6 @@ pub enum Instruction {
     Decrement(usize),
     Output(usize),
     Input(usize),
-    SetValue(u8),
     SetToValue(usize, u8),
 }
 
