@@ -1,20 +1,20 @@
 use crate::token::{ExprKind, Instruction, Node};
 
 pub fn optimize(mut root_node: Node) -> Node {
-    fn inner(expr: &mut ExprKind) {
-        if let Some(optimized_node) = opt_zeroset(expr) {
-            *expr = optimized_node;
-        }
-        if let ExprKind::While(while_node) = expr {
-            for expr in &mut while_node.0 {
-                inner(expr)
+    fn inner(node: &mut Node) {
+        for expr in &mut node.0 {
+            // ExprKindを最適化する
+            if let Some(optimized_expr) = opt_zeroset(expr) {
+                *expr = optimized_expr;
+            }
+
+            if let ExprKind::While(while_node) = expr {
+                inner(while_node);
             }
         }
     }
 
-    for expr in &mut root_node.0 {
-        inner(expr);
-    }
+    inner(&mut root_node);
 
     root_node
 }
