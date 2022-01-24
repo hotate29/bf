@@ -17,6 +17,9 @@ impl<R: Read, W: Write> State<R, W> {
     }
     fn pointer_add(&mut self, value: usize) {
         self.pointer += value;
+        if self.pointer >= self.memory.len() {
+            self.memory.resize(self.memory.len() * 2 + value, 0);
+        }
     }
     fn pointer_sub(&mut self, value: usize) {
         self.pointer -= value;
@@ -25,6 +28,9 @@ impl<R: Read, W: Write> State<R, W> {
         self.memory[self.pointer] = value
     }
     fn set_to_value(&mut self, offset: usize, value: u8) {
+        if self.pointer + offset >= self.memory.len() {
+            self.memory.resize(self.memory.len() * 2 + offset, 0);
+        }
         self.memory[self.pointer + offset] = value;
     }
     fn output(&mut self) {
@@ -48,10 +54,10 @@ pub struct InterPrinter<R: Read, W: Write> {
     root_node: Node,
 }
 impl<R: Read, W: Write> InterPrinter<R, W> {
-    pub fn new(root_node: Node, memory_len: usize, input: R, output: W) -> Self {
+    pub fn new(root_node: Node, input: R, output: W) -> Self {
         let state = State {
             pointer: 0,
-            memory: vec![0; memory_len],
+            memory: vec![0],
             input_reader: input,
             output_writer: output,
         };
