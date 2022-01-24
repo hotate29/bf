@@ -76,7 +76,7 @@ fn opt_set_value(node: &Node) -> Option<Node> {
 mod tests {
     use crate::token::{ExprKind, Instruction, Node};
 
-    use super::opt_zeroset;
+    use super::{opt_set_value, opt_zeroset};
 
     #[test]
     fn test_opt_zeroset() {
@@ -95,5 +95,41 @@ mod tests {
         ])]));
 
         assert!(opt_zeroset(&expr).is_none());
+    }
+
+    #[test]
+    fn test_opt_set_value() {
+        let node = Node(vec![
+            ExprKind::Instructions(vec![Instruction::Increment(10)]),
+            ExprKind::While(Node(vec![ExprKind::Instructions(vec![
+                Instruction::Decrement(1),
+                Instruction::PtrIncrement(1),
+                Instruction::Increment(10),
+                Instruction::PtrDecrement(1),
+            ])])),
+            ExprKind::Instructions(vec![Instruction::PtrIncrement(1)]),
+        ]);
+
+        let assert_node = Node(vec![ExprKind::Instructions(vec![
+            Instruction::SetToValue(1, 100),
+            Instruction::PtrIncrement(1),
+        ])]);
+
+        if let Some(optimized_node) = opt_set_value(&node) {
+            assert_eq!(optimized_node, assert_node);
+        }
+
+        let node = Node(vec![
+            ExprKind::Instructions(vec![Instruction::Increment(10)]),
+            ExprKind::While(Node(vec![ExprKind::Instructions(vec![
+                Instruction::Decrement(1),
+                Instruction::PtrIncrement(1),
+                Instruction::Increment(10),
+                Instruction::PtrDecrement(2),
+            ])])),
+            ExprKind::Instructions(vec![Instruction::PtrIncrement(1)]),
+        ]);
+
+        assert!(opt_set_value(&node).is_none());
     }
 }
