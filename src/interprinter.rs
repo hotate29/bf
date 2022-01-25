@@ -57,7 +57,7 @@ impl<R: Read, W: Write> InterPrinter<R, W> {
     pub fn new(root_node: Node, input: R, output: W) -> Self {
         let state = State {
             pointer: 0,
-            memory: vec![0],
+            memory: vec![0; 30000],
             input_reader: input,
             output_writer: output,
         };
