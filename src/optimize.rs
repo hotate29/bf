@@ -103,21 +103,23 @@ mod test {
 
     #[test]
     fn test_opt_zeroset() {
-        let expr = ExprKind::While(Node(vec![ExprKind::Instructions(vec![Instruction::Sub(
-            1,
-        )])]));
+        fn helper(source: &str, assert_expr: Option<ExprKind>) {
+            let tokens = tokenize(source);
+            let middle_tokens = middle_token(&tokens);
+            let root_node = node(&middle_tokens);
+            if let [expr] = root_node.0.as_slice() {
+                let optimized_expr = opt_zeroset(expr);
+                assert_eq!(optimized_expr, assert_expr);
+            } else {
+                panic!("変なテストデータ")
+            }
+        }
 
-        let optimized_expr = opt_zeroset(&expr).unwrap();
-        assert_eq!(
-            optimized_expr,
-            ExprKind::Instructions(vec![Instruction::SetValue(0, 0)])
+        helper(
+            "[-]",
+            Some(ExprKind::Instructions(vec![Instruction::SetValue(0, 0)])),
         );
-
-        let expr = ExprKind::While(Node(vec![ExprKind::Instructions(vec![
-            Instruction::PtrIncrement(1),
-        ])]));
-
-        assert!(opt_zeroset(&expr).is_none());
+        helper("[>]", None);
     }
 
     #[test]
