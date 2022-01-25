@@ -9,7 +9,7 @@ use bf::optimize::optimize;
 use bf::token::{middle_token, node, tokenize};
 
 #[bench]
-fn test_not_optimize_mandelbrot(bencher: &mut test::Bencher) {
+fn bench_not_optimize_mandelbrot(bencher: &mut test::Bencher) {
     let source = fs::read_to_string("mandelbrot.bf").unwrap();
 
     let tokens = tokenize(&source);
@@ -22,7 +22,7 @@ fn test_not_optimize_mandelbrot(bencher: &mut test::Bencher) {
 }
 
 #[bench]
-fn test_optimized_mandelbrot(bencher: &mut test::Bencher) {
+fn bench_optimized_mandelbrot(bencher: &mut test::Bencher) {
     let source = fs::read_to_string("mandelbrot.bf").unwrap();
 
     let tokens = tokenize(&source);
