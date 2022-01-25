@@ -97,7 +97,7 @@ fn opt_move_add(expr: &ExprKind) -> Option<ExprKind> {
 
 #[cfg(test)]
 mod test {
-    use crate::token::{ExprKind, Instruction, Node};
+    use crate::token::{middle_token, node, tokenize, ExprKind, Instruction, Node};
 
     use super::{opt_set_value, opt_zeroset};
 
@@ -122,37 +122,31 @@ mod test {
 
     #[test]
     fn test_opt_set_value() {
-        let node = Node(vec![
-            ExprKind::Instructions(vec![Instruction::Add(10)]),
-            ExprKind::While(Node(vec![ExprKind::Instructions(vec![
-                Instruction::Sub(1),
-                Instruction::PtrIncrement(1),
-                Instruction::Add(10),
-                Instruction::PtrDecrement(1),
-            ])])),
-            ExprKind::Instructions(vec![Instruction::PtrIncrement(1)]),
-        ]);
+        fn helper(source: &str, assert_node: Option<Node>) {
+            let tokens = tokenize(source);
+            let middle_tokens = middle_token(&tokens);
+            let root_node = node(&middle_tokens);
 
-        let assert_node = Node(vec![ExprKind::Instructions(vec![
-            Instruction::SetValue(1, 100),
-            Instruction::PtrIncrement(1),
-        ])]);
-
-        if let Some(optimized_node) = opt_set_value(&node) {
+            let optimized_node = opt_set_value(&root_node);
             assert_eq!(optimized_node, assert_node);
         }
-
-        let node = Node(vec![
-            ExprKind::Instructions(vec![Instruction::Add(10)]),
-            ExprKind::While(Node(vec![ExprKind::Instructions(vec![
-                Instruction::Sub(1),
+        helper(
+            ">++++++++++[->++++++++++<]>",
+            Some(Node(vec![ExprKind::Instructions(vec![
                 Instruction::PtrIncrement(1),
-                Instruction::Add(10),
-                Instruction::PtrDecrement(2),
+                Instruction::SetValue(1, 100),
+                Instruction::PtrIncrement(1),
             ])])),
-            ExprKind::Instructions(vec![Instruction::PtrIncrement(1)]),
-        ]);
+        );
+        helper(
+            ">++[->+++<]>",
+            Some(Node(vec![ExprKind::Instructions(vec![
+                Instruction::PtrIncrement(1),
+                Instruction::SetValue(1, 6),
+                Instruction::PtrIncrement(1),
+            ])])),
+        );
 
-        assert!(opt_set_value(&node).is_none());
+        helper("++++++++++[->+++++++++<<]>", None);
     }
 }
