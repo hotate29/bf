@@ -9,6 +9,12 @@ struct State<R: Read, W: Write> {
     output_writer: W,
 }
 impl<R: Read, W: Write> State<R, W> {
+    fn at(&mut self, offset: usize) -> u8 {
+        if self.memory.len() <= self.pointer + offset {
+            self.memory.resize(self.pointer * 2 + offset, 0);
+        }
+        self.memory[self.pointer + offset]
+    }
     fn at_mut(&mut self, offset: usize) -> &mut u8 {
         if self.memory.len() <= self.pointer + offset {
             self.memory.resize(self.pointer * 2 + offset, 0);
@@ -25,7 +31,7 @@ impl<R: Read, W: Write> State<R, W> {
     }
     fn pointer_add(&mut self, value: usize) {
         self.pointer += value;
-        self.at_mut(0); // メモリーを伸ばす
+        self.at(0); // メモリーを伸ばす
     }
     fn pointer_sub(&mut self, value: usize) {
         self.pointer -= value;
@@ -89,9 +95,7 @@ impl<R: Read, W: Write> InterPrinter<R, W> {
                                         state.input()
                                     }
                                 }
-                                Instruction::SetValue(offset, v) => {
-                                    state.set_to_value(*offset, *v)
-                                }
+                                Instruction::SetValue(offset, v) => state.set_to_value(*offset, *v),
                             }
                         }
                     }
