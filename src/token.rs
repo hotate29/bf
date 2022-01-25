@@ -135,7 +135,7 @@ pub enum Instruction {
     Decrement(usize),
     Output(usize),
     Input(usize),
-    SetToValue(usize, u8),
+    SetValue(usize, u8),
 }
 
 // [++[>>]-][]+

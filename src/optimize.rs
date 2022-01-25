@@ -31,7 +31,7 @@ fn opt_zeroset(expr: &ExprKind) -> Option<ExprKind> {
         if let [ExprKind::Instructions(instructions)] = while_node.0.as_slice();
         if let [Instruction::Decrement(1)] = instructions.as_slice();
         then {
-            Some(ExprKind::Instructions(vec![Instruction::SetToValue(0, 0)]))
+            Some(ExprKind::Instructions(vec![Instruction::SetValue(0, 0)]))
         }
         else {
             None
@@ -59,7 +59,7 @@ fn opt_set_value(node: &Node) -> Option<Node> {
                 let mut node_kinds = front_kinds.to_vec();
 
                 let mut instructions = front_instructions.to_vec();
-                instructions.push(Instruction::SetToValue(*ptrinc_count, x));
+                instructions.push(Instruction::SetValue(*ptrinc_count, x));
                 instructions.extend_from_slice(s);
                 node_kinds.push(ExprKind::Instructions(instructions));
 
@@ -88,7 +88,7 @@ mod test {
         let optimized_expr = opt_zeroset(&expr).unwrap();
         assert_eq!(
             optimized_expr,
-            ExprKind::Instructions(vec![Instruction::SetToValue(0, 0)])
+            ExprKind::Instructions(vec![Instruction::SetValue(0, 0)])
         );
 
         let expr = ExprKind::While(Node(vec![ExprKind::Instructions(vec![
@@ -112,7 +112,7 @@ mod test {
         ]);
 
         let assert_node = Node(vec![ExprKind::Instructions(vec![
-            Instruction::SetToValue(1, 100),
+            Instruction::SetValue(1, 100),
             Instruction::PtrIncrement(1),
         ])]);
 

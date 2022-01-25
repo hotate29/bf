@@ -89,7 +89,7 @@ impl<R: Read, W: Write> InterPrinter<R, W> {
                                         state.input()
                                     }
                                 }
-                                Instruction::SetToValue(offset, v) => {
+                                Instruction::SetValue(offset, v) => {
                                     state.set_to_value(*offset, *v)
                                 }
                             }
