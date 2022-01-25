@@ -9,29 +9,29 @@ struct State<R: Read, W: Write> {
     output_writer: W,
 }
 impl<R: Read, W: Write> State<R, W> {
-    fn at(&mut self, offset: usize) -> &mut u8 {
+    fn at_mut(&mut self, offset: usize) -> &mut u8 {
         if self.memory.len() <= self.pointer + offset {
             self.memory.resize(self.pointer * 2 + offset, 0);
         }
         &mut self.memory[self.pointer + offset]
     }
     fn add(&mut self, value: u8) {
-        let a = self.at(0);
+        let a = self.at_mut(0);
         *a = a.wrapping_add(value);
     }
     fn sub(&mut self, value: u8) {
-        let a = self.at(0);
+        let a = self.at_mut(0);
         *a = a.wrapping_sub(value);
     }
     fn pointer_add(&mut self, value: usize) {
         self.pointer += value;
-        self.at(0); // メモリーを伸ばす
+        self.at_mut(0); // メモリーを伸ばす
     }
     fn pointer_sub(&mut self, value: usize) {
         self.pointer -= value;
     }
     fn set_to_value(&mut self, offset: usize, value: u8) {
-        *self.at(offset) = value;
+        *self.at_mut(offset) = value;
     }
     fn output(&mut self) {
         write!(
@@ -45,7 +45,7 @@ impl<R: Read, W: Write> State<R, W> {
     fn input(&mut self) {
         let mut buf = [0];
         self.input_reader.read_exact(&mut buf).unwrap();
-        *self.at(0) = buf[0];
+        *self.at_mut(0) = buf[0];
     }
 }
 
