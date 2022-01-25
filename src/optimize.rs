@@ -97,7 +97,10 @@ fn opt_move_add(expr: &ExprKind) -> Option<ExprKind> {
 
 #[cfg(test)]
 mod test {
-    use crate::token::{middle_token, node, tokenize, ExprKind, Instruction, Node};
+    use crate::{
+        optimize::opt_move_add,
+        token::{middle_token, node, tokenize, ExprKind, Instruction, Node},
+    };
 
     use super::{opt_set_value, opt_zeroset};
 
@@ -150,5 +153,37 @@ mod test {
         );
 
         helper("++++++++++[->+++++++++<<]>", None);
+    }
+
+    #[test]
+    fn test_opt_move_add() {
+        fn helper(source: &str, assert_expr: Option<ExprKind>) {
+            let tokens = tokenize(source);
+            let middle_tokens = middle_token(&tokens);
+            let root_node = node(&middle_tokens);
+            if let [expr] = root_node.0.as_slice() {
+                let optimized_expr = opt_move_add(expr);
+                assert_eq!(optimized_expr, assert_expr);
+            } else {
+                panic!("変なテストデータ")
+            }
+        }
+
+        helper(
+            "[->+<]",
+            Some(ExprKind::Instructions(vec![
+                Instruction::AddTo(1),
+                Instruction::SetValue(0, 0),
+            ])),
+        );
+        helper(
+            "[->>>>>>>>>>+<<<<<<<<<<]",
+            Some(ExprKind::Instructions(vec![
+                Instruction::AddTo(10),
+                Instruction::SetValue(0, 0),
+            ])),
+        );
+
+        helper("[->+<<]", None);
     }
 }
