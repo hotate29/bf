@@ -12,6 +12,9 @@ pub fn optimize(mut root_node: Node) -> Node {
             if let Some(optimized_expr) = opt_zeroset(expr) {
                 *expr = optimized_expr;
             }
+            if let Some(optimized_expr) = opt_move_add(expr) {
+                *expr = optimized_expr;
+            }
 
             if let ExprKind::While(while_node) = expr {
                 inner(while_node);
@@ -71,6 +74,25 @@ fn opt_set_value(node: &Node) -> Option<Node> {
         }
     }
     None
+}
+
+fn opt_move_add(expr: &ExprKind) -> Option<ExprKind> {
+    if_chain! {
+        if let ExprKind::While(while_node) = expr;
+        if let [ExprKind::Instructions(while_instructions)] = while_node.0.as_slice();
+        if let [Instruction::Sub(1), Instruction::PtrIncrement(ptr_increment), Instruction::Add(1), Instruction::PtrDecrement(ptr_decrement)] = while_instructions.as_slice();
+        if ptr_increment == ptr_decrement;
+        then {
+            let optimized_expr = ExprKind::Instructions(vec![
+                Instruction::AddTo(*ptr_increment),
+                Instruction::SetValue(0, 0),
+            ]);
+            Some(optimized_expr)
+        }
+        else {
+            None
+        }
+    }
 }
 
 #[cfg(test)]
