@@ -25,6 +25,10 @@ impl<R: Read, W: Write> State<R, W> {
         let a = self.at_mut(0);
         *a = a.wrapping_add(value);
     }
+    fn add_offset(&mut self, offset: usize, value: u8) {
+        let a = self.at_mut(offset);
+        *a = a.wrapping_add(value);
+    }
     fn sub(&mut self, value: u8) {
         let a = self.at_mut(0);
         *a = a.wrapping_sub(value);
@@ -81,6 +85,10 @@ impl<R: Read, W: Write> InterPrinter<R, W> {
                                 Instruction::PtrDecrement(n) => state.pointer_sub(*n),
                                 Instruction::Add(n) => {
                                     state.add((n % u8::MAX as usize) as u8);
+                                }
+                                Instruction::AddTo(offset) => {
+                                    let from = state.at(0);
+                                    state.add_offset(*offset, from);
                                 }
                                 Instruction::Sub(n) => {
                                     state.sub((n % u8::MAX as usize) as u8);

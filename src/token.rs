@@ -132,6 +132,7 @@ pub enum Instruction {
     PtrIncrement(usize),
     PtrDecrement(usize),
     Add(usize),
+    AddTo(usize),
     Sub(usize),
     Output(usize),
     Input(usize),
