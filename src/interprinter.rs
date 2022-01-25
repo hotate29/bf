@@ -115,3 +115,62 @@ impl<R: Read, W: Write> InterPrinter<R, W> {
         inner(&mut self.state, &self.root_node);
     }
 }
+
+#[cfg(test)]
+mod test {
+    use std::{fs, io};
+
+    use crate::{
+        optimize::optimize,
+        token::{middle_token, node, tokenize},
+    };
+
+    use super::InterPrinter;
+
+    #[test]
+    fn test_memory_extend() {
+        let source = ">".repeat(30001);
+        let tokens = tokenize(&source);
+        let middle_tokens = middle_token(&tokens);
+        let root_node = node(&middle_tokens);
+
+        InterPrinter::new(root_node, io::empty(), io::sink()).start();
+    }
+
+    // デバックビルドだとめちゃくちゃ時間がかかるので、デフォルトでは実行しないようになっている
+    // 実行する場合は、`cargo test --release -- --ignored`
+    #[test]
+    #[ignore]
+    fn test_interprinter_mandelbrot() {
+        let mandelbrot_source = fs::read_to_string("mandelbrot.bf").unwrap();
+        let assert_mandelbrot = fs::read_to_string("mandelbrot").unwrap();
+
+        let tokens = tokenize(&mandelbrot_source);
+        let middle_tokens = middle_token(&tokens);
+        let root_node = node(&middle_tokens);
+
+        let mut output_buffer = Vec::new();
+        InterPrinter::new(root_node, io::empty(), &mut output_buffer).start();
+
+        let output_string = String::from_utf8(output_buffer).unwrap();
+        assert_eq!(output_string, assert_mandelbrot);
+    }
+
+    #[test]
+    #[ignore]
+    fn test_optimized_interprinter_mandelbrot() {
+        let mandelbrot_source = fs::read_to_string("mandelbrot.bf").unwrap();
+        let assert_mandelbrot = fs::read_to_string("mandelbrot").unwrap();
+
+        let tokens = tokenize(&mandelbrot_source);
+        let middle_tokens = middle_token(&tokens);
+        let root_node = node(&middle_tokens);
+        let root_node = optimize(root_node);
+
+        let mut output_buffer = Vec::new();
+        InterPrinter::new(root_node, io::empty(), &mut output_buffer).start();
+
+        let output_string = String::from_utf8(output_buffer).unwrap();
+        assert_eq!(output_string, assert_mandelbrot);
+    }
+}
