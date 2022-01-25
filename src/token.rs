@@ -1,4 +1,7 @@
-use std::mem::swap;
+use std::{
+    fmt::{Display, Write},
+    mem::swap,
+};
 
 use serde::Serialize;
 
@@ -70,6 +73,19 @@ impl MiddleToken {
                 Token::Comma => Some(Instruction::Input(count)),
                 Token::LeftBracket | Token::RightBracket | Token::Other(_) => unreachable!(),
             },
+        }
+    }
+}
+
+impl Display for MiddleToken {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            MiddleToken::Token(token, count) => match token {
+                Token::LeftBracket | Token::RightBracket | Token::Other(_) => unreachable!(),
+                token => token.as_char().to_string().repeat(*count).fmt(f),
+            },
+            MiddleToken::WhileBegin => f.write_char('['),
+            MiddleToken::WhileEnd => f.write_char(']'),
         }
     }
 }
