@@ -29,7 +29,7 @@ fn opt_zeroset(expr: &ExprKind) -> Option<ExprKind> {
     if_chain! {
         if let ExprKind::While(while_node) = expr;
         if let [ExprKind::Instructions(instructions)] = while_node.0.as_slice();
-        if let [Instruction::Decrement(1)] = instructions.as_slice();
+        if let [Instruction::Sub(1)] = instructions.as_slice();
         then {
             Some(ExprKind::Instructions(vec![Instruction::SetValue(0, 0)]))
         }
@@ -49,7 +49,7 @@ fn opt_set_value(node: &Node) -> Option<Node> {
             &node.0.as_slice();
             if let [front_instructions @ .., Instruction::Add(n)] = instructions.as_slice();
             if let [ExprKind::Instructions(while_instructions)] = while_node.0.as_slice();
-            if let [Instruction::Decrement(1), Instruction::PtrIncrement(ptrinc_count), Instruction::Add(x), Instruction::PtrDecrement(ptrdec_count)] = while_instructions.as_slice();
+            if let [Instruction::Sub(1), Instruction::PtrIncrement(ptrinc_count), Instruction::Add(x), Instruction::PtrDecrement(ptrdec_count)] = while_instructions.as_slice();
             if ptrinc_count == ptrdec_count;
             then {
                 eprintln!("a {} {} {}", n * x, n, x);
@@ -81,9 +81,9 @@ mod test {
 
     #[test]
     fn test_opt_zeroset() {
-        let expr = ExprKind::While(Node(vec![ExprKind::Instructions(vec![
-            Instruction::Decrement(1),
-        ])]));
+        let expr = ExprKind::While(Node(vec![ExprKind::Instructions(vec![Instruction::Sub(
+            1,
+        )])]));
 
         let optimized_expr = opt_zeroset(&expr).unwrap();
         assert_eq!(
@@ -103,7 +103,7 @@ mod test {
         let node = Node(vec![
             ExprKind::Instructions(vec![Instruction::Add(10)]),
             ExprKind::While(Node(vec![ExprKind::Instructions(vec![
-                Instruction::Decrement(1),
+                Instruction::Sub(1),
                 Instruction::PtrIncrement(1),
                 Instruction::Add(10),
                 Instruction::PtrDecrement(1),
@@ -123,7 +123,7 @@ mod test {
         let node = Node(vec![
             ExprKind::Instructions(vec![Instruction::Add(10)]),
             ExprKind::While(Node(vec![ExprKind::Instructions(vec![
-                Instruction::Decrement(1),
+                Instruction::Sub(1),
                 Instruction::PtrIncrement(1),
                 Instruction::Add(10),
                 Instruction::PtrDecrement(2),

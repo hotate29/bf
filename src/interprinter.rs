@@ -76,7 +76,7 @@ impl<R: Read, W: Write> InterPrinter<R, W> {
                                 Instruction::Add(n) => {
                                     state.add((n % u8::MAX as usize) as u8);
                                 }
-                                Instruction::Decrement(n) => {
+                                Instruction::Sub(n) => {
                                     state.sub((n % u8::MAX as usize) as u8);
                                 }
                                 Instruction::Output(n) => {
