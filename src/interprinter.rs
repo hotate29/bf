@@ -24,9 +24,6 @@ impl<R: Read, W: Write> State<R, W> {
     fn pointer_sub(&mut self, value: usize) {
         self.pointer -= value;
     }
-    fn set_value(&mut self, value: u8) {
-        self.memory[self.pointer] = value
-    }
     fn set_to_value(&mut self, offset: usize, value: u8) {
         if self.pointer + offset >= self.memory.len() {
             self.memory.resize(self.memory.len() * 2 + offset, 0);
@@ -45,7 +42,7 @@ impl<R: Read, W: Write> State<R, W> {
     fn input(&mut self) {
         let mut buf = [0];
         self.input_reader.read_exact(&mut buf).unwrap();
-        self.set_value(buf[0]);
+        self.set_to_value(0, buf[0]);
     }
 }
 
