@@ -47,9 +47,9 @@ fn opt_set_value(node: &Node) -> Option<Node> {
         if_chain! {
             if let &[ExprKind::Instructions(instructions), ExprKind::While(while_node), ExprKind::Instructions(s), last_kinds @ ..] =
             &node.0.as_slice();
-            if let [front_instructions @ .., Instruction::Increment(n)] = instructions.as_slice();
+            if let [front_instructions @ .., Instruction::Add(n)] = instructions.as_slice();
             if let [ExprKind::Instructions(while_instructions)] = while_node.0.as_slice();
-            if let [Instruction::Decrement(1), Instruction::PtrIncrement(ptrinc_count), Instruction::Increment(x), Instruction::PtrDecrement(ptrdec_count)] = while_instructions.as_slice();
+            if let [Instruction::Decrement(1), Instruction::PtrIncrement(ptrinc_count), Instruction::Add(x), Instruction::PtrDecrement(ptrdec_count)] = while_instructions.as_slice();
             if ptrinc_count == ptrdec_count;
             then {
                 eprintln!("a {} {} {}", n * x, n, x);
@@ -101,11 +101,11 @@ mod test {
     #[test]
     fn test_opt_set_value() {
         let node = Node(vec![
-            ExprKind::Instructions(vec![Instruction::Increment(10)]),
+            ExprKind::Instructions(vec![Instruction::Add(10)]),
             ExprKind::While(Node(vec![ExprKind::Instructions(vec![
                 Instruction::Decrement(1),
                 Instruction::PtrIncrement(1),
-                Instruction::Increment(10),
+                Instruction::Add(10),
                 Instruction::PtrDecrement(1),
             ])])),
             ExprKind::Instructions(vec![Instruction::PtrIncrement(1)]),
@@ -121,11 +121,11 @@ mod test {
         }
 
         let node = Node(vec![
-            ExprKind::Instructions(vec![Instruction::Increment(10)]),
+            ExprKind::Instructions(vec![Instruction::Add(10)]),
             ExprKind::While(Node(vec![ExprKind::Instructions(vec![
                 Instruction::Decrement(1),
                 Instruction::PtrIncrement(1),
-                Instruction::Increment(10),
+                Instruction::Add(10),
                 Instruction::PtrDecrement(2),
             ])])),
             ExprKind::Instructions(vec![Instruction::PtrIncrement(1)]),

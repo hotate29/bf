@@ -73,7 +73,7 @@ impl<R: Read, W: Write> InterPrinter<R, W> {
                             match instruction {
                                 Instruction::PtrIncrement(n) => state.pointer_add(*n),
                                 Instruction::PtrDecrement(n) => state.pointer_sub(*n),
-                                Instruction::Increment(n) => {
+                                Instruction::Add(n) => {
                                     state.add((n % u8::MAX as usize) as u8);
                                 }
                                 Instruction::Decrement(n) => {

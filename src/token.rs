@@ -64,7 +64,7 @@ impl MiddleToken {
             MiddleToken::Token(token, count) => match token {
                 Token::Greater => Some(Instruction::PtrIncrement(count)),
                 Token::Less => Some(Instruction::PtrDecrement(count)),
-                Token::Plus => Some(Instruction::Increment(count)),
+                Token::Plus => Some(Instruction::Add(count)),
                 Token::Minus => Some(Instruction::Decrement(count)),
                 Token::Period => Some(Instruction::Output(count)),
                 Token::Comma => Some(Instruction::Input(count)),
@@ -131,7 +131,7 @@ pub fn middle_token(tokens: &[Token]) -> Vec<MiddleToken> {
 pub enum Instruction {
     PtrIncrement(usize),
     PtrDecrement(usize),
-    Increment(usize),
+    Add(usize),
     Decrement(usize),
     Output(usize),
     Input(usize),
@@ -304,21 +304,21 @@ mod test {
 
         helper(
             "+++",
-            Node(vec![ExprKind::Instructions(vec![Instruction::Increment(
+            Node(vec![ExprKind::Instructions(vec![Instruction::Add(
                 3,
             )])]),
         );
         helper(
             "+++[]",
             Node(vec![
-                ExprKind::Instructions(vec![Instruction::Increment(3)]),
+                ExprKind::Instructions(vec![Instruction::Add(3)]),
                 ExprKind::While(Node(vec![])),
             ]),
         );
         helper(
             "+++[---]",
             Node(vec![
-                ExprKind::Instructions(vec![Instruction::Increment(3)]),
+                ExprKind::Instructions(vec![Instruction::Add(3)]),
                 ExprKind::While(Node(vec![ExprKind::Instructions(vec![
                     Instruction::Decrement(3),
                 ])])),
@@ -327,17 +327,17 @@ mod test {
         helper(
             "+++[---]+++",
             Node(vec![
-                ExprKind::Instructions(vec![Instruction::Increment(3)]),
+                ExprKind::Instructions(vec![Instruction::Add(3)]),
                 ExprKind::While(Node(vec![ExprKind::Instructions(vec![
                     Instruction::Decrement(3),
                 ])])),
-                ExprKind::Instructions(vec![Instruction::Increment(3)]),
+                ExprKind::Instructions(vec![Instruction::Add(3)]),
             ]),
         );
         helper(
             "+++[--[]]>>><<<",
             Node(vec![
-                ExprKind::Instructions(vec![Instruction::Increment(3)]),
+                ExprKind::Instructions(vec![Instruction::Add(3)]),
                 ExprKind::While(Node(vec![
                     ExprKind::Instructions(vec![Instruction::Decrement(2)]),
                     ExprKind::While(Node(vec![])),
@@ -351,7 +351,7 @@ mod test {
         helper(
             "+++[--[]]>>><<<[.,]",
             Node(vec![
-                ExprKind::Instructions(vec![Instruction::Increment(3)]),
+                ExprKind::Instructions(vec![Instruction::Add(3)]),
                 ExprKind::While(Node(vec![
                     ExprKind::Instructions(vec![Instruction::Decrement(2)]),
                     ExprKind::While(Node(vec![])),
