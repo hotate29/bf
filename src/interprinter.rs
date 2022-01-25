@@ -44,12 +44,9 @@ impl<R: Read, W: Write> State<R, W> {
         *self.at_mut(offset) = value;
     }
     fn output(&mut self) {
-        write!(
-            self.output_writer,
-            "{}",
-            char::from_u32(self.memory[self.pointer] as u32).unwrap()
-        )
-        .unwrap();
+        self.output_writer
+            .write_all(&[self.memory[self.pointer]])
+            .unwrap();
         self.output_writer.flush().unwrap();
     }
     fn input(&mut self) {
