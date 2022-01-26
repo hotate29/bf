@@ -283,6 +283,31 @@ impl Node {
         assert_eq!(c, tokens.len());
         node
     }
+    pub fn to_string(&self) -> Option<String> {
+        fn inner(node: &Node, out: &mut String) {
+            for expr in &node.0 {
+                match expr {
+                    ExprKind::Instructions(instructions) => {
+                        for instruction in instructions {
+                            if let Some(s) = instruction.to_string() {
+                                out.push_str(&s);
+                            } else {
+                                out.push_str("None");
+                            }
+                        }
+                    }
+                    ExprKind::While(while_node) => {
+                        out.push('[');
+                        inner(while_node, out);
+                        out.push(']');
+                    }
+                }
+            }
+        }
+        let mut out = String::new();
+        inner(self, &mut out);
+        Some(out)
+    }
 }
 
 #[cfg(test)]
