@@ -196,6 +196,14 @@ pub enum ExprKind {
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct Node(pub Vec<ExprKind>);
 
+impl Node {
+    pub fn from_source(source: &str) -> Result<Node, ParseError> {
+        let tokens = tokenize(source);
+        let middle_token = middle_token(&tokens)?;
+        Ok(node(&middle_token))
+    }
+}
+
 pub fn node(tokens: &[MiddleToken]) -> Node {
     fn inner(tokens: &[MiddleToken]) -> (usize, Node) // (どれだけ進んだか, Node)
     {
