@@ -1,18 +1,22 @@
 use if_chain::if_chain;
+use log::info;
 
 use crate::token::{ExprKind, Instruction, Node};
 
 pub fn optimize(mut root_node: Node) -> Node {
     fn inner(node: &mut Node) {
         if let Some(optimized_node) = opt_set_value(node) {
+            info!("optimize: opt_set_value");
             *node = optimized_node;
         }
         for expr in &mut node.0 {
             // ExprKindを最適化する
             if let Some(optimized_expr) = opt_zeroset(expr) {
+                info!("optimize: opt_zeroset");
                 *expr = optimized_expr;
             }
             if let Some(optimized_expr) = opt_move_add(expr) {
+                info!("optimize: opt_move_add");
                 *expr = optimized_expr;
             }
 
