@@ -4,6 +4,7 @@ use std::{
 };
 
 use serde::Serialize;
+use thiserror::Error;
 
 #[derive(Debug, Clone, Copy, PartialEq, Serialize)]
 pub enum Token {
@@ -90,7 +91,13 @@ impl Display for MiddleToken {
     }
 }
 
-pub fn middle_token(tokens: &[Token]) -> Vec<MiddleToken> {
+#[derive(Debug, Error, PartialEq)]
+pub enum ParseError {
+    #[error("角括弧が対応してないよ!")]
+    InvalidBracket,
+}
+
+pub fn middle_token(tokens: &[Token]) -> Result<Vec<MiddleToken>, ParseError> {
     let mut middle_tokens = Vec::new();
 
     let mut prev = None;
@@ -140,7 +147,22 @@ pub fn middle_token(tokens: &[Token]) -> Vec<MiddleToken> {
         }
     }
 
-    middle_tokens
+    let mut begin = 0;
+    for token in &middle_tokens {
+        match token {
+            MiddleToken::WhileBegin => begin += 1,
+            MiddleToken::WhileEnd => begin -= 1,
+            MiddleToken::Token(_, _) => (),
+        }
+        if begin < 0 {
+            return Err(ParseError::InvalidBracket);
+        }
+    }
+    if begin != 0 {
+        return Err(ParseError::InvalidBracket);
+    }
+
+    Ok(middle_tokens)
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Serialize)]
@@ -244,7 +266,7 @@ pub fn node(tokens: &[MiddleToken]) -> Node {
 
 #[cfg(test)]
 mod test {
-    use crate::token::{node, ExprKind, Instruction, MiddleToken, Node};
+    use crate::token::{node, ExprKind, Instruction, MiddleToken, Node, ParseError};
 
     use super::{middle_token, tokenize, Token};
 
@@ -272,49 +294,52 @@ mod test {
     fn test_middle_token() {
         use Token::*;
 
-        fn helper(source: &str, assert_middle_token: &[MiddleToken]) {
+        fn helper(source: &str, assert_middle_token: Result<Vec<MiddleToken>, ParseError>) {
             let tokens = tokenize(source);
             let middle_tokens = middle_token(&tokens);
             assert_eq!(middle_tokens, assert_middle_token);
         }
 
-        helper("", &[]);
-        helper("brainfuck", &[]);
-        helper("bra+inf+uck", &[MiddleToken::Token(Plus, 2)]);
+        helper("", Ok(vec![]));
+        helper("brainfuck", Ok(vec![]));
+        helper("bra+inf+uck", Ok(vec![MiddleToken::Token(Plus, 2)]));
 
-        helper("+", &[MiddleToken::Token(Plus, 1)]);
+        helper("+", Ok(vec![MiddleToken::Token(Plus, 1)]));
 
-        helper("+++", &[MiddleToken::Token(Plus, 3)]);
-        helper("---", &[MiddleToken::Token(Minus, 3)]);
-        helper(">>>", &[MiddleToken::Token(Greater, 3)]);
-        helper("<<<", &[MiddleToken::Token(Less, 3)]);
-        helper("...", &[MiddleToken::Token(Period, 3)]);
-        helper(",,,", &[MiddleToken::Token(Comma, 3)]);
+        helper("+++", Ok(vec![MiddleToken::Token(Plus, 3)]));
+        helper("---", Ok(vec![MiddleToken::Token(Minus, 3)]));
+        helper(">>>", Ok(vec![MiddleToken::Token(Greater, 3)]));
+        helper("<<<", Ok(vec![MiddleToken::Token(Less, 3)]));
+        helper("...", Ok(vec![MiddleToken::Token(Period, 3)]));
+        helper(",,,", Ok(vec![MiddleToken::Token(Comma, 3)]));
 
         helper(
             "[[]]",
-            &[
+            Ok(vec![
                 MiddleToken::WhileBegin,
                 MiddleToken::WhileBegin,
                 MiddleToken::WhileEnd,
                 MiddleToken::WhileEnd,
-            ],
+            ]),
         );
         helper(
             "[+++-]",
-            &[
+            Ok(vec![
                 MiddleToken::WhileBegin,
                 MiddleToken::Token(Plus, 3),
                 MiddleToken::Token(Minus, 1),
                 MiddleToken::WhileEnd,
-            ],
+            ]),
         );
+
+        helper("[", Err(ParseError::InvalidBracket));
+        helper("]", Err(ParseError::InvalidBracket));
     }
     #[test]
     fn test_nodes() {
         fn helper(s: &str, assert_node: Node) {
             let tokens = tokenize(s);
-            let middle_tokens = middle_token(&tokens);
+            let middle_tokens = middle_token(&tokens).unwrap();
             let root_node = node(&middle_tokens);
             assert_eq!(root_node, assert_node);
         }
