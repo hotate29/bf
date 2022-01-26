@@ -200,81 +200,80 @@ impl Node {
     pub fn from_source(source: &str) -> Result<Node, ParseError> {
         let tokens = tokenize(source);
         let middle_token = middle_token(&tokens)?;
-        Ok(node(&middle_token))
+        Ok(Node::from_middle_tokens(&middle_token))
     }
-}
+    pub fn from_middle_tokens(tokens: &[MiddleToken]) -> Node {
+        fn inner(tokens: &[MiddleToken]) -> (usize, Node) // (どれだけ進んだか, Node)
+        {
+            let mut exprs = Vec::new();
+            let mut index = 0;
+            let mut last_while_end_index = None;
 
-pub fn node(tokens: &[MiddleToken]) -> Node {
-    fn inner(tokens: &[MiddleToken]) -> (usize, Node) // (どれだけ進んだか, Node)
-    {
-        let mut exprs = Vec::new();
-        let mut index = 0;
-        let mut last_while_end_index = None;
+            while index < tokens.len() {
+                let token = tokens[index];
 
-        while index < tokens.len() {
-            let token = tokens[index];
-
-            match token {
-                MiddleToken::Token(_, _) => index += 1,
-                MiddleToken::WhileBegin => {
-                    {
-                        let sub_tokens = &tokens[last_while_end_index.unwrap_or(0)..index];
-                        if !sub_tokens.is_empty() {
-                            exprs.push(ExprKind::Instructions(
-                                sub_tokens
-                                    .iter()
-                                    .map(|token| token.to_instruction().unwrap())
-                                    .collect(),
-                            ));
+                match token {
+                    MiddleToken::Token(_, _) => index += 1,
+                    MiddleToken::WhileBegin => {
+                        {
+                            let sub_tokens = &tokens[last_while_end_index.unwrap_or(0)..index];
+                            if !sub_tokens.is_empty() {
+                                exprs.push(ExprKind::Instructions(
+                                    sub_tokens
+                                        .iter()
+                                        .map(|token| token.to_instruction().unwrap())
+                                        .collect(),
+                                ));
+                            }
+                        }
+                        {
+                            index += 1;
+                            let (count, while_node) = inner(&tokens[index..]);
+                            index += count;
+                            last_while_end_index = Some(index);
+                            exprs.push(ExprKind::While(while_node));
                         }
                     }
-                    {
-                        index += 1;
-                        let (count, while_node) = inner(&tokens[index..]);
-                        index += count;
-                        last_while_end_index = Some(index);
-                        exprs.push(ExprKind::While(while_node));
-                    }
-                }
-                MiddleToken::WhileEnd => {
-                    {
-                        let sub_tokens = &tokens[last_while_end_index.unwrap_or(0)..index];
-                        if !sub_tokens.is_empty() {
-                            let expr = ExprKind::Instructions(
-                                sub_tokens
-                                    .iter()
-                                    .map(|token| token.to_instruction().unwrap())
-                                    .collect(),
-                            );
-                            exprs.push(expr)
+                    MiddleToken::WhileEnd => {
+                        {
+                            let sub_tokens = &tokens[last_while_end_index.unwrap_or(0)..index];
+                            if !sub_tokens.is_empty() {
+                                let expr = ExprKind::Instructions(
+                                    sub_tokens
+                                        .iter()
+                                        .map(|token| token.to_instruction().unwrap())
+                                        .collect(),
+                                );
+                                exprs.push(expr)
+                            }
                         }
-                    }
 
-                    let node = Node(exprs);
-                    return (index + 1, node);
+                        let node = Node(exprs);
+                        return (index + 1, node);
+                    }
                 }
             }
-        }
 
-        let range = last_while_end_index.unwrap_or(0)..index;
-        if !range.is_empty() {
-            exprs.push(ExprKind::Instructions(
-                tokens[range]
-                    .iter()
-                    .map(|token| token.to_instruction().unwrap())
-                    .collect(),
-            ))
+            let range = last_while_end_index.unwrap_or(0)..index;
+            if !range.is_empty() {
+                exprs.push(ExprKind::Instructions(
+                    tokens[range]
+                        .iter()
+                        .map(|token| token.to_instruction().unwrap())
+                        .collect(),
+                ))
+            }
+            (index, Node(exprs))
         }
-        (index, Node(exprs))
+        let (c, node) = inner(tokens);
+        assert_eq!(c, tokens.len());
+        node
     }
-    let (c, node) = inner(tokens);
-    assert_eq!(c, tokens.len());
-    node
 }
 
 #[cfg(test)]
 mod test {
-    use crate::token::{node, ExprKind, Instruction, MiddleToken, Node, ParseError};
+    use crate::token::{ExprKind, Instruction, MiddleToken, Node, ParseError};
 
     use super::{middle_token, tokenize, Token};
 
@@ -344,7 +343,7 @@ mod test {
         helper("]", Err(ParseError::InvalidBracket));
     }
     #[test]
-    fn test_nodes() {
+    fn test_node_from_middle_token() {
         fn helper(source: &str, assert_node: Node) {
             let root_node = Node::from_source(source).unwrap();
             assert_eq!(root_node, assert_node);
