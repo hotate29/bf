@@ -312,9 +312,9 @@ impl Node {
 
 #[cfg(test)]
 mod test {
-    use crate::token::{ExprKind, Instruction, MiddleToken, Node, ParseError};
-
-    use super::{middle_token, tokenize, Token};
+    use super::{
+        middle_token, tokenize, ExprKind, Instruction, MiddleToken, Node, ParseError, Token,
+    };
 
     #[test]
     fn test_token_from_char() {

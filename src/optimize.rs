@@ -101,12 +101,9 @@ fn opt_move_add(expr: &ExprKind) -> Option<ExprKind> {
 
 #[cfg(test)]
 mod test {
-    use crate::{
-        optimize::opt_move_add,
-        token::{ExprKind, Instruction, Node},
-    };
+    use crate::token::{ExprKind, Instruction, Node};
 
-    use super::{opt_set_value, opt_zeroset};
+    use super::{opt_move_add, opt_set_value, opt_zeroset};
 
     #[test]
     fn test_opt_zeroset() {
