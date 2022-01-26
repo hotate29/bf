@@ -165,7 +165,7 @@ pub fn middle_token(tokens: &[Token]) -> Result<Vec<MiddleToken>, ParseError> {
     Ok(middle_tokens)
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Serialize)]
+#[derive(Debug, Clone, Copy, Eq, Hash, PartialEq, Serialize)]
 pub enum Instruction {
     PtrIncrement(usize),
     PtrDecrement(usize),
@@ -187,13 +187,13 @@ pub enum Instruction {
 //   |
 //   |-while
 //   |-(+1)
-#[derive(Debug, Clone, PartialEq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize)]
 pub enum ExprKind {
     Instructions(Vec<Instruction>),
     While(Node),
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize)]
 pub struct Node(pub Vec<ExprKind>);
 
 impl Node {
