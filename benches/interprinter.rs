@@ -6,15 +6,13 @@ use std::io;
 
 use bf::interprinter::InterPrinter;
 use bf::optimize::optimize;
-use bf::token::{middle_token, node, tokenize};
+use bf::token::Node;
 
 #[bench]
 fn bench_not_optimize_mandelbrot(bencher: &mut test::Bencher) {
     let source = fs::read_to_string("mandelbrot.bf").unwrap();
 
-    let tokens = tokenize(&source);
-    let middle_tokens = middle_token(&tokens);
-    let root_node = node(&middle_tokens);
+    let root_node = Node::from_source(&source).unwrap();
 
     bencher.iter(|| {
         InterPrinter::new(root_node.clone(), io::empty(), io::sink()).start();
@@ -25,9 +23,7 @@ fn bench_not_optimize_mandelbrot(bencher: &mut test::Bencher) {
 fn bench_optimized_mandelbrot(bencher: &mut test::Bencher) {
     let source = fs::read_to_string("mandelbrot.bf").unwrap();
 
-    let tokens = tokenize(&source);
-    let middle_tokens = middle_token(&tokens);
-    let root_node = node(&middle_tokens);
+    let root_node = Node::from_source(&source).unwrap();
 
     let optimized_node = optimize(root_node);
 

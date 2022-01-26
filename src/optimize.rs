@@ -99,7 +99,7 @@ fn opt_move_add(expr: &ExprKind) -> Option<ExprKind> {
 mod test {
     use crate::{
         optimize::opt_move_add,
-        token::{middle_token, node, tokenize, ExprKind, Instruction, Node},
+        token::{ExprKind, Instruction, Node},
     };
 
     use super::{opt_set_value, opt_zeroset};
@@ -107,9 +107,8 @@ mod test {
     #[test]
     fn test_opt_zeroset() {
         fn helper(source: &str, assert_expr: Option<ExprKind>) {
-            let tokens = tokenize(source);
-            let middle_tokens = middle_token(&tokens);
-            let root_node = node(&middle_tokens);
+            let root_node = Node::from_source(source).unwrap();
+
             if let [expr] = root_node.0.as_slice() {
                 let optimized_expr = opt_zeroset(expr);
                 assert_eq!(optimized_expr, assert_expr);
@@ -128,9 +127,7 @@ mod test {
     #[test]
     fn test_opt_set_value() {
         fn helper(source: &str, assert_node: Option<Node>) {
-            let tokens = tokenize(source);
-            let middle_tokens = middle_token(&tokens);
-            let root_node = node(&middle_tokens);
+            let root_node = Node::from_source(source).unwrap();
 
             let optimized_node = opt_set_value(&root_node);
             assert_eq!(optimized_node, assert_node);
@@ -158,9 +155,8 @@ mod test {
     #[test]
     fn test_opt_move_add() {
         fn helper(source: &str, assert_expr: Option<ExprKind>) {
-            let tokens = tokenize(source);
-            let middle_tokens = middle_token(&tokens);
-            let root_node = node(&middle_tokens);
+            let root_node = Node::from_source(source).unwrap();
+
             if let [expr] = root_node.0.as_slice() {
                 let optimized_expr = opt_move_add(expr);
                 assert_eq!(optimized_expr, assert_expr);

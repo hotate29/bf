@@ -345,10 +345,8 @@ mod test {
     }
     #[test]
     fn test_nodes() {
-        fn helper(s: &str, assert_node: Node) {
-            let tokens = tokenize(s);
-            let middle_tokens = middle_token(&tokens).unwrap();
-            let root_node = node(&middle_tokens);
+        fn helper(source: &str, assert_node: Node) {
+            let root_node = Node::from_source(source).unwrap();
             assert_eq!(root_node, assert_node);
         }
 
