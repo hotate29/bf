@@ -13,23 +13,26 @@ pub fn to_c(root_node: &Node) -> String {
                             Instruction::PtrDecrement(n) => {
                                 c_code.push_str(&format!("ptr -= {};", n))
                             }
-                            Instruction::Add(n) => c_code.push_str(&format!("*ptr += {};", n)),
+                            Instruction::Add(n) => c_code.push_str(&format!("ptr[0] += {};", n)),
                             Instruction::AddTo(n) => {
-                                c_code.push_str(&format!("*(ptr + {}) += *ptr;", n))
+                                c_code.push_str(&format!("ptr[{}] += ptr[0];", n))
                             }
-                            Instruction::Sub(n) => c_code.push_str(&format!("*ptr -= {};", n)),
+                            Instruction::AddTo2(n) => {
+                                c_code.push_str(&format!("*(ptr-{}) += ptr[0];", n))
+                            }
+                            Instruction::Sub(n) => c_code.push_str(&format!("ptr[0] -= {};", n)),
                             Instruction::Output(n) => {
                                 for _ in 0..*n {
-                                    c_code.push_str("putchar(*ptr);")
+                                    c_code.push_str("putchar(ptr[0]);")
                                 }
                             }
                             Instruction::Input(n) => {
                                 for _ in 0..*n {
-                                    c_code.push_str("*ptr = getchar();");
+                                    c_code.push_str("ptr[0] = getchar();");
                                 }
                             }
                             Instruction::SetValue(offset, value) => {
-                                c_code.push_str(&format!("*(ptr + {}) = {};", offset, value));
+                                c_code.push_str(&format!("ptr[{}] = {};", offset, value));
                             }
                         }
                     }
