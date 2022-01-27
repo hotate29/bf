@@ -19,6 +19,10 @@ pub fn optimize(mut root_node: Node) -> Node {
                 info!("optimize: opt_move_add");
                 *expr = optimized_expr;
             }
+            if let Some(optimized_expr) = opt_move_add_rev(expr) {
+                info!("optimize: opt_move_add_rev");
+                *expr = optimized_expr;
+            }
 
             if let ExprKind::While(while_node) = expr {
                 inner(while_node);
@@ -98,11 +102,27 @@ fn opt_move_add(expr: &ExprKind) -> Option<ExprKind> {
     }
 }
 
+fn opt_move_add_rev(expr: &ExprKind) -> Option<ExprKind> {
+    if_chain! {
+        if let ExprKind::While(while_node) = expr;
+        if let [ExprKind::Instructions(while_instructions)] = while_node.0.as_slice();
+        if let [Instruction::Sub(1), Instruction::PtrDecrement(x), Instruction::Add(1), Instruction::PtrIncrement(y)] = while_instructions.as_slice();
+        if x == y;
+        then {
+            let expr = ExprKind::Instructions(vec![Instruction::MoveAddRev(*x)]);
+            Some(expr)
+        }
+        else {
+            None
+        }
+    }
+}
+
 #[cfg(test)]
 mod test {
     use crate::token::{ExprKind, Instruction, Node};
 
-    use super::{opt_move_add, opt_set_value, opt_zeroset};
+    use super::{opt_move_add, opt_move_add_rev, opt_set_value, opt_zeroset};
 
     #[test]
     fn test_opt_zeroset() {
@@ -175,5 +195,29 @@ mod test {
         );
 
         helper("[->+<<]", None);
+    }
+    #[test]
+    fn test_opt_move_add_rev() {
+        fn helper(source: &str, assert_expr: Option<ExprKind>) {
+            let root_node = Node::from_source(source).unwrap();
+
+            if let [expr] = root_node.0.as_slice() {
+                let optimized_expr = opt_move_add_rev(expr);
+                assert_eq!(optimized_expr, assert_expr);
+            } else {
+                panic!("変なテストデータ")
+            }
+        }
+
+        helper(
+            "[-<+>]",
+            Some(ExprKind::Instructions(vec![Instruction::MoveAddRev(1)])),
+        );
+        helper(
+            "[-<<<<<<<<<<+>>>>>>>>>>]",
+            Some(ExprKind::Instructions(vec![Instruction::MoveAddRev(10)])),
+        );
+
+        helper("[->+<]", None);
     }
 }
