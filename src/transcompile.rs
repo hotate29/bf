@@ -8,16 +8,16 @@ pub fn to_c(root_node: &Node) -> String {
                     for instruction in instructions {
                         match instruction {
                             Instruction::PtrIncrement(n) => {
-                                c_code.push_str(&format!("ptr += {};", n))
+                                c_code.push_str(&format!("ptr+={};", n))
                             }
                             Instruction::PtrDecrement(n) => {
-                                c_code.push_str(&format!("ptr -= {};", n))
+                                c_code.push_str(&format!("ptr-={};", n))
                             }
-                            Instruction::Add(n) => c_code.push_str(&format!("ptr[0] += {};", n)),
+                            Instruction::Add(n) => c_code.push_str(&format!("ptr[0]+={};", n)),
                             Instruction::MoveAdd(n) => {
-                                c_code.push_str(&format!("ptr[{}] += ptr[0];ptr[0] = 0;", n))
+                                c_code.push_str(&format!("ptr[{}]+=ptr[0];ptr[0]=0;", n))
                             }
-                            Instruction::Sub(n) => c_code.push_str(&format!("ptr[0] -= {};", n)),
+                            Instruction::Sub(n) => c_code.push_str(&format!("ptr[0]-={};", n)),
                             Instruction::Output(n) => {
                                 for _ in 0..*n {
                                     c_code.push_str("putchar(ptr[0]);")
@@ -25,11 +25,11 @@ pub fn to_c(root_node: &Node) -> String {
                             }
                             Instruction::Input(n) => {
                                 for _ in 0..*n {
-                                    c_code.push_str("ptr[0] = getchar();");
+                                    c_code.push_str("ptr[0]=getchar();");
                                 }
                             }
                             Instruction::SetValue(offset, value) => {
-                                c_code.push_str(&format!("ptr[{}] = {};", offset, value));
+                                c_code.push_str(&format!("ptr[{}]={};", offset, value));
                             }
                         }
                     }
