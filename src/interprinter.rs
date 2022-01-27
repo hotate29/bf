@@ -38,6 +38,9 @@ impl<R: Read, W: Write> State<R, W> {
         self.at(0); // メモリーを伸ばす
     }
     fn pointer_sub(&mut self, value: usize) {
+        if self.pointer < value {
+            panic!("メモリがマイナス")
+        }
         self.pointer -= value;
     }
     fn set_to_value(&mut self, offset: usize, value: u8) {
