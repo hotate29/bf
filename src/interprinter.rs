@@ -91,6 +91,11 @@ impl<R: Read, W: Write> InterPrinter<R, W> {
                                     state.add_offset(*offset, from);
                                     *state.at_mut(0) = 0;
                                 }
+                                Instruction::MoveAddRev(offset) => {
+                                    let from = state.at(0);
+                                    state.add_offset(*offset, from);
+                                    *state.at_mut(0) = 0;
+                                }
                                 Instruction::Sub(n) => {
                                     state.sub((n % u8::MAX as usize) as u8);
                                 }
