@@ -14,11 +14,8 @@ pub fn to_c(root_node: &Node) -> String {
                                 c_code.push_str(&format!("ptr -= {};", n))
                             }
                             Instruction::Add(n) => c_code.push_str(&format!("ptr[0] += {};", n)),
-                            Instruction::AddTo(n) => {
-                                c_code.push_str(&format!("ptr[{}] += ptr[0];", n))
-                            }
-                            Instruction::AddTo2(n) => {
-                                c_code.push_str(&format!("*(ptr-{}) += ptr[0];", n))
+                            Instruction::MoveAdd(n) => {
+                                c_code.push_str(&format!("ptr[{}] += ptr[0];ptr[0] = 0;", n))
                             }
                             Instruction::Sub(n) => c_code.push_str(&format!("ptr[0] -= {};", n)),
                             Instruction::Output(n) => {

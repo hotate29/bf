@@ -170,7 +170,7 @@ pub enum Instruction {
     PtrIncrement(usize),
     PtrDecrement(usize),
     Add(usize),
-    AddTo(usize),
+    MoveAdd(usize),
     Sub(usize),
     Output(usize),
     Input(usize),
@@ -186,7 +186,7 @@ impl Instruction {
             Instruction::Sub(n) => Some(format!("-{}", n)),
             Instruction::Output(n) => Some(format!(".{}", n)),
             Instruction::Input(n) => Some(format!(",{}", n)),
-            Instruction::AddTo(_) | Instruction::SetValue(_, _) => None,
+            Instruction::MoveAdd(_) | Instruction::SetValue(_, _) => None,
         }
     }
 }

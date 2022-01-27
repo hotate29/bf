@@ -88,8 +88,7 @@ fn opt_move_add(expr: &ExprKind) -> Option<ExprKind> {
         if ptr_increment == ptr_decrement;
         then {
             let optimized_expr = ExprKind::Instructions(vec![
-                Instruction::AddTo(*ptr_increment),
-                Instruction::SetValue(0, 0),
+                Instruction::MoveAdd(*ptr_increment),
             ]);
             Some(optimized_expr)
         }
@@ -168,17 +167,11 @@ mod test {
 
         helper(
             "[->+<]",
-            Some(ExprKind::Instructions(vec![
-                Instruction::AddTo(1),
-                Instruction::SetValue(0, 0),
-            ])),
+            Some(ExprKind::Instructions(vec![Instruction::MoveAdd(1)])),
         );
         helper(
             "[->>>>>>>>>>+<<<<<<<<<<]",
-            Some(ExprKind::Instructions(vec![
-                Instruction::AddTo(10),
-                Instruction::SetValue(0, 0),
-            ])),
+            Some(ExprKind::Instructions(vec![Instruction::MoveAdd(10)])),
         );
 
         helper("[->+<<]", None);
