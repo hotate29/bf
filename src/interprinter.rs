@@ -92,8 +92,12 @@ impl<R: Read, W: Write> InterPrinter<R, W> {
                                     *state.at_mut(0) = 0;
                                 }
                                 Instruction::MoveAddRev(offset) => {
+                                    if state.at(0) == 0 {
+                                        continue;
+                                    }
                                     let from = state.at(0);
-                                    state.add_offset(*offset, from);
+                                    state.memory[state.pointer - offset] =
+                                        state.memory[state.pointer - offset].wrapping_add(from);
                                     *state.at_mut(0) = 0;
                                 }
                                 Instruction::Sub(n) => {
