@@ -4,6 +4,15 @@ use serde::Serialize;
 
 use crate::token::{middle_token, tokenize, Instruction, MiddleToken, ParseError};
 
+pub trait Optimizer {
+    fn optimize_node(&self, _: &Node) -> Option<Node> {
+        None
+    }
+    fn optimize_expr(&self, _: &ExprKind) -> Option<ExprKind> {
+        None
+    }
+}
+
 // [++[>>]-][]+
 // root Node
 //   |-while
