@@ -1,5 +1,4 @@
 use if_chain::if_chain;
-use log::info;
 use serde::Serialize;
 
 use crate::token::{middle_token, tokenize, Instruction, MiddleToken, ParseError};
@@ -135,42 +134,28 @@ impl ToString for Node {
     }
 }
 
-pub fn optimize(mut root_node: Node) -> Node {
-    fn inner(node: &mut Node) {
-        if let Some(optimized_node) = opt_set_value(node) {
-            info!("optimize: opt_set_value");
-            *node = optimized_node;
+pub fn optimize(mut root_node: Node, optimizers: &[impl Optimizer]) -> Node {
+    fn inner(node: &mut Node, optimizers: &[impl Optimizer]) {
+        for optimizer in optimizers {
+            if let Some(optimized_node) = optimizer.optimize_node(node) {
+                *node = optimized_node;
+            }
         }
         for expr in &mut node.0 {
             // ExprKindを最適化する
-            if let Some(optimized_expr) = opt_zeroset(expr) {
-                info!("optimize: opt_zeroset");
-                *expr = optimized_expr;
-            }
-            if let Some(optimized_expr) = opt_move_add(expr) {
-                info!("optimize: opt_move_add");
-                *expr = optimized_expr;
-            }
-            if let Some(optimized_expr) = opt_move_add_rev(expr) {
-                info!("optimize: opt_move_add_rev");
-                *expr = optimized_expr;
-            }
-            if let Some(optimized_expr) = opt_move_sub(expr) {
-                info!("optimize: opt_move_sub");
-                *expr = optimized_expr;
-            }
-            if let Some(optimized_expr) = opt_move_sub_rev(expr) {
-                info!("optimize: opt_move_sub_rev");
-                *expr = optimized_expr;
+            for optimizer in optimizers {
+                if let Some(optimized_expr) = optimizer.optimize_expr(expr) {
+                    *expr = optimized_expr;
+                }
             }
 
             if let ExprKind::While(while_node) = expr {
-                inner(while_node);
+                inner(while_node, optimizers);
             }
         }
     }
 
-    inner(&mut root_node);
+    inner(&mut root_node, optimizers);
 
     root_node
 }
