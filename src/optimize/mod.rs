@@ -3,6 +3,8 @@ use serde::Serialize;
 
 use crate::token::{middle_token, tokenize, Instruction, MiddleToken, ParseError};
 
+mod zeroset;
+
 pub trait Optimizer {
     fn optimize_node(&self, _: &Node) -> Option<Node> {
         None
@@ -160,19 +162,8 @@ pub fn optimize(mut root_node: Node, optimizers: &[impl Optimizer]) -> Node {
     root_node
 }
 
-/// [-]をSetValue(0)に変換する
-fn opt_zeroset(expr: &ExprKind) -> Option<ExprKind> {
-    if_chain! {
-        if let ExprKind::While(while_node) = expr;
-        if let [ExprKind::Instructions(instructions)] = while_node.0.as_slice();
-        if let [Instruction::Sub(1)] = instructions.as_slice();
-        then {
-            Some(ExprKind::Instructions(vec![Instruction::SetValue(0, 0)]))
-        }
-        else {
-            None
-        }
-    }
+pub fn all_optimizer() -> Vec<impl Optimizer> {
+    vec![zeroset::ZeroSetOptimizer]
 }
 
 /// +n[-x>+m<x]>をSetToValue(x, n*m)に変換する
@@ -281,29 +272,7 @@ fn opt_move_sub_rev(expr: &ExprKind) -> Option<ExprKind> {
 mod test {
     use crate::token::Instruction;
 
-    use super::{
-        opt_move_add, opt_move_add_rev, opt_move_sub, opt_set_value, opt_zeroset, ExprKind, Node,
-    };
-
-    #[test]
-    fn test_opt_zeroset() {
-        fn helper(source: &str, assert_expr: Option<ExprKind>) {
-            let root_node = Node::from_source(source).unwrap();
-
-            if let [expr] = root_node.0.as_slice() {
-                let optimized_expr = opt_zeroset(expr);
-                assert_eq!(optimized_expr, assert_expr);
-            } else {
-                panic!("変なテストデータ")
-            }
-        }
-
-        helper(
-            "[-]",
-            Some(ExprKind::Instructions(vec![Instruction::SetValue(0, 0)])),
-        );
-        helper("[>]", None);
-    }
+    use super::{opt_move_add, opt_move_add_rev, opt_move_sub, opt_set_value, ExprKind, Node};
 
     #[test]
     fn test_opt_set_value() {

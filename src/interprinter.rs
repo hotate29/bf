@@ -149,7 +149,10 @@ impl<R: Read, W: Write> InterPrinter<R, W> {
 mod test {
     use std::{fs, io};
 
-    use crate::{optimize::optimize, optimize::Node};
+    use crate::{
+        optimize::Node,
+        optimize::{all_optimizer, optimize},
+    };
 
     use super::InterPrinter;
 
@@ -185,7 +188,7 @@ mod test {
         let assert_mandelbrot = fs::read_to_string("mandelbrot").unwrap();
 
         let root_node = Node::from_source(&mandelbrot_source).unwrap();
-        let root_node = optimize(root_node);
+        let root_node = optimize(root_node, &all_optimizer());
 
         let mut output_buffer = Vec::new();
         InterPrinter::new(root_node, io::empty(), &mut output_buffer).start();
