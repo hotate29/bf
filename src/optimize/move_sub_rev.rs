@@ -29,33 +29,25 @@ impl Optimizer for MoveSubRevOptimizer {
 
 #[cfg(test)]
 mod test {
+    use super::MoveSubRevOptimizer;
     use crate::{
-        optimize::{move_sub_rev::MoveSubRevOptimizer, ExprKind, Node, Optimizer},
+        optimize::{test::expr_helper, ExprKind},
         token::Instruction,
     };
 
     #[test]
     fn test_opt_move_sub_rev() {
-        fn helper(source: &str, assert_expr: Option<ExprKind>) {
-            let root_node = Node::from_source(source).unwrap();
-
-            if let [expr] = root_node.0.as_slice() {
-                let optimized_expr = MoveSubRevOptimizer.optimize_expr(expr);
-                assert_eq!(optimized_expr, assert_expr);
-            } else {
-                panic!("変なテストデータ")
-            }
-        }
-
-        helper(
+        expr_helper(
             "[-<->]",
             Some(ExprKind::Instructions(vec![Instruction::MoveSubRev(1)])),
+            MoveSubRevOptimizer,
         );
-        helper(
+        expr_helper(
             "[-<<<<<<<<<<->>>>>>>>>>]",
             Some(ExprKind::Instructions(vec![Instruction::MoveSubRev(10)])),
+            MoveSubRevOptimizer,
         );
 
-        helper("[->+<]", None);
+        expr_helper("[->+<]", None, MoveSubRevOptimizer);
     }
 }

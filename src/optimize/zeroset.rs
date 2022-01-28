@@ -27,28 +27,19 @@ impl Optimizer for ZeroSetOptimizer {
 
 #[cfg(test)]
 mod test {
+    use super::ZeroSetOptimizer;
     use crate::{
-        optimize::{zeroset::ZeroSetOptimizer, ExprKind, Node, Optimizer},
+        optimize::{test::expr_helper, ExprKind},
         token::Instruction,
     };
 
     #[test]
     fn test_opt_zeroset() {
-        fn helper(source: &str, assert_expr: Option<ExprKind>) {
-            let root_node = Node::from_source(source).unwrap();
-
-            if let [expr] = root_node.0.as_slice() {
-                let optimized_expr = ZeroSetOptimizer.optimize_expr(expr);
-                assert_eq!(optimized_expr, assert_expr);
-            } else {
-                panic!("変なテストデータ")
-            }
-        }
-
-        helper(
+        expr_helper(
             "[-]",
             Some(ExprKind::Instructions(vec![Instruction::SetValue(0, 0)])),
+            ZeroSetOptimizer,
         );
-        helper("[>]", None);
+        expr_helper("[>]", None, ZeroSetOptimizer);
     }
 }

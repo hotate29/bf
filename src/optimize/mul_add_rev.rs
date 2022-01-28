@@ -32,33 +32,25 @@ impl Optimizer for MulAddRevOptimizer {
 
 #[cfg(test)]
 mod test {
+    use super::MulAddRevOptimizer;
     use crate::{
-        optimize::{mul_add_rev::MulAddRevOptimizer, ExprKind, Node, Optimizer},
+        optimize::{test::expr_helper, ExprKind},
         token::Instruction,
     };
 
     #[test]
     fn test_opt_move_add_rev() {
-        fn helper(source: &str, assert_expr: Option<ExprKind>) {
-            let root_node = Node::from_source(source).unwrap();
-
-            if let [expr] = root_node.0.as_slice() {
-                let optimized_expr = MulAddRevOptimizer.optimize_expr(expr);
-                assert_eq!(optimized_expr, assert_expr);
-            } else {
-                panic!("変なテストデータ")
-            }
-        }
-
-        helper(
+        expr_helper(
             "[<+++>-]",
             Some(ExprKind::Instructions(vec![Instruction::MulAddRev(1, 3)])),
+            MulAddRevOptimizer,
         );
-        helper(
+        expr_helper(
             "[<<+++++>>-]",
             Some(ExprKind::Instructions(vec![Instruction::MulAddRev(2, 5)])),
+            MulAddRevOptimizer,
         );
 
-        helper("[->+<<]", None);
+        expr_helper("[->+<<]", None, MulAddRevOptimizer);
     }
 }
