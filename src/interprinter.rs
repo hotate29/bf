@@ -100,6 +100,12 @@ impl<R: Read, W: Write> InterPrinter<R, W> {
                                         state.memory[state.pointer - offset].wrapping_add(from);
                                     *state.at_mut(0) = 0;
                                 }
+                                Instruction::MoveSub(offset) => {
+                                    let from = state.at(0);
+                                    let v = state.at_mut(*offset);
+                                    *v = v.wrapping_sub(from);
+                                    *state.at_mut(0) = 0;
+                                }
                                 Instruction::Sub(n) => {
                                     state.sub((n % u8::MAX as usize) as u8);
                                 }
