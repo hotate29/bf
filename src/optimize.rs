@@ -27,6 +27,10 @@ pub fn optimize(mut root_node: Node) -> Node {
                 info!("optimize: opt_move_sub");
                 *expr = optimized_expr;
             }
+            if let Some(optimized_expr) = opt_move_sub_rev(expr) {
+                info!("optimize: opt_move_sub_rev");
+                *expr = optimized_expr;
+            }
 
             if let ExprKind::While(while_node) = expr {
                 inner(while_node);
@@ -133,6 +137,22 @@ fn opt_move_sub(expr: &ExprKind) -> Option<ExprKind> {
                 Instruction::MoveSub(*ptr_increment),
             ]);
             Some(optimized_expr)
+        }
+        else {
+            None
+        }
+    }
+}
+
+fn opt_move_sub_rev(expr: &ExprKind) -> Option<ExprKind> {
+    if_chain! {
+        if let ExprKind::While(while_node) = expr;
+        if let [ExprKind::Instructions(while_instructions)] = while_node.0.as_slice();
+        if let [Instruction::Sub(1), Instruction::PtrDecrement(x), Instruction::Sub(1), Instruction::PtrIncrement(y)] = while_instructions.as_slice();
+        if x == y;
+        then {
+            let expr = ExprKind::Instructions(vec![Instruction::MoveSubRev(*x)]);
+            Some(expr)
         }
         else {
             None
