@@ -48,9 +48,8 @@ impl<R: Read, W: Write> State<R, W> {
         *self.at_mut(offset) = value;
     }
     fn output(&mut self) {
-        self.output_writer
-            .write_all(&[self.memory[self.pointer]])
-            .unwrap();
+        let value = self.at(0);
+        self.output_writer.write_all(&[value]).unwrap();
         self.output_writer.flush().unwrap();
     }
     fn input(&mut self) {
