@@ -1,4 +1,3 @@
-use if_chain::if_chain;
 use serde::Serialize;
 
 use crate::token::{middle_token, tokenize, Instruction, MiddleToken, ParseError};
@@ -6,6 +5,7 @@ use crate::token::{middle_token, tokenize, Instruction, MiddleToken, ParseError}
 mod move_add;
 mod move_add_rev;
 mod move_sub;
+mod move_sub_rev;
 mod set_value;
 mod zeroset;
 
@@ -173,23 +173,8 @@ pub fn all_optimizer() -> Vec<Box<dyn Optimizer>> {
         Box::new(move_add::MoveAddOptimizer),
         Box::new(move_add_rev::MoveAddRevOptimizer),
         Box::new(move_sub::MoveSubOptimizer),
+        Box::new(move_sub_rev::MoveSubRevOptimizer),
     ]
-}
-
-fn opt_move_sub_rev(expr: &ExprKind) -> Option<ExprKind> {
-    if_chain! {
-        if let ExprKind::While(while_node) = expr;
-        if let [ExprKind::Instructions(while_instructions)] = while_node.0.as_slice();
-        if let [Instruction::Sub(1), Instruction::PtrDecrement(x), Instruction::Sub(1), Instruction::PtrIncrement(y)] = while_instructions.as_slice();
-        if x == y;
-        then {
-            let expr = ExprKind::Instructions(vec![Instruction::MoveSubRev(*x)]);
-            Some(expr)
-        }
-        else {
-            None
-        }
-    }
 }
 
 #[cfg(test)]
