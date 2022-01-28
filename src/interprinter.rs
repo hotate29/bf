@@ -243,4 +243,29 @@ mod test {
         let output_string = String::from_utf8(output_buffer).unwrap();
         assert_eq!(output_string, assert_mandelbrot);
     }
+    #[test]
+    fn test_hello_world_interprinter() {
+        let hello_world = ">+++++++++[<++++++++>-]<.>+++++++[<++++>-]<+.+++++++..+++.[-]>++++++++[<++++>-]<.>+++++++++++[<+++++>-]<.>++++++++[<+++>-]<.+++.------.--------.[-]>++++++++[<++++>-]<+.[-]++++++++++.";
+
+        let root_node = Node::from_source(hello_world).unwrap();
+
+        let mut output = vec![];
+        InterPrinter::new(root_node, io::empty(), &mut output).start();
+
+        let output = String::from_utf8(output).unwrap();
+        assert_eq!(output, "Hello World!\n");
+    }
+    #[test]
+    fn test_optimized_hello_world_interprinter() {
+        let hello_world = ">+++++++++[<++++++++>-]<.>+++++++[<++++>-]<+.+++++++..+++.[-]>++++++++[<++++>-]<.>+++++++++++[<+++++>-]<.>++++++++[<+++>-]<.+++.------.--------.[-]>++++++++[<++++>-]<+.[-]++++++++++.";
+
+        let root_node = Node::from_source(hello_world).unwrap();
+        let root_node = optimize(root_node, &all_optimizer());
+
+        let mut output = vec![];
+        InterPrinter::new(root_node, io::empty(), &mut output).start();
+
+        let output = String::from_utf8(output).unwrap();
+        assert_eq!(output, "Hello World!\n");
+    }
 }
