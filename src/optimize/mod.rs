@@ -10,10 +10,10 @@ mod set_value;
 mod zeroset;
 
 pub trait Optimizer {
-    fn optimize_node(&self, _: &Node) -> Option<Node> {
+    fn optimize_node(&self, _node: &Node) -> Option<Node> {
         None
     }
-    fn optimize_expr(&self, _: &ExprKind) -> Option<ExprKind> {
+    fn optimize_expr(&self, _expr: &ExprKind) -> Option<ExprKind> {
         None
     }
 }
