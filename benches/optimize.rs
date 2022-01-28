@@ -3,7 +3,7 @@ extern crate test;
 
 use std::fs;
 
-use bf::optimize::{optimize, Node};
+use bf::optimize::{all_optimizer, optimize, Node};
 
 #[bench]
 fn bench_optimizing(bencher: &mut test::Bencher) {
@@ -11,5 +11,5 @@ fn bench_optimizing(bencher: &mut test::Bencher) {
 
     let root_node = Node::from_source(&source).unwrap();
 
-    bencher.iter(|| optimize(root_node.clone()))
+    bencher.iter(|| optimize(root_node.clone(), &all_optimizer()))
 }

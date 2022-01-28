@@ -5,6 +5,7 @@ use std::fs;
 use std::io;
 
 use bf::interprinter::InterPrinter;
+use bf::optimize::all_optimizer;
 use bf::optimize::{optimize, Node};
 
 #[bench]
@@ -24,7 +25,7 @@ fn bench_optimized_mandelbrot(bencher: &mut test::Bencher) {
 
     let root_node = Node::from_source(&source).unwrap();
 
-    let optimized_node = optimize(root_node);
+    let optimized_node = optimize(root_node, &all_optimizer());
 
     bencher.iter(|| {
         InterPrinter::new(optimized_node.clone(), io::empty(), io::sink()).start();
