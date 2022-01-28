@@ -48,12 +48,12 @@ mod test {
         }
 
         helper(
-            "[-<+>]",
-            Some(ExprKind::Instructions(vec![Instruction::MoveAddRev(1)])),
+            "[-<->]",
+            Some(ExprKind::Instructions(vec![Instruction::MoveSubRev(1)])),
         );
         helper(
-            "[-<<<<<<<<<<+>>>>>>>>>>]",
-            Some(ExprKind::Instructions(vec![Instruction::MoveAddRev(10)])),
+            "[-<<<<<<<<<<->>>>>>>>>>]",
+            Some(ExprKind::Instructions(vec![Instruction::MoveSubRev(10)])),
         );
 
         helper("[->+<]", None);
