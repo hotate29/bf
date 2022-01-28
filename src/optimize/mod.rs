@@ -6,7 +6,7 @@ mod move_add;
 mod move_add_rev;
 mod move_sub;
 mod move_sub_rev;
-mod set_value;
+mod mul_add;
 mod mul_add_rev;
 mod zeroset;
 
@@ -170,7 +170,7 @@ pub fn optimize(mut root_node: Node, optimizers: &[Box<dyn Optimizer>]) -> Node 
 pub fn all_optimizer() -> Vec<Box<dyn Optimizer>> {
     vec![
         Box::new(zeroset::ZeroSetOptimizer),
-        Box::new(set_value::SetValueOptimizer),
+        Box::new(mul_add::MulAddOptimizer),
         Box::new(mul_add_rev::MulAddRevOptimizer),
         Box::new(move_add::MoveAddOptimizer),
         Box::new(move_add_rev::MoveAddRevOptimizer),
