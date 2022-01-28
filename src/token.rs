@@ -290,7 +290,10 @@ impl Node {
         assert_eq!(c, tokens.len());
         node
     }
-    pub fn to_string(&self) -> Option<String> {
+}
+
+impl ToString for Node {
+    fn to_string(&self) -> String {
         fn inner(node: &Node, out: &mut String) {
             for expr in &node.0 {
                 match expr {
@@ -313,7 +316,7 @@ impl Node {
         }
         let mut out = String::new();
         inner(self, &mut out);
-        Some(out)
+        out
     }
 }
 
