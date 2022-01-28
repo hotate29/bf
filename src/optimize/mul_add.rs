@@ -32,3 +32,32 @@ impl Optimizer for MulAddOptimizer {
         }
     }
 }
+
+#[cfg(test)]
+mod test {
+    use super::MulAddOptimizer;
+    use crate::{
+        optimize::{test::expr_helper, ExprKind},
+        token::Instruction,
+    };
+
+    #[test]
+    fn test_mul_add() {
+        expr_helper(
+            "[->+<]",
+            Some(ExprKind::Instructions(vec![Instruction::MulAdd(1, 1)])),
+            MulAddOptimizer,
+        );
+        expr_helper(
+            "[>+<-]",
+            Some(ExprKind::Instructions(vec![Instruction::MulAdd(1, 1)])),
+            MulAddOptimizer,
+        );
+        expr_helper(
+            "[->>>+++++<<<]",
+            Some(ExprKind::Instructions(vec![Instruction::MulAdd(3, 5)])),
+            MulAddOptimizer,
+        );
+        expr_helper("[->>>-----<<<]", None, MulAddOptimizer);
+    }
+}
