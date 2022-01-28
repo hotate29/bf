@@ -1,4 +1,5 @@
-use crate::token::{ExprKind, Instruction, Node};
+use crate::optimize::{ExprKind, Node};
+use crate::token::Instruction;
 
 use std::io::prelude::*;
 
@@ -148,7 +149,7 @@ impl<R: Read, W: Write> InterPrinter<R, W> {
 mod test {
     use std::{fs, io};
 
-    use crate::{optimize::optimize, token::Node};
+    use crate::{optimize::optimize, optimize::Node};
 
     use super::InterPrinter;
 

@@ -3,8 +3,7 @@ extern crate test;
 
 use std::fs;
 
-use bf::optimize::optimize;
-use bf::token::Node;
+use bf::optimize::{optimize, Node};
 
 #[bench]
 fn bench_optimizing(bencher: &mut test::Bencher) {
