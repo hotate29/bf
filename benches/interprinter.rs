@@ -31,3 +31,26 @@ fn bench_optimized_mandelbrot(bencher: &mut test::Bencher) {
         InterPrinter::new(optimized_node.clone(), io::empty(), io::sink()).start();
     })
 }
+
+#[bench]
+fn bench_hello_world(bencher: &mut test::Bencher) {
+    let hello_world = ">+++++++++[<++++++++>-]<.>+++++++[<++++>-]<+.+++++++..+++.[-]>++++++++[<++++>-]<.>+++++++++++[<+++++>-]<.>++++++++[<+++>-]<.+++.------.--------.[-]>++++++++[<++++>-]<+.[-]++++++++++.";
+
+    let root_node = Node::from_source(hello_world).unwrap();
+
+    bencher.iter(|| {
+        InterPrinter::new(root_node.clone(), io::empty(), io::sink()).start();
+    })
+}
+
+#[bench]
+fn bench_optimized_hello_world(bencher: &mut test::Bencher) {
+    let hello_world = ">+++++++++[<++++++++>-]<.>+++++++[<++++>-]<+.+++++++..+++.[-]>++++++++[<++++>-]<.>+++++++++++[<+++++>-]<.>++++++++[<+++>-]<.+++.------.--------.[-]>++++++++[<++++>-]<+.[-]++++++++++.";
+
+    let root_node = Node::from_source(hello_world).unwrap();
+    let root_node = optimize(root_node, &all_optimizer());
+
+    bencher.iter(|| {
+        InterPrinter::new(root_node.clone(), io::empty(), io::sink()).start();
+    })
+}
