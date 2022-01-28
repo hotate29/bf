@@ -127,17 +127,17 @@ impl<R: Read, W: Write> InterPrinter<R, W> {
         let mut now = 0;
 
         while now < instructions.len() {
-            match &instructions[now] {
+            match instructions[now] {
                 CInstruction::Instruction(instruction) => {
                     match instruction {
-                        Instruction::PtrIncrement(n) => self.state.pointer_add(*n),
-                        Instruction::PtrDecrement(n) => self.state.pointer_sub(*n),
+                        Instruction::PtrIncrement(n) => self.state.pointer_add(n),
+                        Instruction::PtrDecrement(n) => self.state.pointer_sub(n),
                         Instruction::Add(n) => {
                             self.state.add((n % u8::MAX as usize) as u8);
                         }
                         Instruction::MoveAdd(offset) => {
                             let from = self.state.at(0);
-                            self.state.add_offset(*offset, from);
+                            self.state.add_offset(offset, from);
                             *self.state.at_mut(0) = 0;
                         }
                         Instruction::MoveAddRev(offset) => {
@@ -151,7 +151,7 @@ impl<R: Read, W: Write> InterPrinter<R, W> {
                         }
                         Instruction::MoveSub(offset) => {
                             let from = self.state.at(0);
-                            let v = self.state.at_mut(*offset);
+                            let v = self.state.at_mut(offset);
                             *v = v.wrapping_sub(from);
                             *self.state.at_mut(0) = 0;
                         }
@@ -169,31 +169,31 @@ impl<R: Read, W: Write> InterPrinter<R, W> {
                         }
                         Instruction::MulAdd(offset, value) => {
                             if self.state.at(0) != 0 {
-                                let a = self.state.at(0).wrapping_mul(*value);
-                                let a = self.state.at(*offset).wrapping_add(a);
-                                *self.state.at_mut(*offset) = a;
+                                let a = self.state.at(0).wrapping_mul(value);
+                                let a = self.state.at(offset).wrapping_add(a);
+                                *self.state.at_mut(offset) = a;
                                 *self.state.at_mut(0) = 0
                             }
                         }
                         Instruction::MulAddRev(offset, value) => {
                             if self.state.at(0) != 0 {
-                                let a = self.state.at(0).wrapping_mul(*value);
+                                let a = self.state.at(0).wrapping_mul(value);
                                 self.state.memory[self.state.pointer - offset] =
                                     self.state.memory[self.state.pointer - offset].wrapping_add(a);
                                 *self.state.at_mut(0) = 0
                             }
                         }
                         Instruction::Output(n) => {
-                            for _ in 0..*n {
+                            for _ in 0..n {
                                 self.state.output()
                             }
                         }
                         Instruction::Input(n) => {
-                            for _ in 0..*n {
+                            for _ in 0..n {
                                 self.state.input()
                             }
                         }
-                        Instruction::SetValue(offset, v) => self.state.set_to_value(*offset, *v),
+                        Instruction::SetValue(offset, v) => self.state.set_to_value(offset, v),
                     };
                     now += 1
                 }
