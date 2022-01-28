@@ -175,6 +175,7 @@ pub enum Instruction {
     Sub(usize),
     MoveSub(usize),
     MoveSubRev(usize),
+    MulAdd(usize, u8),
     MulAddRev(usize, u8),
     Output(usize),
     Input(usize),
@@ -195,6 +196,7 @@ impl Instruction {
             | Instruction::MoveSub(_)
             | Instruction::MoveSubRev(_)
             | Instruction::SetValue(_, _)
+            | Instruction::MulAdd(_, _)
             | Instruction::MulAddRev(_, _) => None,
         }
     }
