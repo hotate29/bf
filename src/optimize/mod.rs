@@ -5,6 +5,7 @@ use crate::token::{middle_token, tokenize, Instruction, MiddleToken, ParseError}
 
 mod move_add;
 mod move_add_rev;
+mod move_sub;
 mod set_value;
 mod zeroset;
 
@@ -171,25 +172,8 @@ pub fn all_optimizer() -> Vec<Box<dyn Optimizer>> {
         Box::new(set_value::SetValueOptimizer),
         Box::new(move_add::MoveAddOptimizer),
         Box::new(move_add_rev::MoveAddRevOptimizer),
+        Box::new(move_sub::MoveSubOptimizer),
     ]
-}
-
-fn opt_move_sub(expr: &ExprKind) -> Option<ExprKind> {
-    if_chain! {
-        if let ExprKind::While(while_node) = expr;
-        if let [ExprKind::Instructions(while_instructions)] = while_node.0.as_slice();
-        if let [Instruction::Sub(1), Instruction::PtrIncrement(ptr_increment), Instruction::Sub(1), Instruction::PtrDecrement(ptr_decrement)] = while_instructions.as_slice();
-        if ptr_increment == ptr_decrement;
-        then {
-            let optimized_expr = ExprKind::Instructions(vec![
-                Instruction::MoveSub(*ptr_increment),
-            ]);
-            Some(optimized_expr)
-        }
-        else {
-            None
-        }
-    }
 }
 
 fn opt_move_sub_rev(expr: &ExprKind) -> Option<ExprKind> {
@@ -212,31 +196,7 @@ fn opt_move_sub_rev(expr: &ExprKind) -> Option<ExprKind> {
 mod test {
     use crate::token::Instruction;
 
-    use super::{opt_move_sub, ExprKind, Node};
-
-    #[test]
-    fn test_opt_move_sub() {
-        fn helper(source: &str, assert_expr: Option<ExprKind>) {
-            let root_node = Node::from_source(source).unwrap();
-
-            if let [expr] = root_node.0.as_slice() {
-                let optimized_expr = opt_move_sub(expr);
-                assert_eq!(optimized_expr, assert_expr);
-            } else {
-                panic!("変なテストデータ")
-            }
-        }
-        helper(
-            "[->-<]",
-            Some(ExprKind::Instructions(vec![Instruction::MoveSub(1)])),
-        );
-        helper(
-            "[->>>>>>>>>>-<<<<<<<<<<]",
-            Some(ExprKind::Instructions(vec![Instruction::MoveSub(10)])),
-        );
-
-        helper("[->+<<]", None);
-    }
+    use super::{ExprKind, Node};
 
     #[test]
     fn test_node_from_middle_token() {
