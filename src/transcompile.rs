@@ -17,9 +17,8 @@ pub fn to_c(root_node: &Node) -> String {
                             Instruction::MoveAdd(n) => {
                                 c_code.push_str(&format!("ptr[{}]+=ptr[0];ptr[0]=0;", n))
                             }
-                            Instruction::MoveAddRev(n) => {
-                                c_code.push_str(&format!("*(ptr-{})+=ptr[0];ptr[0]=0;", n))
-                            }
+                            Instruction::MoveAddRev(n) => c_code
+                                .push_str(&format!("if(*ptr!=0){{*(ptr-{})+=ptr[0];ptr[0]=0;}}", n)),
                             Instruction::Sub(n) => c_code.push_str(&format!("ptr[0]-={};", n)),
                             Instruction::Output(n) => {
                                 for _ in 0..*n {
