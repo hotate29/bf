@@ -60,6 +60,18 @@ impl<R: Read, W: Write> State<R, W> {
     }
 }
 
+#[derive(Debug)]
+enum CInstruction {
+    Instruction(Instruction),
+    WhileBegin,
+    WhileEnd,
+}
+impl CInstruction {
+    fn from_instruction(instruction: Instruction) -> Self {
+        Self::Instruction(instruction)
+    }
+}
+
 pub struct InterPrinter<R: Read, W: Write> {
     state: State<R, W>,
     root_node: Node,
@@ -76,72 +88,107 @@ impl<R: Read, W: Write> InterPrinter<R, W> {
         Self { state, root_node }
     }
     pub fn start(&mut self) {
-        fn inner<R: Read, W: Write>(state: &mut State<R, W>, node: &Node) {
+        fn inner(c_instruction: &mut Vec<CInstruction>, node: &Node) {
             for expr in &node.0 {
                 match expr {
-                    ExprKind::Instructions(instructions) => {
-                        for instruction in instructions {
-                            match instruction {
-                                Instruction::PtrIncrement(n) => state.pointer_add(*n),
-                                Instruction::PtrDecrement(n) => state.pointer_sub(*n),
-                                Instruction::Add(n) => {
-                                    state.add((n % u8::MAX as usize) as u8);
-                                }
-                                Instruction::MoveAdd(offset) => {
-                                    let from = state.at(0);
-                                    state.add_offset(*offset, from);
-                                    *state.at_mut(0) = 0;
-                                }
-                                Instruction::MoveAddRev(offset) => {
-                                    if state.at(0) == 0 {
-                                        continue;
-                                    }
-                                    let from = state.at(0);
-                                    state.memory[state.pointer - offset] =
-                                        state.memory[state.pointer - offset].wrapping_add(from);
-                                    *state.at_mut(0) = 0;
-                                }
-                                Instruction::MoveSub(offset) => {
-                                    let from = state.at(0);
-                                    let v = state.at_mut(*offset);
-                                    *v = v.wrapping_sub(from);
-                                    *state.at_mut(0) = 0;
-                                }
-                                Instruction::MoveSubRev(offset) => {
-                                    if state.at(0) == 0 {
-                                        continue;
-                                    }
-                                    let from = state.at(0);
-                                    state.memory[state.pointer - offset] =
-                                        state.memory[state.pointer - offset].wrapping_sub(from);
-                                    *state.at_mut(0) = 0;
-                                }
-                                Instruction::Sub(n) => {
-                                    state.sub((n % u8::MAX as usize) as u8);
-                                }
-                                Instruction::Output(n) => {
-                                    for _ in 0..*n {
-                                        state.output()
-                                    }
-                                }
-                                Instruction::Input(n) => {
-                                    for _ in 0..*n {
-                                        state.input()
-                                    }
-                                }
-                                Instruction::SetValue(offset, v) => state.set_to_value(*offset, *v),
-                            }
-                        }
-                    }
-                    ExprKind::While(node) => {
-                        while state.memory[state.pointer] != 0 {
-                            inner(state, node)
-                        }
+                    ExprKind::Instructions(ins) => c_instruction
+                        .extend(ins.iter().map(|ins| CInstruction::from_instruction(*ins))),
+                    ExprKind::While(while_node) => {
+                        c_instruction.push(CInstruction::WhileBegin);
+                        inner(c_instruction, while_node);
+                        c_instruction.push(CInstruction::WhileEnd);
                     }
                 }
             }
         }
-        inner(&mut self.state, &self.root_node);
+
+        let mut instructions = vec![];
+        inner(&mut instructions, &self.root_node);
+
+        let mut while_stack = vec![0];
+        let mut while_begin_jump_table = vec![0; instructions.len()];
+        for (i, instruction) in instructions.iter().enumerate() {
+            match instruction {
+                CInstruction::Instruction(_) => (),
+                CInstruction::WhileBegin => while_stack.push(i),
+                CInstruction::WhileEnd => while_begin_jump_table[i] = while_stack.pop().unwrap(),
+            }
+        }
+
+        let mut while_stack = vec![0];
+        let mut while_end_jump_table = vec![0; instructions.len()];
+        for (i, instruction) in instructions.iter().enumerate().rev() {
+            match instruction {
+                CInstruction::Instruction(_) => (),
+                CInstruction::WhileBegin => while_end_jump_table[i] = while_stack.pop().unwrap(),
+                CInstruction::WhileEnd => while_stack.push(i + 1),
+            }
+        }
+
+        let mut now = 0;
+
+        while now < instructions.len() {
+            match &instructions[now] {
+                CInstruction::Instruction(instruction) => {
+                    match instruction {
+                        Instruction::PtrIncrement(n) => self.state.pointer_add(*n),
+                        Instruction::PtrDecrement(n) => self.state.pointer_sub(*n),
+                        Instruction::Add(n) => {
+                            self.state.add((n % u8::MAX as usize) as u8);
+                        }
+                        Instruction::MoveAdd(offset) => {
+                            let from = self.state.at(0);
+                            self.state.add_offset(*offset, from);
+                            *self.state.at_mut(0) = 0;
+                        }
+                        Instruction::MoveAddRev(offset) => {
+                            if self.state.at(0) != 0 {
+                                let from = self.state.at(0);
+                                self.state.memory[self.state.pointer - offset] = self.state.memory
+                                    [self.state.pointer - offset]
+                                    .wrapping_add(from);
+                                *self.state.at_mut(0) = 0;
+                            }
+                        }
+                        Instruction::MoveSub(offset) => {
+                            let from = self.state.at(0);
+                            let v = self.state.at_mut(*offset);
+                            *v = v.wrapping_sub(from);
+                            *self.state.at_mut(0) = 0;
+                        }
+                        Instruction::MoveSubRev(offset) => {
+                            if self.state.at(0) != 0 {
+                                let from = self.state.at(0);
+                                self.state.memory[self.state.pointer - offset] = self.state.memory
+                                    [self.state.pointer - offset]
+                                    .wrapping_sub(from);
+                                *self.state.at_mut(0) = 0;
+                            }
+                        }
+                        Instruction::Sub(n) => {
+                            self.state.sub((n % u8::MAX as usize) as u8);
+                        }
+                        Instruction::Output(n) => {
+                            for _ in 0..*n {
+                                self.state.output()
+                            }
+                        }
+                        Instruction::Input(n) => {
+                            for _ in 0..*n {
+                                self.state.input()
+                            }
+                        }
+                        Instruction::SetValue(offset, v) => self.state.set_to_value(*offset, *v),
+                    };
+                    now += 1
+                }
+                CInstruction::WhileBegin if self.state.at(0) == 0 => {
+                    now = while_end_jump_table[now]
+                }
+                CInstruction::WhileBegin => now += 1,
+                CInstruction::WhileEnd => now = while_begin_jump_table[now],
+            }
+        }
     }
 }
 
