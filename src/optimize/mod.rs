@@ -136,8 +136,8 @@ impl ToString for Node {
     }
 }
 
-pub fn optimize(mut root_node: Node, optimizers: &[impl Optimizer]) -> Node {
-    fn inner(node: &mut Node, optimizers: &[impl Optimizer]) {
+pub fn optimize(mut root_node: Node, optimizers: &[Box<dyn Optimizer>]) -> Node {
+    fn inner(node: &mut Node, optimizers: &[Box<dyn Optimizer>]) {
         for optimizer in optimizers {
             if let Some(optimized_node) = optimizer.optimize_node(node) {
                 *node = optimized_node;
@@ -162,8 +162,8 @@ pub fn optimize(mut root_node: Node, optimizers: &[impl Optimizer]) -> Node {
     root_node
 }
 
-pub fn all_optimizer() -> Vec<impl Optimizer> {
-    vec![zeroset::ZeroSetOptimizer]
+pub fn all_optimizer() -> Vec<Box<dyn Optimizer>> {
+    vec![Box::new(zeroset::ZeroSetOptimizer)]
 }
 
 /// +n[-x>+m<x]>をSetToValue(x, n*m)に変換する
