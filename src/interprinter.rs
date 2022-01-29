@@ -22,16 +22,12 @@ impl<R: Read, W: Write> State<R, W> {
         }
         &mut self.memory[self.pointer + offset]
     }
-    fn add(&mut self, value: u8) {
-        let a = self.at_mut(0);
-        *a = a.wrapping_add(value);
-    }
-    fn add_offset(&mut self, offset: usize, value: u8) {
+    fn add(&mut self, offset: usize, value: u8) {
         let a = self.at_mut(offset);
         *a = a.wrapping_add(value);
     }
-    fn sub(&mut self, value: u8) {
-        let a = self.at_mut(0);
+    fn sub(&mut self, offset: usize, value: u8) {
+        let a = self.at_mut(offset);
         *a = a.wrapping_sub(value);
     }
     fn pointer_add(&mut self, value: usize) {
@@ -130,26 +126,25 @@ impl<R: Read, W: Write> InterPrinter<R, W> {
                         Instruction::PtrIncrement(n) => self.state.pointer_add(n),
                         Instruction::PtrDecrement(n) => self.state.pointer_sub(n),
                         Instruction::Add(n) => {
-                            self.state.add((n % u8::MAX as usize) as u8);
+                            self.state.add(0, (n % u8::MAX as usize) as u8);
                         }
                         Instruction::MoveAdd(offset) => {
-                            let from = self.state.at(0);
-                            self.state.add_offset(offset, from);
+                            let value = self.state.at(0);
+                            self.state.add(offset, value);
                             *self.state.at_mut(0) = 0;
                         }
                         Instruction::MoveAddRev(offset) => {
                             if self.state.at(0) != 0 {
-                                let from = self.state.at(0);
+                                let value = self.state.at(0);
                                 self.state.memory[self.state.pointer - offset] = self.state.memory
                                     [self.state.pointer - offset]
-                                    .wrapping_add(from);
+                                    .wrapping_add(value);
                                 *self.state.at_mut(0) = 0;
                             }
                         }
                         Instruction::MoveSub(offset) => {
-                            let from = self.state.at(0);
-                            let v = self.state.at_mut(offset);
-                            *v = v.wrapping_sub(from);
+                            let value = self.state.at(0);
+                            self.state.sub(offset, value);
                             *self.state.at_mut(0) = 0;
                         }
                         Instruction::MoveSubRev(offset) => {
@@ -162,13 +157,12 @@ impl<R: Read, W: Write> InterPrinter<R, W> {
                             }
                         }
                         Instruction::Sub(n) => {
-                            self.state.sub((n % u8::MAX as usize) as u8);
+                            self.state.sub(0, (n % u8::MAX as usize) as u8);
                         }
                         Instruction::MulAdd(offset, value) => {
                             if self.state.at(0) != 0 {
                                 let a = self.state.at(0).wrapping_mul(value);
-                                let a = self.state.at(offset).wrapping_add(a);
-                                *self.state.at_mut(offset) = a;
+                                self.state.add(offset, a);
                                 *self.state.at_mut(0) = 0
                             }
                         }
