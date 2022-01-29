@@ -13,7 +13,8 @@ impl Optimizer for ZeroSetOptimizer {
         if_chain! {
             if let ExprKind::While(while_node) = expr;
             if let [ExprKind::Instructions(instructions)] = while_node.0.as_slice();
-            if let [Instruction::Sub(1)] = instructions.as_slice();
+            if let [Instruction::Sub(1)] |
+                   [Instruction::Add(1)] = instructions.as_slice();
             then {
                 info!("optimize!");
                 Some(ExprKind::Instructions(vec![Instruction::SetValue(0, 0)]))
@@ -37,6 +38,11 @@ mod test {
     fn test_opt_zeroset() {
         expr_helper(
             "[-]",
+            Some(ExprKind::Instructions(vec![Instruction::SetValue(0, 0)])),
+            ZeroSetOptimizer,
+        );
+        expr_helper(
+            "[+]",
             Some(ExprKind::Instructions(vec![Instruction::SetValue(0, 0)])),
             ZeroSetOptimizer,
         );
