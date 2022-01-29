@@ -17,7 +17,7 @@ impl Optimizer for ZeroSetOptimizer {
                    [Instruction::Add(1)] = instructions.as_slice();
             then {
                 info!("optimize!");
-                Some(ExprKind::Instructions(vec![Instruction::SetValue(0, 0)]))
+                Some(ExprKind::Instructions(vec![Instruction::ZeroSet]))
             }
             else {
                 None
@@ -38,12 +38,12 @@ mod test {
     fn test_opt_zeroset() {
         expr_helper(
             "[-]",
-            Some(ExprKind::Instructions(vec![Instruction::SetValue(0, 0)])),
+            Some(ExprKind::Instructions(vec![Instruction::ZeroSet])),
             ZeroSetOptimizer,
         );
         expr_helper(
             "[+]",
-            Some(ExprKind::Instructions(vec![Instruction::SetValue(0, 0)])),
+            Some(ExprKind::Instructions(vec![Instruction::ZeroSet])),
             ZeroSetOptimizer,
         );
         expr_helper("[>]", None, ZeroSetOptimizer);

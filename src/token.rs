@@ -179,7 +179,7 @@ pub enum Instruction {
     MulAddRev(usize, u8),
     Output(usize),
     Input(usize),
-    SetValue(usize, u8),
+    ZeroSet,
 }
 
 impl Instruction {
@@ -195,9 +195,9 @@ impl Instruction {
             | Instruction::MoveAddRev(_)
             | Instruction::MoveSub(_)
             | Instruction::MoveSubRev(_)
-            | Instruction::SetValue(_, _)
             | Instruction::MulAdd(_, _)
-            | Instruction::MulAddRev(_, _) => None,
+            | Instruction::MulAddRev(_, _)
+            | Instruction::ZeroSet => None,
         }
     }
 }

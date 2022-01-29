@@ -44,9 +44,6 @@ impl<R: Read, W: Write> State<R, W> {
         }
         self.pointer -= value;
     }
-    fn set_to_value(&mut self, offset: usize, value: u8) {
-        *self.at_mut(offset) = value;
-    }
     fn output(&mut self) {
         let value = self.at(0);
         self.output_writer.write_all(&[value]).unwrap();
@@ -193,7 +190,7 @@ impl<R: Read, W: Write> InterPrinter<R, W> {
                                 self.state.input()
                             }
                         }
-                        Instruction::SetValue(offset, v) => self.state.set_to_value(offset, v),
+                        Instruction::ZeroSet => *self.state.at_mut(0) = 0,
                     };
                     now += 1
                 }

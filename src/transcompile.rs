@@ -40,9 +40,6 @@ pub fn to_c(root_node: &Node) -> String {
                                     c_code.push_str("ptr[0]=getchar();");
                                 }
                             }
-                            Instruction::SetValue(offset, value) => {
-                                c_code.push_str(&format!("ptr[{}]={};", offset, value));
-                            }
                             Instruction::MulAdd(offset, value) => {
                                 c_code.push_str(&format!(
                                     "if(*ptr!=0){{ptr[{}]+={}*(*ptr);*ptr=0;}}",
@@ -54,6 +51,9 @@ pub fn to_c(root_node: &Node) -> String {
                                     "if(*ptr!=0){{*(ptr-{})+={}*(*ptr);*ptr=0;}}",
                                     offset, value
                                 ));
+                            }
+                            Instruction::ZeroSet => {
+                                c_code.push_str("*ptr=0;");
                             }
                         }
                     }
