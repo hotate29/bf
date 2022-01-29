@@ -17,7 +17,7 @@ impl Optimizer for MoveAddRevOptimizer {
             if x == y;
             then {
                 info!("optimize!");
-                let expr = ExprKind::Instructions(vec![Instruction::MoveAddRev(*x)]);
+                let expr = ExprKind::Instructions(vec![Instruction::AddToRev(*x), Instruction::ZeroSet]);
                 Some(expr)
             }
             else {
@@ -39,12 +39,18 @@ mod test {
     fn test_opt_move_add_rev() {
         expr_helper(
             "[-<+>]",
-            Some(ExprKind::Instructions(vec![Instruction::MoveAddRev(1)])),
+            Some(ExprKind::Instructions(vec![
+                Instruction::AddToRev(1),
+                Instruction::ZeroSet,
+            ])),
             MoveAddRevOptimizer,
         );
         expr_helper(
             "[-<<<<<<<<<<+>>>>>>>>>>]",
-            Some(ExprKind::Instructions(vec![Instruction::MoveAddRev(10)])),
+            Some(ExprKind::Instructions(vec![
+                Instruction::AddToRev(10),
+                Instruction::ZeroSet,
+            ])),
             MoveAddRevOptimizer,
         );
 

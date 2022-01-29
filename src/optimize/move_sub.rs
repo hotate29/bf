@@ -18,7 +18,7 @@ impl Optimizer for MoveSubOptimizer {
             then {
                 info!("optimize!");
                 let optimized_expr = ExprKind::Instructions(vec![
-                    Instruction::MoveSub(*ptr_increment),
+                    Instruction::SubTo(*ptr_increment), Instruction::ZeroSet
                 ]);
                 Some(optimized_expr)
             }
@@ -41,12 +41,18 @@ mod test {
     fn test_opt_move_sub() {
         expr_helper(
             "[->-<]",
-            Some(ExprKind::Instructions(vec![Instruction::MoveSub(1)])),
+            Some(ExprKind::Instructions(vec![
+                Instruction::SubTo(1),
+                Instruction::ZeroSet,
+            ])),
             MoveSubOptimizer,
         );
         expr_helper(
             "[->>>>>>>>>>-<<<<<<<<<<]",
-            Some(ExprKind::Instructions(vec![Instruction::MoveSub(10)])),
+            Some(ExprKind::Instructions(vec![
+                Instruction::SubTo(10),
+                Instruction::ZeroSet,
+            ])),
             MoveSubOptimizer,
         );
 

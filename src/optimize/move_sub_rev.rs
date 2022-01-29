@@ -17,7 +17,7 @@ impl Optimizer for MoveSubRevOptimizer {
             if x == y;
             then {
                 info!("optimize!");
-                let expr = ExprKind::Instructions(vec![Instruction::MoveSubRev(*x)]);
+                let expr = ExprKind::Instructions(vec![Instruction::SubToRev(*x), Instruction::ZeroSet]);
                 Some(expr)
             }
             else {
@@ -39,12 +39,18 @@ mod test {
     fn test_opt_move_sub_rev() {
         expr_helper(
             "[-<->]",
-            Some(ExprKind::Instructions(vec![Instruction::MoveSubRev(1)])),
+            Some(ExprKind::Instructions(vec![
+                Instruction::SubToRev(1),
+                Instruction::ZeroSet,
+            ])),
             MoveSubRevOptimizer,
         );
         expr_helper(
             "[-<<<<<<<<<<->>>>>>>>>>]",
-            Some(ExprKind::Instructions(vec![Instruction::MoveSubRev(10)])),
+            Some(ExprKind::Instructions(vec![
+                Instruction::SubToRev(10),
+                Instruction::ZeroSet,
+            ])),
             MoveSubRevOptimizer,
         );
 

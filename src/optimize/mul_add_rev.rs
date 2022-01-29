@@ -19,7 +19,7 @@ impl Optimizer for MulAddRevOptimizer {
                 info!("optimize!");
                 let add_count = (*add_count % u8::MAX as usize) as u8;
 
-                let expr = ExprKind::Instructions(vec![Instruction::MulAddRev(*ptr_decrement, add_count)]);
+                let expr = ExprKind::Instructions(vec![Instruction::MulAddRev(*ptr_decrement, add_count), Instruction::ZeroSet]);
 
                 Some(expr)
             }
@@ -42,12 +42,18 @@ mod test {
     fn test_opt_move_add_rev() {
         expr_helper(
             "[<+++>-]",
-            Some(ExprKind::Instructions(vec![Instruction::MulAddRev(1, 3)])),
+            Some(ExprKind::Instructions(vec![
+                Instruction::MulAddRev(1, 3),
+                Instruction::ZeroSet,
+            ])),
             MulAddRevOptimizer,
         );
         expr_helper(
             "[<<+++++>>-]",
-            Some(ExprKind::Instructions(vec![Instruction::MulAddRev(2, 5)])),
+            Some(ExprKind::Instructions(vec![
+                Instruction::MulAddRev(2, 5),
+                Instruction::ZeroSet,
+            ])),
             MulAddRevOptimizer,
         );
 

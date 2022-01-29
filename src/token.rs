@@ -170,11 +170,11 @@ pub enum Instruction {
     PtrIncrement(usize),
     PtrDecrement(usize),
     Add(usize),
-    MoveAdd(usize),
-    MoveAddRev(usize),
+    AddTo(usize),
+    AddToRev(usize),
     Sub(usize),
-    MoveSub(usize),
-    MoveSubRev(usize),
+    SubTo(usize),
+    SubToRev(usize),
     MulAdd(usize, u8),
     MulAddRev(usize, u8),
     Output(usize),
@@ -191,10 +191,10 @@ impl Instruction {
             Instruction::Sub(n) => Some(format!("-{}", n)),
             Instruction::Output(n) => Some(format!(".{}", n)),
             Instruction::Input(n) => Some(format!(",{}", n)),
-            Instruction::MoveAdd(_)
-            | Instruction::MoveAddRev(_)
-            | Instruction::MoveSub(_)
-            | Instruction::MoveSubRev(_)
+            Instruction::AddTo(_)
+            | Instruction::AddToRev(_)
+            | Instruction::SubTo(_)
+            | Instruction::SubToRev(_)
             | Instruction::MulAdd(_, _)
             | Instruction::MulAddRev(_, _)
             | Instruction::ZeroSet => None,

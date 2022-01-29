@@ -128,32 +128,28 @@ impl<R: Read, W: Write> InterPrinter<R, W> {
                         Instruction::Add(n) => {
                             self.state.add(0, (n % u8::MAX as usize) as u8);
                         }
-                        Instruction::MoveAdd(offset) => {
+                        Instruction::AddTo(offset) => {
                             let value = self.state.at(0);
                             self.state.add(offset, value);
-                            *self.state.at_mut(0) = 0;
                         }
-                        Instruction::MoveAddRev(offset) => {
+                        Instruction::AddToRev(offset) => {
                             if self.state.at(0) != 0 {
                                 let value = self.state.at(0);
                                 self.state.memory[self.state.pointer - offset] = self.state.memory
                                     [self.state.pointer - offset]
                                     .wrapping_add(value);
-                                *self.state.at_mut(0) = 0;
                             }
                         }
-                        Instruction::MoveSub(offset) => {
+                        Instruction::SubTo(offset) => {
                             let value = self.state.at(0);
                             self.state.sub(offset, value);
-                            *self.state.at_mut(0) = 0;
                         }
-                        Instruction::MoveSubRev(offset) => {
+                        Instruction::SubToRev(offset) => {
                             if self.state.at(0) != 0 {
                                 let from = self.state.at(0);
                                 self.state.memory[self.state.pointer - offset] = self.state.memory
                                     [self.state.pointer - offset]
                                     .wrapping_sub(from);
-                                *self.state.at_mut(0) = 0;
                             }
                         }
                         Instruction::Sub(n) => {
@@ -163,7 +159,6 @@ impl<R: Read, W: Write> InterPrinter<R, W> {
                             if self.state.at(0) != 0 {
                                 let a = self.state.at(0).wrapping_mul(value);
                                 self.state.add(offset, a);
-                                *self.state.at_mut(0) = 0
                             }
                         }
                         Instruction::MulAddRev(offset, value) => {
@@ -171,7 +166,6 @@ impl<R: Read, W: Write> InterPrinter<R, W> {
                                 let a = self.state.at(0).wrapping_mul(value);
                                 self.state.memory[self.state.pointer - offset] =
                                     self.state.memory[self.state.pointer - offset].wrapping_add(a);
-                                *self.state.at_mut(0) = 0
                             }
                         }
                         Instruction::Output(n) => {

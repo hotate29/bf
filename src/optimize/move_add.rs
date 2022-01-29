@@ -18,7 +18,7 @@ impl Optimizer for MoveAddOptimizer {
             then {
                 info!("optimize!");
                 let optimized_expr = ExprKind::Instructions(vec![
-                    Instruction::MoveAdd(*ptr_increment),
+                    Instruction::AddTo(*ptr_increment), Instruction::ZeroSet
                 ]);
                 Some(optimized_expr)
             }
@@ -41,12 +41,18 @@ mod test {
     fn test_opt_move_add() {
         expr_helper(
             "[->+<]",
-            Some(ExprKind::Instructions(vec![Instruction::MoveAdd(1)])),
+            Some(ExprKind::Instructions(vec![
+                Instruction::AddTo(1),
+                Instruction::ZeroSet,
+            ])),
             MoveAddOptimizer,
         );
         expr_helper(
             "[->>>>>>>>>>+<<<<<<<<<<]",
-            Some(ExprKind::Instructions(vec![Instruction::MoveAdd(10)])),
+            Some(ExprKind::Instructions(vec![
+                Instruction::AddTo(10),
+                Instruction::ZeroSet,
+            ])),
             MoveAddOptimizer,
         );
 
