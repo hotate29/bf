@@ -180,6 +180,7 @@ pub enum Instruction {
     Output(usize),
     Input(usize),
     ZeroSet,
+    Copy(usize),
 }
 
 impl Instruction {
@@ -197,7 +198,8 @@ impl Instruction {
             | Instruction::SubToRev(_)
             | Instruction::MulAdd(_, _)
             | Instruction::MulAddRev(_, _)
-            | Instruction::ZeroSet => None,
+            | Instruction::ZeroSet
+            | Instruction::Copy(_) => None,
         }
     }
 }

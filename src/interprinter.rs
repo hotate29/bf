@@ -179,6 +179,10 @@ impl<R: Read, W: Write> InterPrinter<R, W> {
                             }
                         }
                         Instruction::ZeroSet => *self.state.at_mut(0) = 0,
+                        Instruction::Copy(offset) => {
+                            let value = self.state.at(0);
+                            self.state.add(offset, value);
+                        }
                     };
                     now += 1
                 }

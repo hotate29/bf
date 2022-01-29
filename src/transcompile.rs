@@ -53,6 +53,9 @@ pub fn to_c(root_node: &Node) -> String {
                             Instruction::ZeroSet => {
                                 c_code.push_str("*ptr=0;");
                             }
+                            Instruction::Copy(offset) => {
+                                c_code.push_str(&format!("ptr[{offset}]=*ptr;"))
+                            }
                         }
                     }
                 }
