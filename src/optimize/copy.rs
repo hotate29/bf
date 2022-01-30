@@ -49,6 +49,28 @@ impl Optimizer for CopyOptimizer {
                     None
                 }
             }
+        }).or_else(|| {
+            // [->>>+<+<+<]
+            if_chain! {
+                if let ExprKind::While(while_node) = expr;
+                if let [ExprKind::Instructions(while_instructions)] = while_node.0.as_slice();
+                if let [Instruction::Sub(1), Instruction::PtrIncrement(x), Instruction::Add(1), Instruction::PtrDecrement(y), Instruction::Add(1), Instruction::PtrDecrement(z), Instruction::Add(1), Instruction::PtrDecrement(a)] =
+                        while_instructions.as_slice();
+                if *x == y + z + a;
+                then {
+                    info!("optimize! 3");
+                    let expr = ExprKind::Instructions(vec![
+                        Instruction::Copy(*x),
+                        Instruction::Copy(x - y),
+                        Instruction::Copy(x - y - z),
+                        Instruction::ZeroSet,
+                    ]);
+                    Some(expr)
+                }
+                else {
+                    None
+                }
+            }
         })
     }
 }
