@@ -122,7 +122,7 @@ impl ToString for Node {
                 match expr {
                     ExprKind::Instructions(instructions) => {
                         for instruction in instructions {
-                            if let Some(s) = instruction.to_string() {
+                            if let Some(s) = instruction.to_compressed_string() {
                                 out.push_str(&s);
                             } else {
                                 out.push_str("None");

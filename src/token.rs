@@ -185,14 +185,14 @@ pub enum Instruction {
 }
 
 impl Instruction {
-    pub fn to_string(self) -> Option<String> {
+    pub fn to_compressed_string(self) -> Option<String> {
         match self {
-            Instruction::PtrIncrement(n) => Some(format!(">{}", n)),
-            Instruction::PtrDecrement(n) => Some(format!("<{}", n)),
-            Instruction::Add(n) => Some(format!("+{}", n)),
-            Instruction::Sub(n) => Some(format!("-{}", n)),
-            Instruction::Output(n) => Some(format!(".{}", n)),
-            Instruction::Input(n) => Some(format!(",{}", n)),
+            Instruction::PtrIncrement(n) => Some(format!("{}>", n)),
+            Instruction::PtrDecrement(n) => Some(format!("{}<", n)),
+            Instruction::Add(n) => Some(format!("{}+", n)),
+            Instruction::Sub(n) => Some(format!("{}-", n)),
+            Instruction::Output(n) => Some(format!("{}.", n)),
+            Instruction::Input(n) => Some(format!("{},", n)),
             Instruction::AddTo(_)
             | Instruction::AddToRev(_)
             | Instruction::SubTo(_)
