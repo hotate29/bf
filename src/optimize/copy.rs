@@ -74,3 +74,49 @@ impl Optimizer for CopyOptimizer {
         })
     }
 }
+
+#[cfg(test)]
+mod test {
+    use super::CopyOptimizer;
+    use crate::{
+        optimize::{test::expr_helper, ExprKind},
+        token::Instruction,
+    };
+
+    #[test]
+    fn test_opt_copy() {
+        expr_helper(
+            "[->+>+<<]",
+            Some(ExprKind::Instructions(vec![
+                Instruction::Copy(1),
+                Instruction::Copy(2),
+                Instruction::ZeroSet,
+            ])),
+            CopyOptimizer,
+        );
+        expr_helper("[->+>+<<<]", None, CopyOptimizer);
+
+        expr_helper(
+            "[->>+<+<]",
+            Some(ExprKind::Instructions(vec![
+                Instruction::Copy(2),
+                Instruction::Copy(1),
+                Instruction::ZeroSet,
+            ])),
+            CopyOptimizer,
+        );
+        expr_helper("[->>>+<+<]", None, CopyOptimizer);
+
+        expr_helper(
+            "[->>>+<+<+<]",
+            Some(ExprKind::Instructions(vec![
+                Instruction::Copy(3),
+                Instruction::Copy(2),
+                Instruction::Copy(1),
+                Instruction::ZeroSet,
+            ])),
+            CopyOptimizer,
+        );
+        expr_helper("[->>>>+<+<+<]", None, CopyOptimizer);
+    }
+}
