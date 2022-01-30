@@ -204,6 +204,25 @@ impl Instruction {
             | Instruction::CopyRev(_) => None,
         }
     }
+    pub fn to_string(self) -> Option<String> {
+        match self {
+            Instruction::PtrIncrement(n) => Some(">".repeat(n)),
+            Instruction::PtrDecrement(n) => Some("<".repeat(n)),
+            Instruction::Add(n) => Some("+".repeat(n)),
+            Instruction::Sub(n) => Some("-".repeat(n)),
+            Instruction::Output(n) => Some(".".repeat(n)),
+            Instruction::Input(n) => Some(",".repeat(n)),
+            Instruction::AddTo(_)
+            | Instruction::AddToRev(_)
+            | Instruction::SubTo(_)
+            | Instruction::SubToRev(_)
+            | Instruction::MulAdd(_, _)
+            | Instruction::MulAddRev(_, _)
+            | Instruction::ZeroSet
+            | Instruction::Copy(_)
+            | Instruction::CopyRev(_) => None,
+        }
+    }
 }
 
 #[cfg(test)]
