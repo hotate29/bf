@@ -183,6 +183,11 @@ impl<R: Read, W: Write> InterPrinter<R, W> {
                             let value = self.state.at(0);
                             self.state.add(offset, value);
                         }
+                        Instruction::CopyRev(offset) => {
+                            let value = self.state.at(0);
+                            self.state.memory[self.state.pointer - offset] =
+                                self.state.memory[self.state.pointer - offset].wrapping_add(value);
+                        }
                     };
                     now += 1
                 }

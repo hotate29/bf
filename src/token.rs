@@ -181,6 +181,7 @@ pub enum Instruction {
     Input(usize),
     ZeroSet,
     Copy(usize),
+    CopyRev(usize),
 }
 
 impl Instruction {
@@ -199,7 +200,8 @@ impl Instruction {
             | Instruction::MulAdd(_, _)
             | Instruction::MulAddRev(_, _)
             | Instruction::ZeroSet
-            | Instruction::Copy(_) => None,
+            | Instruction::Copy(_)
+            | Instruction::CopyRev(_) => None,
         }
     }
 }

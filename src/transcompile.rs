@@ -56,6 +56,9 @@ pub fn to_c(root_node: &Node) -> String {
                             Instruction::Copy(offset) => {
                                 c_code.push_str(&format!("ptr[{offset}]=*ptr;"))
                             }
+                            Instruction::CopyRev(offset) => {
+                                c_code.push_str(&format!("*(ptr-{offset})=*ptr;"))
+                            }
                         }
                     }
                 }
