@@ -3,6 +3,7 @@ use serde::Serialize;
 use crate::token::{middle_token, tokenize, Instruction, MiddleToken, ParseError};
 
 mod copy;
+mod copy_rev;
 mod move_add;
 mod move_add_rev;
 mod move_sub;
@@ -178,6 +179,7 @@ pub fn all_optimizer() -> Vec<Box<dyn Optimizer>> {
         Box::new(move_sub::MoveSubOptimizer),
         Box::new(move_sub_rev::MoveSubRevOptimizer),
         Box::new(copy::CopyOptimizer),
+        Box::new(copy_rev::CopyRevOptimizer),
     ]
 }
 
