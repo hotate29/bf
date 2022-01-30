@@ -56,7 +56,7 @@ impl<R: Read, W: Write> State<R, W> {
     }
     fn pointer_sub(&mut self, value: usize) {
         if self.pointer < value {
-            panic!("メモリがマイナス")
+            panic!("ポインターがマイナス")
         }
         self.pointer -= value;
     }
