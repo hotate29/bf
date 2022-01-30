@@ -29,7 +29,7 @@ impl Optimizer for CopyRevOptimizer {
                     None
                 }
             }.or_else(|| {
-            // [->+>+<<]
+            // [-<+>+<<]
             if_chain! {
                 if let ExprKind::While(while_node) = expr;
                 if let [ExprKind::Instructions(while_instructions)] = while_node.0.as_slice();
