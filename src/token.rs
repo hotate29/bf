@@ -68,8 +68,8 @@ impl MiddleToken {
             MiddleToken::Token(token, count) => match token {
                 Token::Greater => Some(Instruction::PtrIncrement(count)),
                 Token::Less => Some(Instruction::PtrDecrement(count)),
-                Token::Plus => Some(Instruction::Add(count)),
-                Token::Minus => Some(Instruction::Sub(count)),
+                Token::Plus => Some(Instruction::Add((count % u8::MAX as usize) as u8)),
+                Token::Minus => Some(Instruction::Sub((count % u8::MAX as usize) as u8)),
                 Token::Period => Some(Instruction::Output(count)),
                 Token::Comma => Some(Instruction::Input(count)),
                 Token::LeftBracket | Token::RightBracket | Token::Other(_) => unreachable!(),
@@ -169,10 +169,10 @@ pub fn middle_token(tokens: &[Token]) -> Result<Vec<MiddleToken>, ParseError> {
 pub enum Instruction {
     PtrIncrement(usize),
     PtrDecrement(usize),
-    Add(usize),
+    Add(u8),
     AddTo(usize),
     AddToRev(usize),
-    Sub(usize),
+    Sub(u8),
     SubTo(usize),
     SubToRev(usize),
     MulAdd(usize, u8),
@@ -208,8 +208,8 @@ impl Instruction {
         match self {
             Instruction::PtrIncrement(n) => Some(">".repeat(n)),
             Instruction::PtrDecrement(n) => Some("<".repeat(n)),
-            Instruction::Add(n) => Some("+".repeat(n)),
-            Instruction::Sub(n) => Some("-".repeat(n)),
+            Instruction::Add(n) => Some("+".repeat(n as usize)),
+            Instruction::Sub(n) => Some("-".repeat(n as usize)),
             Instruction::Output(n) => Some(".".repeat(n)),
             Instruction::Input(n) => Some(",".repeat(n)),
             Instruction::AddTo(_)

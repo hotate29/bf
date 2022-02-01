@@ -158,6 +158,9 @@ impl<R: Read, W: Write> InterPrinter<R, W> {
                                 self.state.add_rev(offset, value);
                             }
                         }
+                        Instruction::Sub(n) => {
+                            self.state.sub(0, n);
+                        }
                         Instruction::SubTo(offset) => {
                             let value = self.state.at(0);
                             self.state.sub(offset, value);
@@ -167,9 +170,6 @@ impl<R: Read, W: Write> InterPrinter<R, W> {
                             if value != 0 {
                                 self.state.sub_rev(offset, value);
                             }
-                        }
-                        Instruction::Sub(n) => {
-                            self.state.sub(0, (n % u8::MAX as usize) as u8);
                         }
                         Instruction::MulAdd(offset, value) => {
                             let value = self.state.at(0).wrapping_mul(value);
