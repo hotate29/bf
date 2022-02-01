@@ -28,7 +28,7 @@ impl Optimizer for CopyOptimizer {
             else {
                 None
             }
-        }.or_else(|| {
+        }.or_else(||
             // [->>+<+<]
             if_chain! {
                 if let ExprKind::While(while_node) = expr;
@@ -49,7 +49,7 @@ impl Optimizer for CopyOptimizer {
                     None
                 }
             }
-        }).or_else(|| {
+        ).or_else(||
             // [->>>+<+<+<]
             if_chain! {
                 if let ExprKind::While(while_node) = expr;
@@ -71,7 +71,7 @@ impl Optimizer for CopyOptimizer {
                     None
                 }
             }
-        })
+        )
     }
 }
 
