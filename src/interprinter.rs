@@ -148,11 +148,11 @@ impl<R: Read, W: Write> InterPrinter<R, W> {
                         Instruction::Add(n) => {
                             self.state.add(0, n);
                         }
-                        Instruction::AddTo(offset) => {
+                        Instruction::AddTo(offset) | Instruction::Copy(offset) => {
                             let value = self.state.at(0);
                             self.state.add(offset, value);
                         }
-                        Instruction::AddToRev(offset) => {
+                        Instruction::AddToRev(offset) | Instruction::CopyRev(offset) => {
                             let value = self.state.at(0);
                             if value != 0 {
                                 self.state.add_rev(offset, value);
@@ -194,14 +194,6 @@ impl<R: Read, W: Write> InterPrinter<R, W> {
                             }
                         }
                         Instruction::ZeroSet => *self.state.at_mut(0) = 0,
-                        Instruction::Copy(offset) => {
-                            let value = self.state.at(0);
-                            self.state.add(offset, value);
-                        }
-                        Instruction::CopyRev(offset) => {
-                            let value = self.state.at(0);
-                            self.state.add_rev(offset, value);
-                        }
                     };
                     now += 1
                 }
