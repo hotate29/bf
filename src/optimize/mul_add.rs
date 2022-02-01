@@ -19,10 +19,9 @@ impl Optimizer for MulAddOptimizer {
             if ptr_increment == ptr_decrement;
             then {
                 info!("optimize!");
-                let add_count = (add_count % u8::MAX as usize) as u8;
                 let expr = ExprKind::Instructions(vec![Instruction::MulAdd(
                     *ptr_increment,
-                    add_count,
+                    *add_count,
                 ),
                 Instruction::ZeroSet
                 ]);

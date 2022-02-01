@@ -146,7 +146,7 @@ impl<R: Read, W: Write> InterPrinter<R, W> {
                         Instruction::PtrIncrement(n) => self.state.pointer_add(n),
                         Instruction::PtrDecrement(n) => self.state.pointer_sub(n),
                         Instruction::Add(n) => {
-                            self.state.add(0, (n % u8::MAX as usize) as u8);
+                            self.state.add(0, n);
                         }
                         Instruction::AddTo(offset) => {
                             let value = self.state.at(0);

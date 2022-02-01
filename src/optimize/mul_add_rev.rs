@@ -17,9 +17,8 @@ impl Optimizer for MulAddRevOptimizer {
             if ptr_decrement == ptr_increment;
             then {
                 info!("optimize!");
-                let add_count = (*add_count % u8::MAX as usize) as u8;
 
-                let expr = ExprKind::Instructions(vec![Instruction::MulAddRev(*ptr_decrement, add_count), Instruction::ZeroSet]);
+                let expr = ExprKind::Instructions(vec![Instruction::MulAddRev(*ptr_decrement, *add_count), Instruction::ZeroSet]);
 
                 Some(expr)
             }
