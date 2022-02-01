@@ -10,6 +10,7 @@ mod move_sub;
 mod move_sub_rev;
 mod mul_add;
 mod mul_add_rev;
+mod sub_copy;
 mod zeroset;
 
 pub trait Optimizer {
@@ -180,6 +181,7 @@ pub fn all_optimizer() -> Vec<Box<dyn Optimizer>> {
         Box::new(move_sub_rev::MoveSubRevOptimizer),
         Box::new(copy::CopyOptimizer),
         Box::new(copy_rev::CopyRevOptimizer),
+        Box::new(sub_copy::SubCopyOptimizer),
     ]
 }
 
