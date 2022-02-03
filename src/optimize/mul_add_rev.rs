@@ -18,7 +18,18 @@ impl Optimizer for MulAddRevOptimizer {
             then {
                 info!("optimize!");
 
-                let expr = ExprKind::Instructions(vec![Instruction::MulAddRev(*ptr_decrement, *add_count), Instruction::ZeroSet]);
+                let expr = if *add_count == 1 {
+                    ExprKind::Instructions(vec![
+                        Instruction::AddToRev(*ptr_decrement),
+                        Instruction::ZeroSet,
+                    ])
+                }
+                else {
+                    ExprKind::Instructions(vec![
+                        Instruction::MulAddRev(*ptr_decrement, *add_count),
+                        Instruction::ZeroSet,
+                    ])
+                };
 
                 Some(expr)
             }
@@ -51,6 +62,14 @@ mod test {
             "[<<+++++>>-]",
             Some(ExprKind::Instructions(vec![
                 Instruction::MulAddRev(2, 5),
+                Instruction::ZeroSet,
+            ])),
+            MulAddRevOptimizer,
+        );
+        expr_helper(
+            "[<+>-]",
+            Some(ExprKind::Instructions(vec![
+                Instruction::AddToRev(1),
                 Instruction::ZeroSet,
             ])),
             MulAddRevOptimizer,

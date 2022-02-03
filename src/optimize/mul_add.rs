@@ -19,12 +19,20 @@ impl Optimizer for MulAddOptimizer {
             if ptr_increment == ptr_decrement;
             then {
                 info!("optimize!");
-                let expr = ExprKind::Instructions(vec![Instruction::MulAdd(
-                    *ptr_increment,
-                    *add_count,
-                ),
-                Instruction::ZeroSet
-                ]);
+                let expr = if *add_count == 1 {
+                    ExprKind::Instructions(vec![
+                        Instruction::AddTo(*ptr_increment),
+                        Instruction::ZeroSet,
+                    ])
+                }
+                else {
+                    ExprKind::Instructions(vec![Instruction::MulAdd(
+                        *ptr_increment,
+                        *add_count,
+                    ),
+                    Instruction::ZeroSet
+                    ])
+                };
                 Some(expr)
             }
             else {
@@ -47,7 +55,7 @@ mod test {
         expr_helper(
             "[->+<]",
             Some(ExprKind::Instructions(vec![
-                Instruction::MulAdd(1, 1),
+                Instruction::AddTo(1),
                 Instruction::ZeroSet,
             ])),
             MulAddOptimizer,
@@ -55,7 +63,7 @@ mod test {
         expr_helper(
             "[>+<-]",
             Some(ExprKind::Instructions(vec![
-                Instruction::MulAdd(1, 1),
+                Instruction::AddTo(1),
                 Instruction::ZeroSet,
             ])),
             MulAddOptimizer,
