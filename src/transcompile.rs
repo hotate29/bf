@@ -15,12 +15,11 @@ pub fn to_c(root_node: &Node) -> String {
                                 c_code.push_str(&format!("ptr-={};", n))
                             }
                             Instruction::Add(n) => c_code.push_str(&format!("ptr[0]+={};", n)),
-                            Instruction::AddTo(n) => {
-                                c_code.push_str(&format!("ptr[{}]+=ptr[0];", n))
+                            Instruction::AddTo(offset) | Instruction::Copy(offset) => {
+                                c_code.push_str(&format!("ptr[{}]+=ptr[0];", offset))
                             }
-                            Instruction::AddToRev(n) => {
-                                c_code.push_str(&format!("if(*ptr!=0){{*(ptr-{})+=ptr[0];}}", n))
-                            }
+                            Instruction::AddToRev(offset) | Instruction::CopyRev(offset) => c_code
+                                .push_str(&format!("if(*ptr!=0){{*(ptr-{})+=ptr[0];}}", offset)),
                             Instruction::SubTo(n) => {
                                 c_code.push_str(&format!("ptr[{}]-=ptr[0];", n))
                             }
@@ -49,12 +48,6 @@ pub fn to_c(root_node: &Node) -> String {
                             }
                             Instruction::ZeroSet => {
                                 c_code.push_str("*ptr=0;");
-                            }
-                            Instruction::Copy(offset) => {
-                                c_code.push_str(&format!("ptr[{offset}]+=*ptr;"))
-                            }
-                            Instruction::CopyRev(offset) => {
-                                c_code.push_str(&format!("*(ptr-{offset})+=*ptr;"))
                             }
                         }
                     }
