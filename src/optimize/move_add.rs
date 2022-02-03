@@ -50,6 +50,14 @@ mod test {
             MoveAddOptimizer,
         );
         expr_helper(
+            "[>+<-]",
+            Some(ExprKind::Instructions(vec![
+                Instruction::AddTo(1),
+                Instruction::ZeroSet,
+            ])),
+            MoveAddOptimizer,
+        );
+        expr_helper(
             "[->>>>>>>>>>+<<<<<<<<<<]",
             Some(ExprKind::Instructions(vec![
                 Instruction::AddTo(10),

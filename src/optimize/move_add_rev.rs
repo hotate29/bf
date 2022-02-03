@@ -47,6 +47,14 @@ mod test {
             MoveAddRevOptimizer,
         );
         expr_helper(
+            "[<+>-]",
+            Some(ExprKind::Instructions(vec![
+                Instruction::AddToRev(1),
+                Instruction::ZeroSet,
+            ])),
+            MoveAddRevOptimizer,
+        );
+        expr_helper(
             "[-<<<<<<<<<<+>>>>>>>>>>]",
             Some(ExprKind::Instructions(vec![
                 Instruction::AddToRev(10),

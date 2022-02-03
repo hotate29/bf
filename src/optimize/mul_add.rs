@@ -16,23 +16,19 @@ impl Optimizer for MulAddOptimizer {
             if let [Instruction::PtrIncrement(ptr_increment), Instruction::Add(add_count), Instruction::PtrDecrement(ptr_decrement), Instruction::Sub(1)]
                 |  [Instruction::Sub(1), Instruction::PtrIncrement(ptr_increment), Instruction::Add(add_count), Instruction::PtrDecrement(ptr_decrement)]
                 = while_instructions.as_slice();
-            if ptr_increment == ptr_decrement;
+            if ptr_increment == ptr_decrement && *add_count > 1;
             then {
                 info!("optimize!");
-                let expr = if *add_count == 1 {
-                    ExprKind::Instructions(vec![
-                        Instruction::AddTo(*ptr_increment),
-                        Instruction::ZeroSet,
-                    ])
-                }
-                else {
-                    ExprKind::Instructions(vec![Instruction::MulAdd(
-                        *ptr_increment,
-                        *add_count,
-                    ),
-                    Instruction::ZeroSet
-                    ])
-                };
+                let expr =
+                    ExprKind::Instructions(
+                        vec![
+                            Instruction::MulAdd(
+                                *ptr_increment,
+                                *add_count,
+                                ),
+                            Instruction::ZeroSet
+                        ]
+                    );
                 Some(expr)
             }
             else {
@@ -52,22 +48,8 @@ mod test {
 
     #[test]
     fn test_mul_add() {
-        expr_helper(
-            "[->+<]",
-            Some(ExprKind::Instructions(vec![
-                Instruction::AddTo(1),
-                Instruction::ZeroSet,
-            ])),
-            MulAddOptimizer,
-        );
-        expr_helper(
-            "[>+<-]",
-            Some(ExprKind::Instructions(vec![
-                Instruction::AddTo(1),
-                Instruction::ZeroSet,
-            ])),
-            MulAddOptimizer,
-        );
+        expr_helper("[->+<]", None, MulAddOptimizer);
+        expr_helper("[>+<-]", None, MulAddOptimizer);
         expr_helper(
             "[->>>+++++<<<]",
             Some(ExprKind::Instructions(vec![
