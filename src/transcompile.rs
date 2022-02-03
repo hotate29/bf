@@ -39,10 +39,7 @@ pub fn to_c(root_node: &Node) -> String {
                                 }
                             }
                             Instruction::MulAdd(offset, value) => {
-                                c_code.push_str(&format!(
-                                    "ptr[{}]+={}*(*ptr);",
-                                    offset, value
-                                ));
+                                c_code.push_str(&format!("ptr[{}]+={}*(*ptr);", offset, value));
                             }
                             Instruction::MulAddRev(offset, value) => {
                                 c_code.push_str(&format!(
@@ -54,10 +51,10 @@ pub fn to_c(root_node: &Node) -> String {
                                 c_code.push_str("*ptr=0;");
                             }
                             Instruction::Copy(offset) => {
-                                c_code.push_str(&format!("ptr[{offset}]=*ptr;"))
+                                c_code.push_str(&format!("ptr[{offset}]+=*ptr;"))
                             }
                             Instruction::CopyRev(offset) => {
-                                c_code.push_str(&format!("*(ptr-{offset})=*ptr;"))
+                                c_code.push_str(&format!("*(ptr-{offset})+=*ptr;"))
                             }
                         }
                     }
