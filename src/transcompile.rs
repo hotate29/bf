@@ -8,25 +8,20 @@ pub fn to_c(root_node: &Node) -> String {
                 ExprKind::Instructions(instructions) => {
                     for instruction in instructions {
                         match instruction {
-                            Instruction::PtrIncrement(n) => {
-                                c_code.push_str(&format!("ptr+={};", n))
-                            }
-                            Instruction::PtrDecrement(n) => {
-                                c_code.push_str(&format!("ptr-={};", n))
-                            }
-                            Instruction::Add(n) => c_code.push_str(&format!("ptr[0]+={};", n)),
+                            Instruction::PtrIncrement(n) => c_code.push_str(&format!("ptr+={n};")),
+                            Instruction::PtrDecrement(n) => c_code.push_str(&format!("ptr-={n};")),
+                            Instruction::Add(n) => c_code.push_str(&format!("ptr[0]+={n};")),
                             Instruction::AddTo(offset) | Instruction::Copy(offset) => {
-                                c_code.push_str(&format!("ptr[{}]+=ptr[0];", offset))
+                                c_code.push_str(&format!("ptr[{offset}]+=ptr[0];"))
                             }
-                            Instruction::AddToRev(offset) | Instruction::CopyRev(offset) => c_code
-                                .push_str(&format!("if(*ptr!=0){{*(ptr-{})+=ptr[0];}}", offset)),
-                            Instruction::SubTo(n) => {
-                                c_code.push_str(&format!("ptr[{}]-=ptr[0];", n))
+                            Instruction::AddToRev(offset) | Instruction::CopyRev(offset) => {
+                                c_code.push_str(&format!("if(ptr[0]!=0){{*(ptr-{offset})+=ptr[0];}}"))
                             }
+                            Instruction::SubTo(n) => c_code.push_str(&format!("ptr[{n}]-=ptr[0];")),
                             Instruction::SubToRev(n) => {
-                                c_code.push_str(&format!("if(*ptr!=0){{*(ptr-{})-=ptr[0];}}", n))
+                                c_code.push_str(&format!("if(ptr[0]!=0){{*(ptr-{n})-=ptr[0];}}"))
                             }
-                            Instruction::Sub(n) => c_code.push_str(&format!("ptr[0]-={};", n)),
+                            Instruction::Sub(n) => c_code.push_str(&format!("ptr[0]-={n};")),
                             Instruction::Output(n) => {
                                 for _ in 0..*n {
                                     c_code.push_str("putchar(ptr[0]);")
@@ -38,16 +33,15 @@ pub fn to_c(root_node: &Node) -> String {
                                 }
                             }
                             Instruction::MulAdd(offset, value) => {
-                                c_code.push_str(&format!("ptr[{}]+={}*(*ptr);", offset, value));
+                                c_code.push_str(&format!("ptr[{offset}]+={value}*ptr[0];"));
                             }
                             Instruction::MulAddRev(offset, value) => {
                                 c_code.push_str(&format!(
-                                    "if(*ptr!=0){{*(ptr-{})+={}*(*ptr);}}",
-                                    offset, value
+                                    "if(*ptr!=0){{*(ptr-{offset})+={value}*ptr[0];}}"
                                 ));
                             }
                             Instruction::ZeroSet => {
-                                c_code.push_str("*ptr=0;");
+                                c_code.push_str("ptr[0]=0;");
                             }
                         }
                     }
