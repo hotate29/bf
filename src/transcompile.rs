@@ -40,7 +40,7 @@ pub fn to_c(root_node: &Node) -> String {
                             }
                             Instruction::MulAdd(offset, value) => {
                                 c_code.push_str(&format!(
-                                    "if(*ptr!=0){{ptr[{}]+={}*(*ptr);}}",
+                                    "ptr[{}]+={}*(*ptr);",
                                     offset, value
                                 ));
                             }
