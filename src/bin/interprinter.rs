@@ -18,6 +18,12 @@ fn main() {
         root_node = optimize(root_node, &all_optimizer());
     }
 
-    let step = InterPrinter::new(&root_node, io::stdin(), io::stdout()).count();
+    let step = InterPrinter::builder()
+        .root_node(&root_node)
+        .input(io::stdin())
+        .output(io::stdout())
+        .build()
+        .count();
+
     eprintln!("step: {step}");
 }

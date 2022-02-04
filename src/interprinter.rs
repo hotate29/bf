@@ -113,10 +113,13 @@ pub struct InterPrinter<R: Read, W: Write> {
     while_end_jump_table: Vec<usize>,
 }
 impl<R: Read, W: Write> InterPrinter<R, W> {
-    pub fn new(root_node: &Node, input: R, output: W) -> Self {
+    pub fn builder<'a>() -> InterPrinterBuilder<'a, R, W> {
+        InterPrinterBuilder::default()
+    }
+    fn new(root_node: &Node, memory_len: usize, input: R, output: W) -> Self {
         let state = State {
             pointer: 0,
-            memory: vec![0; 30000],
+            memory: vec![0; memory_len],
             input_reader: input,
             output_writer: output,
         };
@@ -235,6 +238,61 @@ impl<R: Read, W: Write> Iterator for InterPrinter<R, W> {
     }
 }
 
+pub struct InterPrinterBuilder<'a, R: Read, W: Write> {
+    root_node: Option<&'a Node>,
+    memory_len: usize,
+    input: Option<R>,
+    output: Option<W>,
+}
+impl<'a, R: Read, W: Write> Default for InterPrinterBuilder<'a, R, W> {
+    fn default() -> Self {
+        Self {
+            root_node: Default::default(),
+            memory_len: 1,
+            input: Default::default(),
+            output: Default::default(),
+        }
+    }
+}
+impl<'a, R: Read, W: Write> InterPrinterBuilder<'a, R, W> {
+    pub fn root_node(self, root_node: &'a Node) -> Self {
+        Self {
+            root_node: Some(root_node),
+            ..self
+        }
+    }
+    pub fn memory_len(self, memory_len: usize) -> Self {
+        assert!(memory_len < 1);
+        Self { memory_len, ..self }
+    }
+    pub fn input(self, input: R) -> Self {
+        Self {
+            input: Some(input),
+            ..self
+        }
+    }
+    pub fn output(self, output: W) -> Self {
+        Self {
+            output: Some(output),
+            ..self
+        }
+    }
+    pub fn build(self) -> InterPrinter<R, W> {
+        let Self {
+            root_node,
+            memory_len,
+            input,
+            output,
+        } = self;
+
+        let root_node = root_node.unwrap();
+        let input = input.unwrap();
+        let output = output.unwrap();
+
+        InterPrinter::new(root_node, memory_len, input, output)
+    }
+}
+
 #[cfg(test)]
 mod test {
     use std::{fs, io};
@@ -251,7 +309,12 @@ mod test {
         let source = ">".repeat(30001);
         let root_node = Node::from_source(&source).unwrap();
 
-        InterPrinter::new(&root_node, io::empty(), io::sink()).count();
+        InterPrinter::builder()
+            .root_node(&root_node)
+            .input(io::empty())
+            .output(io::sink())
+            .build()
+            .count();
     }
 
     // デバックビルドだとめちゃくちゃ時間がかかるので、デフォルトでは実行しないようになっている
@@ -265,7 +328,13 @@ mod test {
         let root_node = Node::from_source(&mandelbrot_source).unwrap();
 
         let mut output_buffer = Vec::new();
-        InterPrinter::new(&root_node, io::empty(), &mut output_buffer).count();
+
+        InterPrinter::builder()
+            .root_node(&root_node)
+            .input(io::empty())
+            .output(&mut output_buffer)
+            .build()
+            .count();
 
         let output_string = String::from_utf8(output_buffer).unwrap();
         assert_eq!(output_string, assert_mandelbrot);
@@ -281,7 +350,13 @@ mod test {
         let root_node = optimize(root_node, &all_optimizer());
 
         let mut output_buffer = Vec::new();
-        InterPrinter::new(&root_node, io::empty(), &mut output_buffer).count();
+
+        InterPrinter::builder()
+            .root_node(&root_node)
+            .input(io::empty())
+            .output(&mut output_buffer)
+            .build()
+            .count();
 
         let output_string = String::from_utf8(output_buffer).unwrap();
         assert_eq!(output_string, assert_mandelbrot);
@@ -292,10 +367,16 @@ mod test {
 
         let root_node = Node::from_source(hello_world).unwrap();
 
-        let mut output = vec![];
-        InterPrinter::new(&root_node, io::empty(), &mut output).count();
+        let mut output_buffer = vec![];
 
-        let output = String::from_utf8(output).unwrap();
+        InterPrinter::builder()
+            .root_node(&root_node)
+            .input(io::empty())
+            .output(&mut output_buffer)
+            .build()
+            .count();
+
+        let output = String::from_utf8(output_buffer).unwrap();
         assert_eq!(output, "Hello World!\n");
     }
     #[test]
@@ -305,10 +386,16 @@ mod test {
         let root_node = Node::from_source(hello_world).unwrap();
         let root_node = optimize(root_node, &all_optimizer());
 
-        let mut output = vec![];
-        InterPrinter::new(&root_node, io::empty(), &mut output).count();
+        let mut output_buffer = vec![];
 
-        let output = String::from_utf8(output).unwrap();
+        InterPrinter::builder()
+            .root_node(&root_node)
+            .input(io::empty())
+            .output(&mut output_buffer)
+            .build()
+            .count();
+
+        let output = String::from_utf8(output_buffer).unwrap();
         assert_eq!(output, "Hello World!\n");
     }
 }

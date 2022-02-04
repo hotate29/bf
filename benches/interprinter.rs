@@ -15,7 +15,12 @@ fn bench_not_optimize_mandelbrot(bencher: &mut test::Bencher) {
     let root_node = Node::from_source(&source).unwrap();
 
     bencher.iter(|| {
-        InterPrinter::new(&root_node, io::empty(), io::sink()).count();
+        InterPrinter::builder()
+            .root_node(&root_node)
+            .input(io::empty())
+            .output(io::sink())
+            .build()
+            .count();
     })
 }
 
@@ -28,7 +33,12 @@ fn bench_optimized_mandelbrot(bencher: &mut test::Bencher) {
     let optimized_node = optimize(root_node, &all_optimizer());
 
     bencher.iter(|| {
-        InterPrinter::new(&optimized_node, io::empty(), io::sink()).count();
+        InterPrinter::builder()
+            .root_node(&optimized_node)
+            .input(io::empty())
+            .output(io::sink())
+            .build()
+            .count();
     })
 }
 
@@ -39,7 +49,12 @@ fn bench_hello_world(bencher: &mut test::Bencher) {
     let root_node = Node::from_source(hello_world).unwrap();
 
     bencher.iter(|| {
-        InterPrinter::new(&root_node, io::empty(), io::sink()).count();
+        InterPrinter::builder()
+            .root_node(&root_node)
+            .input(io::empty())
+            .output(io::sink())
+            .build()
+            .count();
     })
 }
 
@@ -48,9 +63,14 @@ fn bench_optimized_hello_world(bencher: &mut test::Bencher) {
     let hello_world = ">+++++++++[<++++++++>-]<.>+++++++[<++++>-]<+.+++++++..+++.[-]>++++++++[<++++>-]<.>+++++++++++[<+++++>-]<.>++++++++[<+++>-]<.+++.------.--------.[-]>++++++++[<++++>-]<+.[-]++++++++++.";
 
     let root_node = Node::from_source(hello_world).unwrap();
-    let root_node = optimize(root_node, &all_optimizer());
+    let optimized_node = optimize(root_node, &all_optimizer());
 
     bencher.iter(|| {
-        InterPrinter::new(&root_node, io::empty(), io::sink()).count();
+        InterPrinter::builder()
+            .root_node(&optimized_node)
+            .input(io::empty())
+            .output(io::sink())
+            .build()
+            .count();
     })
 }
