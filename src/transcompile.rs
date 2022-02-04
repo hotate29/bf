@@ -14,9 +14,8 @@ pub fn to_c(root_node: &Node) -> String {
                             Instruction::AddTo(offset) | Instruction::Copy(offset) => {
                                 c_code.push_str(&format!("ptr[{offset}]+=ptr[0];"))
                             }
-                            Instruction::AddToRev(offset) | Instruction::CopyRev(offset) => {
-                                c_code.push_str(&format!("if(ptr[0]!=0){{*(ptr-{offset})+=ptr[0];}}"))
-                            }
+                            Instruction::AddToRev(offset) | Instruction::CopyRev(offset) => c_code
+                                .push_str(&format!("if(ptr[0]!=0){{*(ptr-{offset})+=ptr[0];}}")),
                             Instruction::SubTo(n) => c_code.push_str(&format!("ptr[{n}]-=ptr[0];")),
                             Instruction::SubToRev(n) => {
                                 c_code.push_str(&format!("if(ptr[0]!=0){{*(ptr-{n})-=ptr[0];}}"))
