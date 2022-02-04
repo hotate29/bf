@@ -107,10 +107,10 @@ fn node_to_c_instructions(node: &Node) -> Vec<CInstruction> {
 
 pub struct InterPrinter<R: Read, W: Write> {
     state: State<R, W>,
-    root_node: Node,
+    instructions: Vec<CInstruction>,
 }
 impl<R: Read, W: Write> InterPrinter<R, W> {
-    pub fn new(root_node: Node, input: R, output: W) -> Self {
+    pub fn new(root_node: &Node, input: R, output: W) -> Self {
         let state = State {
             pointer: 0,
             memory: vec![0; 30000],
@@ -118,14 +118,17 @@ impl<R: Read, W: Write> InterPrinter<R, W> {
             output_writer: output,
         };
 
-        Self { state, root_node }
+        let instructions = node_to_c_instructions(root_node);
+
+        Self {
+            state,
+            instructions,
+        }
     }
     pub fn start(&mut self) {
-        let instructions = node_to_c_instructions(&self.root_node);
-
         let mut while_stack = vec![0];
-        let mut while_begin_jump_table = vec![0; instructions.len()];
-        for (i, instruction) in instructions.iter().enumerate() {
+        let mut while_begin_jump_table = vec![0; self.instructions.len()];
+        for (i, instruction) in self.instructions.iter().enumerate() {
             match instruction {
                 CInstruction::Instruction(_) => (),
                 CInstruction::WhileBegin => while_stack.push(i),
@@ -134,8 +137,8 @@ impl<R: Read, W: Write> InterPrinter<R, W> {
         }
 
         let mut while_stack = vec![0];
-        let mut while_end_jump_table = vec![0; instructions.len()];
-        for (i, instruction) in instructions.iter().enumerate().rev() {
+        let mut while_end_jump_table = vec![0; self.instructions.len()];
+        for (i, instruction) in self.instructions.iter().enumerate().rev() {
             match instruction {
                 CInstruction::Instruction(_) => (),
                 CInstruction::WhileBegin => while_end_jump_table[i] = while_stack.pop().unwrap(),
@@ -145,8 +148,8 @@ impl<R: Read, W: Write> InterPrinter<R, W> {
 
         let mut now = 0;
 
-        while now < instructions.len() {
-            match instructions[now] {
+        while now < self.instructions.len() {
+            match self.instructions[now] {
                 CInstruction::Instruction(instruction) => {
                     match instruction {
                         Instruction::PtrIncrement(n) => self.state.pointer_add(n),
@@ -227,7 +230,7 @@ mod test {
         let source = ">".repeat(30001);
         let root_node = Node::from_source(&source).unwrap();
 
-        InterPrinter::new(root_node, io::empty(), io::sink()).start();
+        InterPrinter::new(&root_node, io::empty(), io::sink()).start();
     }
 
     // デバックビルドだとめちゃくちゃ時間がかかるので、デフォルトでは実行しないようになっている
@@ -241,7 +244,7 @@ mod test {
         let root_node = Node::from_source(&mandelbrot_source).unwrap();
 
         let mut output_buffer = Vec::new();
-        InterPrinter::new(root_node, io::empty(), &mut output_buffer).start();
+        InterPrinter::new(&root_node, io::empty(), &mut output_buffer).start();
 
         let output_string = String::from_utf8(output_buffer).unwrap();
         assert_eq!(output_string, assert_mandelbrot);
@@ -257,7 +260,7 @@ mod test {
         let root_node = optimize(root_node, &all_optimizer());
 
         let mut output_buffer = Vec::new();
-        InterPrinter::new(root_node, io::empty(), &mut output_buffer).start();
+        InterPrinter::new(&root_node, io::empty(), &mut output_buffer).start();
 
         let output_string = String::from_utf8(output_buffer).unwrap();
         assert_eq!(output_string, assert_mandelbrot);
@@ -269,7 +272,7 @@ mod test {
         let root_node = Node::from_source(hello_world).unwrap();
 
         let mut output = vec![];
-        InterPrinter::new(root_node, io::empty(), &mut output).start();
+        InterPrinter::new(&root_node, io::empty(), &mut output).start();
 
         let output = String::from_utf8(output).unwrap();
         assert_eq!(output, "Hello World!\n");
@@ -282,7 +285,7 @@ mod test {
         let root_node = optimize(root_node, &all_optimizer());
 
         let mut output = vec![];
-        InterPrinter::new(root_node, io::empty(), &mut output).start();
+        InterPrinter::new(&root_node, io::empty(), &mut output).start();
 
         let output = String::from_utf8(output).unwrap();
         assert_eq!(output, "Hello World!\n");

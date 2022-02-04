@@ -18,5 +18,5 @@ fn main() {
         root_node = optimize(root_node, &all_optimizer());
     }
 
-    InterPrinter::new(root_node, io::stdin(), io::stdout()).start();
+    InterPrinter::new(&root_node, io::stdin(), io::stdout()).start();
 }
