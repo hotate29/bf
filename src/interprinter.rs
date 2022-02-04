@@ -108,6 +108,8 @@ fn node_to_c_instructions(node: &Node) -> Vec<CInstruction> {
 pub struct InterPrinter<R: Read, W: Write> {
     state: State<R, W>,
     instructions: Vec<CInstruction>,
+    while_begin_jump_table: Vec<usize>,
+    while_end_jump_table: Vec<usize>,
 }
 impl<R: Read, W: Write> InterPrinter<R, W> {
     pub fn new(root_node: &Node, input: R, output: W) -> Self {
@@ -120,15 +122,9 @@ impl<R: Read, W: Write> InterPrinter<R, W> {
 
         let instructions = node_to_c_instructions(root_node);
 
-        Self {
-            state,
-            instructions,
-        }
-    }
-    pub fn start(&mut self) {
         let mut while_stack = vec![0];
-        let mut while_begin_jump_table = vec![0; self.instructions.len()];
-        for (i, instruction) in self.instructions.iter().enumerate() {
+        let mut while_begin_jump_table = vec![0; instructions.len()];
+        for (i, instruction) in instructions.iter().enumerate() {
             match instruction {
                 CInstruction::Instruction(_) => (),
                 CInstruction::WhileBegin => while_stack.push(i),
@@ -137,8 +133,8 @@ impl<R: Read, W: Write> InterPrinter<R, W> {
         }
 
         let mut while_stack = vec![0];
-        let mut while_end_jump_table = vec![0; self.instructions.len()];
-        for (i, instruction) in self.instructions.iter().enumerate().rev() {
+        let mut while_end_jump_table = vec![0; instructions.len()];
+        for (i, instruction) in instructions.iter().enumerate().rev() {
             match instruction {
                 CInstruction::Instruction(_) => (),
                 CInstruction::WhileBegin => while_end_jump_table[i] = while_stack.pop().unwrap(),
@@ -146,6 +142,14 @@ impl<R: Read, W: Write> InterPrinter<R, W> {
             }
         }
 
+        Self {
+            state,
+            instructions,
+            while_begin_jump_table,
+            while_end_jump_table,
+        }
+    }
+    pub fn start(&mut self) {
         let mut now = 0;
 
         while now < self.instructions.len() {
@@ -205,10 +209,10 @@ impl<R: Read, W: Write> InterPrinter<R, W> {
                     now += 1
                 }
                 CInstruction::WhileBegin if self.state.at(0) == 0 => {
-                    now = while_end_jump_table[now]
+                    now = self.while_end_jump_table[now]
                 }
                 CInstruction::WhileBegin => now += 1,
-                CInstruction::WhileEnd => now = while_begin_jump_table[now],
+                CInstruction::WhileEnd => now = self.while_begin_jump_table[now],
             }
         }
     }
