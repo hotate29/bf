@@ -84,6 +84,27 @@ impl CInstruction {
     }
 }
 
+fn node_to_c_instructions(node: &Node) -> Vec<CInstruction> {
+    fn inner(c_instruction: &mut Vec<CInstruction>, node: &Node) {
+        for expr in &node.0 {
+            match expr {
+                ExprKind::Instructions(ins) => {
+                    c_instruction.extend(ins.iter().map(|ins| CInstruction::from_instruction(*ins)))
+                }
+                ExprKind::While(while_node) => {
+                    c_instruction.push(CInstruction::WhileBegin);
+                    inner(c_instruction, while_node);
+                    c_instruction.push(CInstruction::WhileEnd);
+                }
+            }
+        }
+    }
+
+    let mut instructions = vec![];
+    inner(&mut instructions, node);
+    instructions
+}
+
 pub struct InterPrinter<R: Read, W: Write> {
     state: State<R, W>,
     root_node: Node,
@@ -100,22 +121,7 @@ impl<R: Read, W: Write> InterPrinter<R, W> {
         Self { state, root_node }
     }
     pub fn start(&mut self) {
-        fn inner(c_instruction: &mut Vec<CInstruction>, node: &Node) {
-            for expr in &node.0 {
-                match expr {
-                    ExprKind::Instructions(ins) => c_instruction
-                        .extend(ins.iter().map(|ins| CInstruction::from_instruction(*ins))),
-                    ExprKind::While(while_node) => {
-                        c_instruction.push(CInstruction::WhileBegin);
-                        inner(c_instruction, while_node);
-                        c_instruction.push(CInstruction::WhileEnd);
-                    }
-                }
-            }
-        }
-
-        let mut instructions = vec![];
-        inner(&mut instructions, &self.root_node);
+        let instructions = node_to_c_instructions(&self.root_node);
 
         let mut while_stack = vec![0];
         let mut while_begin_jump_table = vec![0; instructions.len()];
