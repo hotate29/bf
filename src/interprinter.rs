@@ -108,6 +108,7 @@ fn node_to_c_instructions(node: &Node) -> Vec<CInstruction> {
 pub struct InterPrinter<R: Read, W: Write> {
     state: State<R, W>,
     instructions: Vec<CInstruction>,
+    now: usize,
     while_begin_jump_table: Vec<usize>,
     while_end_jump_table: Vec<usize>,
 }
@@ -147,13 +148,12 @@ impl<R: Read, W: Write> InterPrinter<R, W> {
             instructions,
             while_begin_jump_table,
             while_end_jump_table,
+            now: 0,
         }
     }
     pub fn start(&mut self) {
-        let mut now = 0;
-
-        while now < self.instructions.len() {
-            match self.instructions[now] {
+        while self.now < self.instructions.len() {
+            match self.instructions[self.now] {
                 CInstruction::Instruction(instruction) => {
                     match instruction {
                         Instruction::PtrIncrement(n) => self.state.pointer_add(n),
@@ -206,13 +206,13 @@ impl<R: Read, W: Write> InterPrinter<R, W> {
                         }
                         Instruction::ZeroSet => *self.state.at_mut(0) = 0,
                     };
-                    now += 1
+                    self.now += 1
                 }
                 CInstruction::WhileBegin if self.state.at(0) == 0 => {
-                    now = self.while_end_jump_table[now]
+                    self.now = self.while_end_jump_table[self.now]
                 }
-                CInstruction::WhileBegin => now += 1,
-                CInstruction::WhileEnd => now = self.while_begin_jump_table[now],
+                CInstruction::WhileBegin => self.now += 1,
+                CInstruction::WhileEnd => self.now = self.while_begin_jump_table[self.now],
             }
         }
     }
