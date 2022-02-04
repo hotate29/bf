@@ -151,8 +151,13 @@ impl<R: Read, W: Write> InterPrinter<R, W> {
             now: 0,
         }
     }
-    pub fn start(&mut self) {
-        while self.now < self.instructions.len() {
+}
+
+impl<R: Read, W: Write> Iterator for InterPrinter<R, W> {
+    type Item = ();
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.now < self.instructions.len() {
             match self.instructions[self.now] {
                 CInstruction::Instruction(instruction) => {
                     match instruction {
@@ -214,6 +219,9 @@ impl<R: Read, W: Write> InterPrinter<R, W> {
                 CInstruction::WhileBegin => self.now += 1,
                 CInstruction::WhileEnd => self.now = self.while_begin_jump_table[self.now],
             }
+            Some(())
+        } else {
+            None
         }
     }
 }
@@ -234,7 +242,7 @@ mod test {
         let source = ">".repeat(30001);
         let root_node = Node::from_source(&source).unwrap();
 
-        InterPrinter::new(&root_node, io::empty(), io::sink()).start();
+        InterPrinter::new(&root_node, io::empty(), io::sink()).count();
     }
 
     // デバックビルドだとめちゃくちゃ時間がかかるので、デフォルトでは実行しないようになっている
@@ -248,7 +256,7 @@ mod test {
         let root_node = Node::from_source(&mandelbrot_source).unwrap();
 
         let mut output_buffer = Vec::new();
-        InterPrinter::new(&root_node, io::empty(), &mut output_buffer).start();
+        InterPrinter::new(&root_node, io::empty(), &mut output_buffer).count();
 
         let output_string = String::from_utf8(output_buffer).unwrap();
         assert_eq!(output_string, assert_mandelbrot);
@@ -264,7 +272,7 @@ mod test {
         let root_node = optimize(root_node, &all_optimizer());
 
         let mut output_buffer = Vec::new();
-        InterPrinter::new(&root_node, io::empty(), &mut output_buffer).start();
+        InterPrinter::new(&root_node, io::empty(), &mut output_buffer).count();
 
         let output_string = String::from_utf8(output_buffer).unwrap();
         assert_eq!(output_string, assert_mandelbrot);
@@ -276,7 +284,7 @@ mod test {
         let root_node = Node::from_source(hello_world).unwrap();
 
         let mut output = vec![];
-        InterPrinter::new(&root_node, io::empty(), &mut output).start();
+        InterPrinter::new(&root_node, io::empty(), &mut output).count();
 
         let output = String::from_utf8(output).unwrap();
         assert_eq!(output, "Hello World!\n");
@@ -289,7 +297,7 @@ mod test {
         let root_node = optimize(root_node, &all_optimizer());
 
         let mut output = vec![];
-        InterPrinter::new(&root_node, io::empty(), &mut output).start();
+        InterPrinter::new(&root_node, io::empty(), &mut output).count();
 
         let output = String::from_utf8(output).unwrap();
         assert_eq!(output, "Hello World!\n");
