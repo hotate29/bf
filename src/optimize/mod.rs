@@ -38,6 +38,23 @@ pub enum ExprKind {
     While(Node),
 }
 
+impl ExprKind {
+    pub fn concat(&self, other: &ExprKind) -> Option<ExprKind> {
+        if let (
+            ExprKind::Instructions(self_instructions),
+            ExprKind::Instructions(other_instructions),
+        ) = (self, other)
+        {
+            let mut self_instructions = self_instructions.clone();
+            self_instructions.extend(other_instructions);
+
+            Some(ExprKind::Instructions(self_instructions))
+        } else {
+            None
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize)]
 pub struct Node(pub Vec<ExprKind>);
 
@@ -153,15 +170,22 @@ pub fn optimize(mut root_node: Node, optimizers: &[Box<dyn Optimizer>]) -> Node 
         }
         for expr in &mut node.0 {
             // ExprKindを最適化する
+            if let ExprKind::While(while_node) = expr {
+                inner(while_node, optimizers);
+            }
             for optimizer in optimizers {
                 if let Some(optimized_expr) = optimizer.optimize_expr(expr) {
                     *expr = optimized_expr;
                 }
             }
-
-            if let ExprKind::While(while_node) = expr {
-                inner(while_node, optimizers);
-            }
+        }
+        // ExprKind::Instructionsが何個も続くと後の最適化で困るので、一つにまとめる。
+        if let Some(expr) = node
+            .0
+            .iter()
+            .try_fold(ExprKind::Instructions(vec![]), |i, expr| i.concat(expr))
+        {
+            node.0 = vec![expr];
         }
     }
 
