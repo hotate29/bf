@@ -151,6 +151,15 @@ impl<R: Read, W: Write> InterPrinter<R, W> {
             now: 0,
         }
     }
+    pub fn memory(&self) -> &Vec<u8> {
+        &self.state.memory
+    }
+    pub fn pointer(&self) -> usize {
+        self.state.pointer
+    }
+    pub fn now(&self) -> usize {
+        self.now
+    }
 }
 
 impl<R: Read, W: Write> Iterator for InterPrinter<R, W> {
