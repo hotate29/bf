@@ -262,7 +262,7 @@ impl<'a, R: Read, W: Write> InterPrinterBuilder<'a, R, W> {
         }
     }
     pub fn memory_len(self, memory_len: usize) -> Self {
-        assert!(memory_len < 1);
+        assert!(memory_len > 0);
         Self { memory_len, ..self }
     }
     pub fn input(self, input: R) -> Self {
