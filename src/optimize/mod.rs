@@ -17,7 +17,7 @@ pub trait Optimizer {
     fn optimize_exprs(&self, _node: &[ExprKind]) -> Option<(usize, Vec<ExprKind>)> {
         None
     }
-    fn optimize_expr(&self, _expr: &ExprKind) -> Option<ExprKind> {
+    fn optimize_while(&self, _expr: &ExprKind) -> Option<ExprKind> {
         None
     }
 }
@@ -182,7 +182,7 @@ pub fn optimize(mut root_node: Node, optimizers: &[Box<dyn Optimizer>]) -> Node 
                 inner(while_node, optimizers);
             }
             for optimizer in optimizers {
-                if let Some(optimized_expr) = optimizer.optimize_expr(expr) {
+                if let Some(optimized_expr) = optimizer.optimize_while(expr) {
                     *expr = optimized_expr;
                 }
             }
@@ -227,7 +227,7 @@ pub(crate) mod test {
         let root_node = Node::from_source(source).unwrap();
 
         if let [expr] = root_node.0.as_slice() {
-            let optimized_expr = optimizer.optimize_expr(expr);
+            let optimized_expr = optimizer.optimize_while(expr);
             assert_eq!(optimized_expr, assert_expr);
         } else {
             panic!("変なテストデータ")

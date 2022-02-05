@@ -9,7 +9,7 @@ pub struct ZeroSetOptimizer;
 
 impl Optimizer for ZeroSetOptimizer {
     /// [-]をSetValue(0)に変換する
-    fn optimize_expr(&self, expr: &super::ExprKind) -> Option<super::ExprKind> {
+    fn optimize_while(&self, expr: &super::ExprKind) -> Option<super::ExprKind> {
         if_chain! {
             if let ExprKind::While(while_node) = expr;
             if let [ExprKind::Instructions(instructions)] = while_node.0.as_slice();

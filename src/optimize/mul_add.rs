@@ -9,7 +9,7 @@ pub struct MulAddOptimizer;
 
 impl Optimizer for MulAddOptimizer {
     /// [->>>+++<<<]を変換する
-    fn optimize_expr(&self, expr: &ExprKind) -> Option<ExprKind> {
+    fn optimize_while(&self, expr: &ExprKind) -> Option<ExprKind> {
         if_chain! {
             if let ExprKind::While(while_node) = expr;
             if let [ExprKind::Instructions(while_instructions)] = while_node.0.as_slice();
