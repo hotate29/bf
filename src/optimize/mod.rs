@@ -14,7 +14,7 @@ mod sub_copy;
 mod zeroset;
 
 pub trait Optimizer {
-    fn optimize_node(&self, _node: &Node) -> Option<Node> {
+    fn optimize_exprs(&self, _node: &[ExprKind]) -> Option<(usize, Vec<ExprKind>)> {
         None
     }
     fn optimize_expr(&self, _expr: &ExprKind) -> Option<ExprKind> {
@@ -164,8 +164,16 @@ impl ToString for Node {
 pub fn optimize(mut root_node: Node, optimizers: &[Box<dyn Optimizer>]) -> Node {
     fn inner(node: &mut Node, optimizers: &[Box<dyn Optimizer>]) {
         for optimizer in optimizers {
-            if let Some(optimized_node) = optimizer.optimize_node(node) {
-                *node = optimized_node;
+            for i in 0..node.0.len() {
+                let (front_exprs, back_exprs) = &node.0.split_at(i);
+
+                if let Some((offset, optimized_exprs)) = optimizer.optimize_exprs(back_exprs) {
+                    let mut exprs = front_exprs.to_vec();
+                    exprs.extend(optimized_exprs);
+                    exprs.extend_from_slice(&back_exprs[offset..]);
+
+                    node.0 = exprs;
+                }
             }
         }
         for expr in &mut node.0 {
