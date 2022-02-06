@@ -8,7 +8,7 @@ struct State {
     memory: Vec<u8>,
 }
 impl State {
-    fn at(&mut self, offset: usize) -> u8 {
+    fn at_offet(&mut self, offset: usize) -> u8 {
         if self.memory.len() <= self.pointer + offset {
             self.memory.resize(self.pointer * 2 + offset, 0);
         }
@@ -50,7 +50,7 @@ impl State {
     }
     fn pointer_add(&mut self, value: usize) {
         self.pointer += value;
-        self.at(0); // メモリーを伸ばす
+        self.at_offet(0); // メモリーを伸ばす
     }
     fn pointer_sub(&mut self, value: usize) {
         if self.pointer < value {
@@ -179,11 +179,11 @@ impl<R: Read, W: Write> Iterator for InterPrinter<R, W> {
                             self.state.add(0, n);
                         }
                         Instruction::AddTo(offset) | Instruction::Copy(offset) => {
-                            let value = self.state.at(0);
+                            let value = self.state.at_offet(0);
                             self.state.add(offset, value);
                         }
                         Instruction::AddToRev(offset) | Instruction::CopyRev(offset) => {
-                            let value = self.state.at(0);
+                            let value = self.state.at_offet(0);
                             if value != 0 {
                                 self.state.add_rev(offset, value);
                             }
@@ -192,21 +192,21 @@ impl<R: Read, W: Write> Iterator for InterPrinter<R, W> {
                             self.state.sub(0, n);
                         }
                         Instruction::SubTo(offset) => {
-                            let value = self.state.at(0);
+                            let value = self.state.at_offet(0);
                             self.state.sub(offset, value);
                         }
                         Instruction::SubToRev(offset) => {
-                            let value = self.state.at(0);
+                            let value = self.state.at_offet(0);
                             if value != 0 {
                                 self.state.sub_rev(offset, value);
                             }
                         }
                         Instruction::MulAdd(offset, value) => {
-                            let value = self.state.at(0).wrapping_mul(value);
+                            let value = self.state.at_offet(0).wrapping_mul(value);
                             self.state.add(offset, value);
                         }
                         Instruction::MulAddRev(offset, value) => {
-                            let value = self.state.at(0).wrapping_mul(value);
+                            let value = self.state.at_offet(0).wrapping_mul(value);
                             if value != 0 {
                                 self.state.add_rev(offset, value);
                             }
@@ -225,7 +225,7 @@ impl<R: Read, W: Write> Iterator for InterPrinter<R, W> {
                     };
                     self.now += 1
                 }
-                CInstruction::WhileBegin if self.state.at(0) == 0 => {
+                CInstruction::WhileBegin if self.state.at_offet(0) == 0 => {
                     self.now = self.while_end_jump_table[self.now]
                 }
                 CInstruction::WhileBegin => self.now += 1,
