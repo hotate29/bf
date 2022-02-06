@@ -182,11 +182,11 @@ impl<R: Read, W: Write> Iterator for InterPrinter<R, W> {
                             self.state.add(0, n);
                         }
                         Instruction::AddTo(offset) | Instruction::Copy(offset) => {
-                            let value = self.state.at_offet(0);
+                            let value = self.state.at();
                             self.state.add(offset, value);
                         }
                         Instruction::AddToRev(offset) | Instruction::CopyRev(offset) => {
-                            let value = self.state.at_offet(0);
+                            let value = self.state.at();
                             if value != 0 {
                                 self.state.add_rev(offset, value);
                             }
@@ -195,21 +195,21 @@ impl<R: Read, W: Write> Iterator for InterPrinter<R, W> {
                             self.state.sub(0, n);
                         }
                         Instruction::SubTo(offset) => {
-                            let value = self.state.at_offet(0);
+                            let value = self.state.at();
                             self.state.sub(offset, value);
                         }
                         Instruction::SubToRev(offset) => {
-                            let value = self.state.at_offet(0);
+                            let value = self.state.at();
                             if value != 0 {
                                 self.state.sub_rev(offset, value);
                             }
                         }
                         Instruction::MulAdd(offset, value) => {
-                            let value = self.state.at_offet(0).wrapping_mul(value);
+                            let value = self.state.at().wrapping_mul(value);
                             self.state.add(offset, value);
                         }
                         Instruction::MulAddRev(offset, value) => {
-                            let value = self.state.at_offet(0).wrapping_mul(value);
+                            let value = self.state.at().wrapping_mul(value);
                             if value != 0 {
                                 self.state.add_rev(offset, value);
                             }
@@ -228,7 +228,7 @@ impl<R: Read, W: Write> Iterator for InterPrinter<R, W> {
                     };
                     self.now += 1
                 }
-                CInstruction::WhileBegin if self.state.at_offet(0) == 0 => {
+                CInstruction::WhileBegin if self.state.at() == 0 => {
                     self.now = self.while_end_jump_table[self.now]
                 }
                 CInstruction::WhileBegin => self.now += 1,
