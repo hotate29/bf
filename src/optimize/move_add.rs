@@ -15,7 +15,8 @@ impl Optimizer for MoveAddOptimizer {
             if let [ExprKind::Instructions(while_instructions)] = while_node.0.as_slice();
             if let [Instruction::Sub(1), Instruction::PtrIncrement(ptr_increment), Instruction::Add(1), Instruction::PtrDecrement(ptr_decrement)]
                     // -が後ろにある場合
-                 | [Instruction::PtrIncrement(ptr_increment), Instruction::Add(1), Instruction::PtrDecrement(ptr_decrement), Instruction::Sub(1)] = while_instructions.as_slice();
+                 | [Instruction::PtrIncrement(ptr_increment), Instruction::Add(1), Instruction::PtrDecrement(ptr_decrement), Instruction::Sub(1)]
+                    = while_instructions.as_slice();
             if ptr_increment == ptr_decrement;
             then {
                 info!("optimize!");

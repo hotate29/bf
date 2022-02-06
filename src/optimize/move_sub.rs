@@ -13,7 +13,8 @@ impl Optimizer for MoveSubOptimizer {
         if_chain! {
             if let ExprKind::While(while_node) = expr;
             if let [ExprKind::Instructions(while_instructions)] = while_node.0.as_slice();
-            if let [Instruction::Sub(1), Instruction::PtrIncrement(ptr_increment), Instruction::Sub(1), Instruction::PtrDecrement(ptr_decrement)] = while_instructions.as_slice();
+            if let [Instruction::Sub(1), Instruction::PtrIncrement(ptr_increment), Instruction::Sub(1), Instruction::PtrDecrement(ptr_decrement)]
+                    = while_instructions.as_slice();
             if ptr_increment == ptr_decrement;
             then {
                 info!("optimize!");

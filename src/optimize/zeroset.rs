@@ -13,8 +13,9 @@ impl Optimizer for ZeroSetOptimizer {
         if_chain! {
             if let ExprKind::While(while_node) = expr;
             if let [ExprKind::Instructions(instructions)] = while_node.0.as_slice();
-            if let [Instruction::Sub(1)] |
-                   [Instruction::Add(1)] = instructions.as_slice();
+            if let [Instruction::Sub(1)]
+                 | [Instruction::Add(1)]
+                    = instructions.as_slice();
             then {
                 info!("optimize!");
                 Some(ExprKind::Instructions(vec![Instruction::ZeroSet]))

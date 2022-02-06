@@ -15,7 +15,7 @@ impl Optimizer for MulAddOptimizer {
             if let [ExprKind::Instructions(while_instructions)] = while_node.0.as_slice();
             if let [Instruction::PtrIncrement(ptr_increment), Instruction::Add(add_count), Instruction::PtrDecrement(ptr_decrement), Instruction::Sub(1)]
                 |  [Instruction::Sub(1), Instruction::PtrIncrement(ptr_increment), Instruction::Add(add_count), Instruction::PtrDecrement(ptr_decrement)]
-                = while_instructions.as_slice();
+                    = while_instructions.as_slice();
             if ptr_increment == ptr_decrement && *add_count > 1;
             then {
                 info!("optimize!");
