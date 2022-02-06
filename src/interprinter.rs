@@ -20,7 +20,7 @@ impl State {
         }
         self.memory[self.pointer - offset]
     }
-    fn at_mut(&mut self, offset: usize) -> &mut u8 {
+    fn at_offset_mut(&mut self, offset: usize) -> &mut u8 {
         if self.memory.len() <= self.pointer + offset {
             self.memory.resize(self.pointer * 2 + offset, 0);
         }
@@ -33,7 +33,7 @@ impl State {
         &mut self.memory[self.pointer - offset]
     }
     fn add(&mut self, offset: usize, value: u8) {
-        let a = self.at_mut(offset);
+        let a = self.at_offset_mut(offset);
         *a = a.wrapping_add(value);
     }
     fn add_rev(&mut self, offset: usize, value: u8) {
@@ -41,7 +41,7 @@ impl State {
         *a = a.wrapping_add(value);
     }
     fn sub(&mut self, offset: usize, value: u8) {
-        let a = self.at_mut(offset);
+        let a = self.at_offset_mut(offset);
         *a = a.wrapping_sub(value);
     }
     fn sub_rev(&mut self, offset: usize, value: u8) {
@@ -66,7 +66,7 @@ impl State {
     fn input(&mut self, reader: &mut impl Read) {
         let mut buf = [0];
         reader.read_exact(&mut buf).unwrap();
-        *self.at_mut(0) = buf[0];
+        *self.at_offset_mut(0) = buf[0];
     }
 }
 
@@ -221,7 +221,7 @@ impl<R: Read, W: Write> Iterator for InterPrinter<R, W> {
                                 self.state.input(&mut self.input);
                             }
                         }
-                        Instruction::ZeroSet => *self.state.at_mut(0) = 0,
+                        Instruction::ZeroSet => *self.state.at_offset_mut(0) = 0,
                     };
                     self.now += 1
                 }
