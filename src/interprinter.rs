@@ -21,9 +21,7 @@ impl State {
         self.memory[self.pointer + offset]
     }
     fn at_rev(&self, offset: usize) -> u8 {
-        if offset > self.pointer {
-            panic!("メモリがマイナス")
-        }
+        assert!(self.pointer >= offset, "ポインターがマイナスに");
         self.memory[self.pointer - offset]
     }
     fn at_offset_mut(&mut self, offset: usize) -> &mut u8 {
@@ -31,9 +29,7 @@ impl State {
         &mut self.memory[self.pointer + offset]
     }
     fn at_mut_rev(&mut self, offset: usize) -> &mut u8 {
-        if offset > self.pointer {
-            panic!("メモリがマイナス")
-        }
+        assert!(self.pointer >= offset, "ポインターがマイナスに");
         &mut self.memory[self.pointer - offset]
     }
     fn add(&mut self, offset: usize, value: u8) {
@@ -57,9 +53,7 @@ impl State {
         self.pointer += value;
     }
     fn pointer_sub(&mut self, value: usize) {
-        if self.pointer < value {
-            panic!("ポインターがマイナス")
-        }
+        assert!(self.pointer >= value, "ポインターがマイナスに");
         self.pointer -= value;
     }
     fn output(&self, writer: &mut impl Write) {
