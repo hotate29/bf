@@ -8,6 +8,9 @@ struct State {
     memory: Vec<u8>,
 }
 impl State {
+    fn at(&self) -> u8 {
+        self.memory[self.pointer]
+    }
     fn at_offet(&mut self, offset: usize) -> u8 {
         if self.memory.len() <= self.pointer + offset {
             self.memory.resize(self.pointer * 2 + offset, 0);
