@@ -49,8 +49,8 @@ impl State {
         *a = a.wrapping_sub(value);
     }
     fn pointer_add(&mut self, value: usize) {
-        self.memory_extend(value); // メモリーを伸ばす
         self.pointer += value;
+        self.memory_extend(value); // メモリーを伸ばす
     }
     fn pointer_sub(&mut self, value: usize) {
         assert!(self.pointer >= value, "ポインターがマイナスに");
