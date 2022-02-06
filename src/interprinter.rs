@@ -8,13 +8,16 @@ struct State {
     memory: Vec<u8>,
 }
 impl State {
+    fn memory_extend(&mut self, offset: usize) {
+        if self.memory.len() <= self.pointer + offset {
+            self.memory.resize(self.pointer * 2 + offset, 0);
+        }
+    }
     fn at(&self) -> u8 {
         self.memory[self.pointer]
     }
     fn at_offet(&mut self, offset: usize) -> u8 {
-        if self.memory.len() <= self.pointer + offset {
-            self.memory.resize(self.pointer * 2 + offset, 0);
-        }
+        self.memory_extend(offset);
         self.memory[self.pointer + offset]
     }
     fn at_rev(&self, offset: usize) -> u8 {
@@ -24,9 +27,7 @@ impl State {
         self.memory[self.pointer - offset]
     }
     fn at_offset_mut(&mut self, offset: usize) -> &mut u8 {
-        if self.memory.len() <= self.pointer + offset {
-            self.memory.resize(self.pointer * 2 + offset, 0);
-        }
+        self.memory_extend(offset);
         &mut self.memory[self.pointer + offset]
     }
     fn at_mut_rev(&mut self, offset: usize) -> &mut u8 {
@@ -52,8 +53,8 @@ impl State {
         *a = a.wrapping_sub(value);
     }
     fn pointer_add(&mut self, value: usize) {
+        self.memory_extend(value); // メモリーを伸ばす
         self.pointer += value;
-        self.at_offet(0); // メモリーを伸ばす
     }
     fn pointer_sub(&mut self, value: usize) {
         if self.pointer < value {
@@ -62,7 +63,7 @@ impl State {
         self.pointer -= value;
     }
     fn output(&self, writer: &mut impl Write) {
-        let value = self.memory[self.pointer];
+        let value = self.at();
         writer.write_all(&[value]).unwrap();
         writer.flush().unwrap();
     }
