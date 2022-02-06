@@ -3,13 +3,11 @@ use crate::token::Instruction;
 
 use std::io::prelude::*;
 
-struct State<R: Read, W: Write> {
+struct State {
     pointer: usize,
     memory: Vec<u8>,
-    input_reader: R,
-    output_writer: W,
 }
-impl<R: Read, W: Write> State<R, W> {
+impl State {
     fn at(&mut self, offset: usize) -> u8 {
         if self.memory.len() <= self.pointer + offset {
             self.memory.resize(self.pointer * 2 + offset, 0);
@@ -60,14 +58,14 @@ impl<R: Read, W: Write> State<R, W> {
         }
         self.pointer -= value;
     }
-    fn output(&mut self) {
-        let value = self.at(0);
-        self.output_writer.write_all(&[value]).unwrap();
-        self.output_writer.flush().unwrap();
+    fn output(&self, writer: &mut impl Write) {
+        let value = self.memory[self.pointer];
+        writer.write_all(&[value]).unwrap();
+        writer.flush().unwrap();
     }
-    fn input(&mut self) {
+    fn input(&mut self, reader: &mut impl Read) {
         let mut buf = [0];
-        self.input_reader.read_exact(&mut buf).unwrap();
+        reader.read_exact(&mut buf).unwrap();
         *self.at_mut(0) = buf[0];
     }
 }
@@ -106,7 +104,9 @@ fn node_to_c_instructions(node: &Node) -> Vec<CInstruction> {
 }
 
 pub struct InterPrinter<R: Read, W: Write> {
-    state: State<R, W>,
+    state: State,
+    input: R,
+    output: W,
     instructions: Vec<CInstruction>,
     now: usize,
     while_begin_jump_table: Vec<usize>,
@@ -120,8 +120,6 @@ impl<R: Read, W: Write> InterPrinter<R, W> {
         let state = State {
             pointer: 0,
             memory: vec![0; memory_len],
-            input_reader: input,
-            output_writer: output,
         };
 
         let instructions = node_to_c_instructions(root_node);
@@ -152,6 +150,8 @@ impl<R: Read, W: Write> InterPrinter<R, W> {
             while_begin_jump_table,
             while_end_jump_table,
             now: 0,
+            input,
+            output,
         }
     }
     pub fn memory(&self) -> &Vec<u8> {
@@ -213,12 +213,12 @@ impl<R: Read, W: Write> Iterator for InterPrinter<R, W> {
                         }
                         Instruction::Output(n) => {
                             for _ in 0..n {
-                                self.state.output()
+                                self.state.output(&mut self.output);
                             }
                         }
                         Instruction::Input(n) => {
                             for _ in 0..n {
-                                self.state.input()
+                                self.state.input(&mut self.input);
                             }
                         }
                         Instruction::ZeroSet => *self.state.at_mut(0) = 0,
