@@ -7,7 +7,7 @@ use super::{ExprKind, Optimizer};
 pub struct MergeOptimizer;
 
 impl Optimizer for MergeOptimizer {
-    fn optimize_while(&self, expr: &ExprKind) -> Option<ExprKind> {
+    fn optimize_expr(&self, expr: &ExprKind) -> Option<ExprKind> {
         if let ExprKind::Instructions(instructions) = expr {
             use Instruction::*;
 

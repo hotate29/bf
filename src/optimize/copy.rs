@@ -8,7 +8,7 @@ use super::{ExprKind, Optimizer};
 pub struct CopyOptimizer;
 
 impl Optimizer for CopyOptimizer {
-    fn optimize_while(&self, expr: &super::ExprKind) -> Option<super::ExprKind> {
+    fn optimize_expr(&self, expr: &super::ExprKind) -> Option<super::ExprKind> {
         // [->+>+<<]
         if_chain! {
             if let ExprKind::While(while_node) = expr;

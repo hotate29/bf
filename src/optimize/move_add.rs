@@ -9,7 +9,7 @@ pub struct MoveAddOptimizer;
 
 impl Optimizer for MoveAddOptimizer {
     /// [->>>+<<<]を変換する
-    fn optimize_while(&self, expr: &super::ExprKind) -> Option<super::ExprKind> {
+    fn optimize_expr(&self, expr: &super::ExprKind) -> Option<super::ExprKind> {
         if_chain! {
             if let ExprKind::While(while_node) = expr;
             if let [ExprKind::Instructions(while_instructions)] = while_node.0.as_slice();
