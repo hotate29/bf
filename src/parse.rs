@@ -107,9 +107,27 @@ pub struct Node(pub Vec<ExprKind>);
 impl Node {
     pub fn from_source(source: &str) -> Result<Node, ParseError> {
         let tokens = tokenize(source);
-        Ok(Node::from_tokens(&tokens))
+        Node::from_tokens(&tokens)
     }
-    pub fn from_tokens(tokens: &[Token]) -> Node {
+    pub fn from_tokens(tokens: &[Token]) -> Result<Node, ParseError> {
+        // カッコの対応チェック。
+        // 本当はパース処理と同時にしたいけど、まだ方法が思いついていない
+        let mut loop_depth = 0;
+        for token in tokens {
+            match token {
+                Token::LeftBracket => loop_depth += 1,
+                Token::RightBracket => loop_depth -= 1,
+                _ => (),
+            }
+
+            if loop_depth < 0 {
+                return Err(ParseError::InvalidBracket);
+            }
+        }
+        if loop_depth != 0 {
+            return Err(ParseError::InvalidBracket);
+        }
+
         fn inner(tokens: &[Token]) -> (usize, Node) // (どれだけ進んだか, Node)
         {
             let mut exprs = Vec::new();
@@ -174,7 +192,8 @@ impl Node {
         }
         let (c, node) = inner(tokens);
         assert_eq!(c, tokens.len());
-        node
+
+        Ok(node)
     }
 }
 
