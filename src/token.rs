@@ -1,3 +1,5 @@
+use std::cmp::Ordering;
+
 use serde::Serialize;
 
 use crate::parse::Token;
@@ -69,6 +71,41 @@ impl Instruction {
             | Instruction::ZeroSet
             | Instruction::Copy(_)
             | Instruction::CopyRev(_) => None,
+        }
+    }
+    pub fn merge(self, instruction: Instruction) -> Option<Instruction> {
+        use Instruction::*;
+
+        match (self, instruction) {
+            (Add(x), Add(y)) => Some(Add((x + y) % u8::MAX)),
+            (Sub(y), Add(x)) | (Add(x), Sub(y)) => {
+                let x = x as i32;
+                let y = y as i32;
+
+                let z = x - y;
+
+                match z.cmp(&0) {
+                    Ordering::Less => Some(Sub(z.abs() as u8)),
+                    Ordering::Greater => Some(Add(z as u8)),
+                    Ordering::Equal => Some(Add(0)),
+                }
+            }
+            (Sub(x), Sub(y)) => Some(Sub((x + y) % u8::MAX)),
+            (PtrIncrement(x), PtrIncrement(y)) => Some(PtrIncrement(x + y)),
+            (PtrDecrement(y), PtrIncrement(x)) | (PtrIncrement(x), PtrDecrement(y)) => {
+                let x = x as isize;
+                let y = y as isize;
+
+                let z = x - y;
+
+                match z.cmp(&0) {
+                    Ordering::Less => Some(PtrDecrement(z.abs() as usize)),
+                    Ordering::Greater => Some(PtrIncrement(z as usize)),
+                    Ordering::Equal => Some(Add(0)),
+                }
+            }
+            (PtrDecrement(x), PtrDecrement(y)) => Some(PtrDecrement(x + y)),
+            (_, _) => None,
         }
     }
 }
