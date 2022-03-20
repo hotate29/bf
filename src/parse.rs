@@ -1,8 +1,15 @@
 use std::fmt::Display;
 
 use serde::Serialize;
+use thiserror::Error;
 
-use crate::token::{Instruction, ParseError};
+use crate::token::Instruction;
+
+#[derive(Debug, Error, PartialEq)]
+pub enum ParseError {
+    #[error("角括弧が対応してないよ!")]
+    InvalidBracket,
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Serialize)]
 pub enum Token {
