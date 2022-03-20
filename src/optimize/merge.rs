@@ -7,63 +7,70 @@ use super::{ExprKind, Optimizer};
 pub struct MergeOptimizer;
 
 impl Optimizer for MergeOptimizer {
-    fn optimize_exprs(&self, node: &[ExprKind]) -> Option<(usize, Vec<ExprKind>)> {
-        let mut new_node = vec![];
+    fn optimize_while(&self, expr: &ExprKind) -> Option<ExprKind> {
+        if let ExprKind::Instructions(instructions) = expr {
+            use Instruction::*;
 
-        for expr in node {
-            if let ExprKind::Instructions(instructions) = expr {
-                use Instruction::*;
-                let mut new_expr = Vec::new();
+            let new_expr = instructions
+                .iter()
+                .fold(vec![], |mut new_expr, instruction| {
+                    {
+                        let top = new_expr.pop();
 
-                for instruction in instructions {
-                    match (new_expr.pop(), *instruction) {
-                        (Some(Add(x)), Add(y)) => new_expr.push(Add((x + y) % u8::MAX)),
-                        (Some(Sub(y)), Add(x)) | (Some(Add(x)), Sub(y)) => {
-                            let x = x as i32;
-                            let y = y as i32;
+                        if let Some(top) = top {
+                            match (top, *instruction) {
+                                (Add(x), Add(y)) => new_expr.push(Add((x + y) % u8::MAX)),
+                                (Sub(y), Add(x)) | (Add(x), Sub(y)) => {
+                                    let x = x as i32;
+                                    let y = y as i32;
 
-                            let z = x - y;
+                                    let z = x - y;
 
-                            match z.cmp(&0) {
-                                Ordering::Less => new_expr.push(Sub(z.abs() as u8)),
-                                Ordering::Greater => new_expr.push(Add(z as u8)),
-                                Ordering::Equal => (),
+                                    match z.cmp(&0) {
+                                        Ordering::Less => new_expr.push(Sub(z.abs() as u8)),
+                                        Ordering::Greater => new_expr.push(Add(z as u8)),
+                                        Ordering::Equal => (),
+                                    }
+                                }
+                                (Sub(x), Sub(y)) => new_expr.push(Sub((x + y) % u8::MAX)),
+                                (PtrIncrement(x), PtrIncrement(y)) => {
+                                    new_expr.push(PtrIncrement(x + y))
+                                }
+                                (PtrDecrement(y), PtrIncrement(x))
+                                | (PtrIncrement(x), PtrDecrement(y)) => {
+                                    let x = x as isize;
+                                    let y = y as isize;
+
+                                    let z = x - y;
+
+                                    match z.cmp(&0) {
+                                        Ordering::Less => {
+                                            new_expr.push(PtrDecrement(z.abs() as usize))
+                                        }
+                                        Ordering::Greater => {
+                                            new_expr.push(PtrIncrement(z as usize))
+                                        }
+                                        Ordering::Equal => (),
+                                    }
+                                }
+                                (PtrDecrement(x), PtrDecrement(y)) => {
+                                    new_expr.push(PtrDecrement(x + y))
+                                }
+                                (prev, instruction) => {
+                                    new_expr.push(prev);
+                                    new_expr.push(instruction)
+                                }
                             }
+                        } else {
+                            new_expr.push(*instruction)
                         }
-                        (Some(Sub(x)), Sub(y)) => new_expr.push(Sub((x + y) % u8::MAX)),
-                        (Some(PtrIncrement(x)), PtrIncrement(y)) => {
-                            new_expr.push(PtrIncrement(x + y))
-                        }
-                        (Some(PtrDecrement(y)), PtrIncrement(x))
-                        | (Some(PtrIncrement(x)), PtrDecrement(y)) => {
-                            let x = x as isize;
-                            let y = y as isize;
+                    };
+                    new_expr
+                });
 
-                            let z = x - y;
-
-                            match z.cmp(&0) {
-                                Ordering::Less => new_expr.push(PtrDecrement(z.abs() as usize)),
-                                Ordering::Greater => new_expr.push(PtrIncrement(z as usize)),
-                                Ordering::Equal => (),
-                            }
-                        }
-                        (Some(PtrDecrement(x)), PtrDecrement(y)) => {
-                            new_expr.push(PtrDecrement(x + y))
-                        }
-
-                        (prev, instruction) => {
-                            if let Some(instruction) = prev {
-                                new_expr.push(instruction)
-                            };
-                            new_expr.push(instruction)
-                        }
-                    }
-                }
-                new_node.push(ExprKind::Instructions(new_expr))
-            } else {
-                new_node.push(expr.clone())
-            }
+            Some(ExprKind::Instructions(new_expr))
+        } else {
+            None
         }
-        Some((new_node.len(), new_node))
     }
 }
