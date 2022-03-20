@@ -80,10 +80,11 @@ pub fn all_optimizer() -> Vec<Box<dyn Optimizer>> {
 
 #[cfg(test)]
 mod test {
-    use super::{ExprKind, Node, Optimizer};
+    use super::{merge, optimize, ExprKind, Node, Optimizer};
 
     pub fn expr_helper(source: &str, assert_expr: Option<ExprKind>, optimizer: impl Optimizer) {
         let root_node = Node::from_source(source).unwrap();
+        let root_node = optimize(root_node, &[Box::new(merge::MergeOptimizer)]);
 
         if let [expr] = root_node.0.as_slice() {
             let optimized_expr = optimizer.optimize_while(expr);
