@@ -18,9 +18,7 @@ pub enum MiddleToken {
 impl MiddleToken {
     pub fn to_instruction(self) -> Option<Instruction> {
         match self {
-            MiddleToken::Token(Token::Other(_), _)
-            | MiddleToken::WhileBegin
-            | MiddleToken::WhileEnd => None,
+            MiddleToken::WhileBegin | MiddleToken::WhileEnd => None,
             MiddleToken::Token(token, count) => match token {
                 Token::Greater => Some(Instruction::PtrIncrement(count)),
                 Token::Less => Some(Instruction::PtrDecrement(count)),
@@ -28,7 +26,7 @@ impl MiddleToken {
                 Token::Minus => Some(Instruction::Sub((count % u8::MAX as usize) as u8)),
                 Token::Period => Some(Instruction::Output(count)),
                 Token::Comma => Some(Instruction::Input(count)),
-                Token::LeftBracket | Token::RightBracket | Token::Other(_) => unreachable!(),
+                Token::LeftBracket | Token::RightBracket => unreachable!(),
             },
         }
     }
@@ -38,7 +36,7 @@ impl Display for MiddleToken {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             MiddleToken::Token(token, count) => match token {
-                Token::LeftBracket | Token::RightBracket | Token::Other(_) => unreachable!(),
+                Token::LeftBracket | Token::RightBracket => unreachable!(),
                 token => token.as_char().to_string().repeat(*count).fmt(f),
             },
             MiddleToken::WhileBegin => f.write_char('['),
@@ -59,11 +57,7 @@ pub fn middle_token(tokens: &[Token]) -> Result<Vec<MiddleToken>, ParseError> {
     let mut prev = None;
     let mut prev_count = 0;
 
-    for token in tokens
-        .iter()
-        .filter(|token| !matches!(token, Token::Other(_)))
-        .copied()
-    {
+    for token in tokens.iter().copied() {
         match token {
             Token::LeftBracket | Token::RightBracket => {
                 if prev_count != 0 {
@@ -90,7 +84,7 @@ pub fn middle_token(tokens: &[Token]) -> Result<Vec<MiddleToken>, ParseError> {
             swap(&mut prev, &mut token);
 
             match token.unwrap() {
-                Token::LeftBracket | Token::RightBracket | Token::Other(_) => (),
+                Token::LeftBracket | Token::RightBracket => (),
                 token => middle_tokens.push(MiddleToken::Token(token, prev_count)),
             }
             prev_count = 1;
@@ -98,7 +92,7 @@ pub fn middle_token(tokens: &[Token]) -> Result<Vec<MiddleToken>, ParseError> {
     }
     if let Some(token) = prev {
         match token {
-            Token::LeftBracket | Token::RightBracket | Token::Other(_) => (),
+            Token::LeftBracket | Token::RightBracket => (),
             token => middle_tokens.push(MiddleToken::Token(token, prev_count)),
         }
     }

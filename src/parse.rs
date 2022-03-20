@@ -10,21 +10,20 @@ pub enum Token {
     Comma,
     LeftBracket,
     RightBracket,
-    Other(char),
 }
 impl Token {
-    pub fn from_char(c: char) -> Token {
+    pub fn from_char(c: char) -> Option<Token> {
         use Token::*;
         match c {
-            '>' => Greater,
-            '<' => Less,
-            '+' => Plus,
-            '-' => Minus,
-            '.' => Period,
-            ',' => Comma,
-            '[' => LeftBracket,
-            ']' => RightBracket,
-            c => Other(c),
+            '>' => Some(Greater),
+            '<' => Some(Less),
+            '+' => Some(Plus),
+            '-' => Some(Minus),
+            '.' => Some(Period),
+            ',' => Some(Comma),
+            '[' => Some(LeftBracket),
+            ']' => Some(RightBracket),
+            _ => None,
         }
     }
     pub fn as_char(&self) -> char {
@@ -37,13 +36,12 @@ impl Token {
             Token::Comma => ',',
             Token::LeftBracket => '[',
             Token::RightBracket => ']',
-            Token::Other(c) => *c,
         }
     }
 }
 
 pub fn tokenize(code: &str) -> Vec<Token> {
-    code.chars().map(Token::from_char).collect()
+    code.chars().filter_map(Token::from_char).collect()
 }
 
 #[cfg(test)]
@@ -52,21 +50,21 @@ mod test {
 
     #[test]
     fn test_token_from_char() {
-        fn helper(c: char, assert_token: Token) {
+        fn helper(c: char, assert_token: Option<Token>) {
             let token = Token::from_char(c);
             assert_eq!(token, assert_token);
         }
 
-        helper('>', Token::Greater);
-        helper('<', Token::Less);
-        helper('+', Token::Plus);
-        helper('-', Token::Minus);
-        helper('.', Token::Period);
-        helper(',', Token::Comma);
-        helper('[', Token::LeftBracket);
-        helper(']', Token::RightBracket);
+        helper('>', Some(Token::Greater));
+        helper('<', Some(Token::Less));
+        helper('+', Some(Token::Plus));
+        helper('-', Some(Token::Minus));
+        helper('.', Some(Token::Period));
+        helper(',', Some(Token::Comma));
+        helper('[', Some(Token::LeftBracket));
+        helper(']', Some(Token::RightBracket));
 
-        helper('a', Token::Other('a'));
-        helper('1', Token::Other('1'));
+        helper('a', None);
+        helper('1', None);
     }
 }
