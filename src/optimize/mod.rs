@@ -2,6 +2,7 @@ pub use crate::parse::{ExprKind, Node};
 
 mod copy;
 mod copy_rev;
+mod merge;
 mod move_add;
 mod move_add_rev;
 mod move_sub;
@@ -63,6 +64,7 @@ pub fn optimize(mut root_node: Node, optimizers: &[Box<dyn Optimizer>]) -> Node 
 
 pub fn all_optimizer() -> Vec<Box<dyn Optimizer>> {
     vec![
+        Box::new(merge::MergeOptimizer),
         Box::new(zeroset::ZeroSetOptimizer),
         Box::new(mul_add::MulAddOptimizer),
         Box::new(mul_add_rev::MulAddRevOptimizer),
