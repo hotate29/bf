@@ -5,8 +5,8 @@ use std::fs;
 use std::io;
 
 use bf::interprinter::InterPrinter;
-use bf::optimize::all_optimizer;
-use bf::optimize::{optimize, Node};
+use bf::optimize::{all_optimizer, optimize};
+use bf::parse::Node;
 
 #[bench]
 fn bench_not_optimize_mandelbrot(bencher: &mut test::Bencher) {

@@ -1,4 +1,4 @@
-use crate::optimize::{ExprKind, Node};
+use crate::parse::{ExprKind, Node};
 use crate::token::Instruction;
 
 pub fn to_c(root_node: &Node) -> String {

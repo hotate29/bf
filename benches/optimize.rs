@@ -3,7 +3,8 @@ extern crate test;
 
 use std::fs;
 
-use bf::optimize::{all_optimizer, optimize, Node};
+use bf::optimize::{all_optimizer, optimize};
+use bf::parse::Node;
 
 #[bench]
 fn bench_optimizing_mandelbrot(bencher: &mut test::Bencher) {

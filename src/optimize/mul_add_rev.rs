@@ -1,7 +1,7 @@
 use if_chain::if_chain;
 use log::info;
 
-use crate::{optimize::ExprKind, token::Instruction};
+use crate::{parse::ExprKind, token::Instruction};
 
 use super::Optimizer;
 
@@ -9,7 +9,7 @@ pub struct MulAddRevOptimizer;
 
 impl Optimizer for MulAddRevOptimizer {
     /// [<+++++++>-]を変換する
-    fn optimize_expr(&self, expr: &super::ExprKind) -> Option<super::ExprKind> {
+    fn optimize_expr(&self, expr: &ExprKind) -> Option<ExprKind> {
         if_chain! {
             if let ExprKind::While(while_node) = expr;
             if let [ExprKind::Instructions(while_instructions)] = while_node.0.as_slice();
@@ -39,10 +39,7 @@ impl Optimizer for MulAddRevOptimizer {
 #[cfg(test)]
 mod test {
     use super::MulAddRevOptimizer;
-    use crate::{
-        optimize::{test::expr_helper, ExprKind},
-        token::Instruction,
-    };
+    use crate::{optimize::test::expr_helper, parse::ExprKind, token::Instruction};
 
     #[test]
     fn test_opt_move_add_rev() {

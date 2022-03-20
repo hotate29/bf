@@ -1,14 +1,14 @@
 use if_chain::if_chain;
 use log::info;
 
+use super::Optimizer;
+use crate::parse::ExprKind;
 use crate::token::Instruction;
-
-use super::{ExprKind, Optimizer};
 
 pub struct SubCopyOptimizer;
 
 impl Optimizer for SubCopyOptimizer {
-    fn optimize_expr(&self, expr: &super::ExprKind) -> Option<super::ExprKind> {
+    fn optimize_expr(&self, expr: &ExprKind) -> Option<ExprKind> {
         // [-<-<+>>]
         if_chain! {
             if let ExprKind::While(while_node) = expr;

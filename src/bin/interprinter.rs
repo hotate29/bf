@@ -2,7 +2,8 @@ use std::{env::args, fs, io};
 
 use bf::{
     interprinter::InterPrinter,
-    optimize::{all_optimizer, optimize, Node},
+    optimize::{all_optimizer, optimize},
+    parse::Node,
 };
 
 fn main() {

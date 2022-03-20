@@ -1,4 +1,4 @@
-use crate::optimize::{ExprKind, Node};
+use crate::parse::{ExprKind, Node};
 use crate::token::Instruction;
 
 use std::io::prelude::*;
@@ -296,8 +296,8 @@ mod test {
     use std::{fs, io};
 
     use crate::{
-        optimize::Node,
         optimize::{all_optimizer, optimize},
+        parse::Node,
     };
 
     use super::InterPrinter;

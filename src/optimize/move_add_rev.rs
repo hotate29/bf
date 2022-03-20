@@ -3,13 +3,14 @@ use log::info;
 
 use crate::token::Instruction;
 
-use super::{ExprKind, Optimizer};
+use super::Optimizer;
+use crate::parse::ExprKind;
 
 pub struct MoveAddRevOptimizer;
 
 impl Optimizer for MoveAddRevOptimizer {
     /// [-<<<+>>>]を変換する
-    fn optimize_expr(&self, expr: &super::ExprKind) -> Option<super::ExprKind> {
+    fn optimize_expr(&self, expr: &ExprKind) -> Option<ExprKind> {
         if_chain! {
             if let ExprKind::While(while_node) = expr;
             if let [ExprKind::Instructions(while_instructions)] = while_node.0.as_slice();
@@ -32,10 +33,7 @@ impl Optimizer for MoveAddRevOptimizer {
 #[cfg(test)]
 mod test {
     use super::MoveAddRevOptimizer;
-    use crate::{
-        optimize::{test::expr_helper, ExprKind},
-        token::Instruction,
-    };
+    use crate::{optimize::test::expr_helper, parse::ExprKind, token::Instruction};
 
     #[test]
     fn test_opt_move_add_rev() {

@@ -2,7 +2,8 @@ use std::cmp::Ordering;
 
 use crate::token::Instruction;
 
-use super::{ExprKind, Optimizer};
+use super::Optimizer;
+use crate::parse::ExprKind;
 
 fn merge_instruction(a: Instruction, b: Instruction) -> Option<Instruction> {
     use Instruction::*;
