@@ -13,16 +13,15 @@ pub enum Token {
 }
 impl Token {
     pub fn from_char(c: char) -> Option<Token> {
-        use Token::*;
         match c {
-            '>' => Some(Greater),
-            '<' => Some(Less),
-            '+' => Some(Plus),
-            '-' => Some(Minus),
-            '.' => Some(Period),
-            ',' => Some(Comma),
-            '[' => Some(LeftBracket),
-            ']' => Some(RightBracket),
+            '>' => Some(Token::Greater),
+            '<' => Some(Token::Less),
+            '+' => Some(Token::Plus),
+            '-' => Some(Token::Minus),
+            '.' => Some(Token::Period),
+            ',' => Some(Token::Comma),
+            '[' => Some(Token::LeftBracket),
+            ']' => Some(Token::RightBracket),
             _ => None,
         }
     }
