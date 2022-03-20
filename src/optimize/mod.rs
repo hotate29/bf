@@ -77,9 +77,7 @@ pub fn all_optimizer() -> Vec<Box<dyn Optimizer>> {
 }
 
 #[cfg(test)]
-pub(crate) mod test {
-    use crate::token::Instruction;
-
+mod test {
     use super::{ExprKind, Node, Optimizer};
 
     pub fn expr_helper(source: &str, assert_expr: Option<ExprKind>, optimizer: impl Optimizer) {
@@ -91,76 +89,5 @@ pub(crate) mod test {
         } else {
             panic!("変なテストデータ")
         }
-    }
-
-    #[test]
-    fn test_node_from_middle_token() {
-        fn helper(source: &str, assert_node: Node) {
-            let root_node = Node::from_source(source).unwrap();
-            assert_eq!(root_node, assert_node);
-        }
-
-        helper(
-            "+++",
-            Node(vec![ExprKind::Instructions(vec![Instruction::Add(3)])]),
-        );
-        helper(
-            "+++[]",
-            Node(vec![
-                ExprKind::Instructions(vec![Instruction::Add(3)]),
-                ExprKind::While(Node(vec![])),
-            ]),
-        );
-        helper(
-            "+++[---]",
-            Node(vec![
-                ExprKind::Instructions(vec![Instruction::Add(3)]),
-                ExprKind::While(Node(vec![ExprKind::Instructions(vec![Instruction::Sub(
-                    3,
-                )])])),
-            ]),
-        );
-        helper(
-            "+++[---]+++",
-            Node(vec![
-                ExprKind::Instructions(vec![Instruction::Add(3)]),
-                ExprKind::While(Node(vec![ExprKind::Instructions(vec![Instruction::Sub(
-                    3,
-                )])])),
-                ExprKind::Instructions(vec![Instruction::Add(3)]),
-            ]),
-        );
-        helper(
-            "+++[--[]]>>><<<",
-            Node(vec![
-                ExprKind::Instructions(vec![Instruction::Add(3)]),
-                ExprKind::While(Node(vec![
-                    ExprKind::Instructions(vec![Instruction::Sub(2)]),
-                    ExprKind::While(Node(vec![])),
-                ])),
-                ExprKind::Instructions(vec![
-                    Instruction::PtrIncrement(3),
-                    Instruction::PtrDecrement(3),
-                ]),
-            ]),
-        );
-        helper(
-            "+++[--[]]>>><<<[.,]",
-            Node(vec![
-                ExprKind::Instructions(vec![Instruction::Add(3)]),
-                ExprKind::While(Node(vec![
-                    ExprKind::Instructions(vec![Instruction::Sub(2)]),
-                    ExprKind::While(Node(vec![])),
-                ])),
-                ExprKind::Instructions(vec![
-                    Instruction::PtrIncrement(3),
-                    Instruction::PtrDecrement(3),
-                ]),
-                ExprKind::While(Node(vec![ExprKind::Instructions(vec![
-                    Instruction::Output(1),
-                    Instruction::Input(1),
-                ])])),
-            ]),
-        );
     }
 }

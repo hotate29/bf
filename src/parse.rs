@@ -2,7 +2,7 @@ use std::fmt::Display;
 
 use serde::Serialize;
 
-use crate::token::{middle_token, Instruction, MiddleToken, ParseError};
+use crate::token::{Instruction, ParseError};
 
 #[derive(Debug, Clone, Copy, PartialEq, Serialize)]
 pub enum Token {
@@ -100,11 +100,10 @@ pub struct Node(pub Vec<ExprKind>);
 impl Node {
     pub fn from_source(source: &str) -> Result<Node, ParseError> {
         let tokens = tokenize(source);
-        let middle_token = middle_token(&tokens)?;
-        Ok(Node::from_middle_tokens(&middle_token))
+        Ok(Node::from_tokens(&tokens))
     }
-    pub fn from_middle_tokens(tokens: &[MiddleToken]) -> Node {
-        fn inner(tokens: &[MiddleToken]) -> (usize, Node) // (どれだけ進んだか, Node)
+    pub fn from_tokens(tokens: &[Token]) -> Node {
+        fn inner(tokens: &[Token]) -> (usize, Node) // (どれだけ進んだか, Node)
         {
             let mut exprs = Vec::new();
             let mut index = 0;
@@ -114,15 +113,14 @@ impl Node {
                 let token = tokens[index];
 
                 match token {
-                    MiddleToken::Token(_, _) => index += 1,
-                    MiddleToken::WhileBegin => {
+                    Token::LeftBracket => {
                         {
                             let sub_tokens = &tokens[last_while_end_index.unwrap_or(0)..index];
                             if !sub_tokens.is_empty() {
                                 exprs.push(ExprKind::Instructions(
                                     sub_tokens
                                         .iter()
-                                        .map(|token| token.to_instruction().unwrap())
+                                        .filter_map(Instruction::from_token)
                                         .collect(),
                                 ));
                             }
@@ -135,14 +133,14 @@ impl Node {
                             exprs.push(ExprKind::While(while_node));
                         }
                     }
-                    MiddleToken::WhileEnd => {
+                    Token::RightBracket => {
                         {
                             let sub_tokens = &tokens[last_while_end_index.unwrap_or(0)..index];
                             if !sub_tokens.is_empty() {
                                 let expr = ExprKind::Instructions(
                                     sub_tokens
                                         .iter()
-                                        .map(|token| token.to_instruction().unwrap())
+                                        .filter_map(Instruction::from_token)
                                         .collect(),
                                 );
                                 exprs.push(expr)
@@ -152,6 +150,7 @@ impl Node {
                         let node = Node(exprs);
                         return (index + 1, node);
                     }
+                    _ => index += 1,
                 }
             }
 
@@ -160,7 +159,7 @@ impl Node {
                 exprs.push(ExprKind::Instructions(
                     tokens[range]
                         .iter()
-                        .map(|token| token.to_instruction().unwrap())
+                        .filter_map(Instruction::from_token)
                         .collect(),
                 ))
             }
@@ -202,7 +201,8 @@ impl ToString for Node {
 
 #[cfg(test)]
 mod test {
-    use crate::parse::Token;
+    use crate::parse::{ExprKind, Node, Token};
+    use crate::token::Instruction;
 
     #[test]
     fn test_token_from_char() {
@@ -222,5 +222,86 @@ mod test {
 
         helper('a', None);
         helper('1', None);
+    }
+
+    #[test]
+    fn test_node_from_token() {
+        fn helper(source: &str, assert_node: Node) {
+            let root_node = Node::from_source(source).unwrap();
+            assert_eq!(root_node, assert_node);
+        }
+
+        helper(
+            "+++",
+            Node(vec![ExprKind::Instructions(vec![Instruction::Add(1); 3])]),
+        );
+        helper(
+            "+++[]",
+            Node(vec![
+                ExprKind::Instructions(vec![Instruction::Add(1); 3]),
+                ExprKind::While(Node(vec![])),
+            ]),
+        );
+        helper(
+            "+++[---]",
+            Node(vec![
+                ExprKind::Instructions(vec![Instruction::Add(1); 3]),
+                ExprKind::While(Node(vec![ExprKind::Instructions(vec![
+                    Instruction::Sub(1);
+                    3
+                ])])),
+            ]),
+        );
+        helper(
+            "+++[---]+++",
+            Node(vec![
+                ExprKind::Instructions(vec![Instruction::Add(1); 3]),
+                ExprKind::While(Node(vec![ExprKind::Instructions(vec![
+                    Instruction::Sub(1);
+                    3
+                ])])),
+                ExprKind::Instructions(vec![Instruction::Add(1); 3]),
+            ]),
+        );
+        helper(
+            "+++[--[]]>>><<<",
+            Node(vec![
+                ExprKind::Instructions(vec![Instruction::Add(1); 3]),
+                ExprKind::While(Node(vec![
+                    ExprKind::Instructions(vec![Instruction::Sub(1); 2]),
+                    ExprKind::While(Node(vec![])),
+                ])),
+                ExprKind::Instructions(vec![
+                    Instruction::PtrIncrement(1),
+                    Instruction::PtrIncrement(1),
+                    Instruction::PtrIncrement(1),
+                    Instruction::PtrDecrement(1),
+                    Instruction::PtrDecrement(1),
+                    Instruction::PtrDecrement(1),
+                ]),
+            ]),
+        );
+        helper(
+            "+++[--[]]>>><<<[.,]",
+            Node(vec![
+                ExprKind::Instructions(vec![Instruction::Add(1); 3]),
+                ExprKind::While(Node(vec![
+                    ExprKind::Instructions(vec![Instruction::Sub(1); 2]),
+                    ExprKind::While(Node(vec![])),
+                ])),
+                ExprKind::Instructions(vec![
+                    Instruction::PtrIncrement(1),
+                    Instruction::PtrIncrement(1),
+                    Instruction::PtrIncrement(1),
+                    Instruction::PtrDecrement(1),
+                    Instruction::PtrDecrement(1),
+                    Instruction::PtrDecrement(1),
+                ]),
+                ExprKind::While(Node(vec![ExprKind::Instructions(vec![
+                    Instruction::Output(1),
+                    Instruction::Input(1),
+                ])])),
+            ]),
+        );
     }
 }
