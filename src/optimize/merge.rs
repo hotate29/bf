@@ -4,56 +4,58 @@ use crate::token::Instruction;
 
 use super::{ExprKind, Optimizer};
 
+fn merge_instruction(a: Instruction, b: Instruction) -> Option<Instruction> {
+    use Instruction::*;
+
+    match (a, b) {
+        (Add(x), Add(y)) => Some(Add((x + y) % u8::MAX)),
+        (Sub(y), Add(x)) | (Add(x), Sub(y)) => {
+            let x = x as i32;
+            let y = y as i32;
+
+            let z = x - y;
+
+            match z.cmp(&0) {
+                Ordering::Less => Some(Sub(z.abs() as u8)),
+                Ordering::Greater => Some(Add(z as u8)),
+                Ordering::Equal => Some(Add(0)),
+            }
+        }
+        (Sub(x), Sub(y)) => Some(Sub((x + y) % u8::MAX)),
+        (PtrIncrement(x), PtrIncrement(y)) => Some(PtrIncrement(x + y)),
+        (PtrDecrement(y), PtrIncrement(x)) | (PtrIncrement(x), PtrDecrement(y)) => {
+            let x = x as isize;
+            let y = y as isize;
+
+            let z = x - y;
+
+            match z.cmp(&0) {
+                Ordering::Less => Some(PtrDecrement(z.abs() as usize)),
+                Ordering::Greater => Some(PtrIncrement(z as usize)),
+                Ordering::Equal => Some(Add(0)),
+            }
+        }
+        (PtrDecrement(x), PtrDecrement(y)) => Some(PtrDecrement(x + y)),
+        (_, _) => None,
+    }
+}
+
 pub struct MergeOptimizer;
 
 impl Optimizer for MergeOptimizer {
     fn optimize_expr(&self, expr: &ExprKind) -> Option<ExprKind> {
         if let ExprKind::Instructions(instructions) = expr {
-            use Instruction::*;
-
             let new_expr = instructions
                 .iter()
                 .fold(vec![], |mut new_expr, instruction| {
-                    let top = new_expr.pop();
-
-                    if let Some(top) = top {
-                        match (top, *instruction) {
-                            (Add(x), Add(y)) => new_expr.push(Add((x + y) % u8::MAX)),
-                            (Sub(y), Add(x)) | (Add(x), Sub(y)) => {
-                                let x = x as i32;
-                                let y = y as i32;
-
-                                let z = x - y;
-
-                                match z.cmp(&0) {
-                                    Ordering::Less => new_expr.push(Sub(z.abs() as u8)),
-                                    Ordering::Greater => new_expr.push(Add(z as u8)),
-                                    Ordering::Equal => (),
-                                }
+                    if let Some(top) = new_expr.pop() {
+                        match merge_instruction(top, *instruction) {
+                            Some(instruction) => {
+                                new_expr.push(instruction);
                             }
-                            (Sub(x), Sub(y)) => new_expr.push(Sub((x + y) % u8::MAX)),
-                            (PtrIncrement(x), PtrIncrement(y)) => {
-                                new_expr.push(PtrIncrement(x + y))
-                            }
-                            (PtrDecrement(y), PtrIncrement(x))
-                            | (PtrIncrement(x), PtrDecrement(y)) => {
-                                let x = x as isize;
-                                let y = y as isize;
-
-                                let z = x - y;
-
-                                match z.cmp(&0) {
-                                    Ordering::Less => new_expr.push(PtrDecrement(z.abs() as usize)),
-                                    Ordering::Greater => new_expr.push(PtrIncrement(z as usize)),
-                                    Ordering::Equal => (),
-                                }
-                            }
-                            (PtrDecrement(x), PtrDecrement(y)) => {
-                                new_expr.push(PtrDecrement(x + y))
-                            }
-                            (prev, instruction) => {
-                                new_expr.push(prev);
-                                new_expr.push(instruction)
+                            None => {
+                                new_expr.push(top);
+                                new_expr.push(*instruction);
                             }
                         }
                     } else {
