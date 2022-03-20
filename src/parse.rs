@@ -4,13 +4,21 @@ use serde::Serialize;
 
 #[derive(Debug, Clone, Copy, PartialEq, Serialize)]
 pub enum Token {
+    /// >
     Greater,
+    /// >
     Less,
+    /// +
     Plus,
+    /// -
     Minus,
+    /// .
     Period,
+    /// ,
     Comma,
+    /// [
     LeftBracket,
+    /// ]
     RightBracket,
 }
 impl Token {
