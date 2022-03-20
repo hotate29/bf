@@ -135,14 +135,14 @@ pub enum Instruction {
 }
 
 impl Instruction {
-    pub fn from_token(token: Token) -> Option<Self> {
+    pub fn from_token(token: &Token) -> Option<Self> {
         match token {
             Token::Greater => Some(Self::PtrIncrement(1)),
             Token::Less => Some(Self::PtrDecrement(1)),
             Token::Plus => Some(Self::Add(1)),
             Token::Minus => Some(Self::Sub(1)),
-            Token::Period => Some(Self::Input(1)),
-            Token::Comma => Some(Self::Output(1)),
+            Token::Period => Some(Self::Output(1)),
+            Token::Comma => Some(Self::Input(1)),
             Token::LeftBracket | Token::RightBracket => None,
         }
     }
