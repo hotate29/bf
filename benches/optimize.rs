@@ -6,7 +6,7 @@ use std::fs;
 use bf::optimize::{all_optimizer, optimize, Node};
 
 #[bench]
-fn bench_optimizing(bencher: &mut test::Bencher) {
+fn bench_optimizing_mandelbrot(bencher: &mut test::Bencher) {
     let source = fs::read_to_string("mandelbrot.bf").unwrap();
 
     let root_node = Node::from_source(&source).unwrap();
