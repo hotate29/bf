@@ -227,8 +227,10 @@ impl ToString for Node {
 
 #[cfg(test)]
 mod test {
-    use crate::parse::{ExprKind, Node, Token};
-    use crate::instruction::Instruction;
+    use crate::{
+        instruction::Instruction,
+        parse::{ExprKind, Node, Token},
+    };
 
     #[test]
     fn test_token_from_char() {
