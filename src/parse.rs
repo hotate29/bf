@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use serde::Serialize;
 
 #[derive(Debug, Clone, Copy, PartialEq, Serialize)]
@@ -36,6 +38,12 @@ impl Token {
             Token::LeftBracket => '[',
             Token::RightBracket => ']',
         }
+    }
+}
+
+impl Display for Token {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.as_char().fmt(f)
     }
 }
 
