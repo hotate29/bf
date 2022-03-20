@@ -3,7 +3,7 @@ use log::info;
 
 use super::Optimizer;
 use crate::parse::ExprKind;
-use crate::token::Instruction;
+use crate::instruction::Instruction;
 
 pub struct CopyRevOptimizer;
 

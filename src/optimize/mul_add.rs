@@ -1,7 +1,7 @@
 use if_chain::if_chain;
 use log::info;
 
-use crate::{parse::ExprKind, token::Instruction};
+use crate::{parse::ExprKind, instruction::Instruction};
 
 use super::Optimizer;
 
@@ -41,7 +41,7 @@ impl Optimizer for MulAddOptimizer {
 #[cfg(test)]
 mod test {
     use super::MulAddOptimizer;
-    use crate::{optimize::test::expr_helper, parse::ExprKind, token::Instruction};
+    use crate::{optimize::test::expr_helper, parse::ExprKind, instruction::Instruction};
 
     #[test]
     fn test_mul_add() {

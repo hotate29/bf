@@ -1,5 +1,5 @@
 use super::Optimizer;
-use crate::{parse::ExprKind, token::Instruction};
+use crate::{parse::ExprKind, instruction::Instruction};
 
 pub struct MergeOptimizer;
 

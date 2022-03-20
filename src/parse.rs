@@ -3,7 +3,7 @@ use std::fmt::Display;
 use serde::Serialize;
 use thiserror::Error;
 
-use crate::token::Instruction;
+use crate::instruction::Instruction;
 
 #[derive(Debug, Error, PartialEq)]
 pub enum ParseError {
@@ -228,7 +228,7 @@ impl ToString for Node {
 #[cfg(test)]
 mod test {
     use crate::parse::{ExprKind, Node, Token};
-    use crate::token::Instruction;
+    use crate::instruction::Instruction;
 
     #[test]
     fn test_token_from_char() {

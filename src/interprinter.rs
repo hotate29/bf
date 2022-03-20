@@ -1,5 +1,5 @@
 use crate::parse::{ExprKind, Node};
-use crate::token::Instruction;
+use crate::instruction::Instruction;
 
 use std::io::prelude::*;
 

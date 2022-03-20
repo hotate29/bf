@@ -1,5 +1,5 @@
 use crate::parse::{ExprKind, Node};
-use crate::token::Instruction;
+use crate::instruction::Instruction;
 
 pub fn to_c(root_node: &Node) -> String {
     fn inner(node: &Node, c_code: &mut String) {

@@ -3,7 +3,7 @@ use log::info;
 
 use super::Optimizer;
 use crate::parse::ExprKind;
-use crate::token::Instruction;
+use crate::instruction::Instruction;
 
 pub struct ZeroSetOptimizer;
 
@@ -30,7 +30,7 @@ impl Optimizer for ZeroSetOptimizer {
 #[cfg(test)]
 mod test {
     use super::ZeroSetOptimizer;
-    use crate::{optimize::test::expr_helper, parse::ExprKind, token::Instruction};
+    use crate::{optimize::test::expr_helper, parse::ExprKind, instruction::Instruction};
 
     #[test]
     fn test_opt_zeroset() {

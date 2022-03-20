@@ -1,7 +1,7 @@
 use if_chain::if_chain;
 use log::info;
 
-use crate::token::Instruction;
+use crate::instruction::Instruction;
 
 use super::Optimizer;
 use crate::parse::ExprKind;
@@ -32,7 +32,7 @@ impl Optimizer for MoveSubRevOptimizer {
 #[cfg(test)]
 mod test {
     use super::MoveSubRevOptimizer;
-    use crate::{optimize::test::expr_helper, parse::ExprKind, token::Instruction};
+    use crate::{optimize::test::expr_helper, parse::ExprKind, instruction::Instruction};
 
     #[test]
     fn test_opt_move_sub_rev() {
