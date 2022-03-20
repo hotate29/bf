@@ -101,6 +101,54 @@ impl ExprKind {
     }
 }
 
+pub type Nods = Vec<Nod>;
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Nod {
+    Loop(Nods),
+    Instruction(Instruction),
+}
+impl Nod {
+    pub fn from_tokens(tokens: &[Token]) -> Result<Nods, ParseError> {
+        fn inner(
+            nod: &mut Nods,
+            depth: usize,
+            token_iterator: &mut impl Iterator<Item = Token>,
+        ) -> Result<(), ParseError> {
+            while let Some(token) = token_iterator.next() {
+                match token {
+                    Token::LeftBracket => {
+                        let mut inner_node = Nods::new();
+                        inner(&mut inner_node, depth + 1, token_iterator)?;
+                        nod.push(Nod::Loop(inner_node));
+                    }
+                    Token::RightBracket => {
+                        if depth != 0 {
+                            return Ok(());
+                        } else {
+                            return Err(ParseError::InvalidBracket);
+                        };
+                    }
+                    token => nod.push(Nod::Instruction(Instruction::from_token(&token).unwrap())),
+                }
+            }
+            if depth == 0 {
+                Ok(())
+            } else {
+                Err(ParseError::InvalidBracket)
+            }
+        }
+
+        let mut token_iterator = tokens.iter().copied();
+
+        let mut nods = Nods::new();
+
+        inner(&mut nods, 0, &mut token_iterator)?;
+
+        Ok(nods)
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize)]
 pub struct Node(pub Vec<ExprKind>);
 
