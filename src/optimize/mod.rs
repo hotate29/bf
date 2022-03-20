@@ -1,6 +1,9 @@
 use serde::Serialize;
 
-use crate::token::{middle_token, tokenize, Instruction, MiddleToken, ParseError};
+use crate::{
+    parse::tokenize,
+    token::{middle_token, Instruction, MiddleToken, ParseError},
+};
 
 mod copy;
 mod copy_rev;
