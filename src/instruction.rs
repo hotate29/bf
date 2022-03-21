@@ -108,7 +108,8 @@ impl Instruction {
             }
             (PtrDecrement(x), PtrDecrement(y)) => Some(PtrDecrement(x + y)),
             (ZeroSet, ZeroSet) => Some(ZeroSet),
-            (ZeroSet, inst) | (inst, ZeroSet) if matches!(inst, Add(_) | Sub(_)) => Some(inst),
+            (ZeroSet, AddTo(_) | AddToRev(_) | SubTo(_) | SubToRev(_)) => Some(ZeroSet),
+            (Add(_) | Sub(_), ZeroSet) => Some(ZeroSet),
             (ins, instruction) if ins.is_no_action() => Some(instruction),
             (_, _) => None,
         }
