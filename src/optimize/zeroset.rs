@@ -2,8 +2,8 @@ use if_chain::if_chain;
 use log::info;
 
 use super::Optimizer;
-use crate::parse::ExprKind;
 use crate::instruction::Instruction;
+use crate::parse::ExprKind;
 
 pub struct ZeroSetOptimizer;
 
@@ -30,7 +30,7 @@ impl Optimizer for ZeroSetOptimizer {
 #[cfg(test)]
 mod test {
     use super::ZeroSetOptimizer;
-    use crate::{optimize::test::expr_helper, parse::ExprKind, instruction::Instruction};
+    use crate::{instruction::Instruction, optimize::test::expr_helper, parse::ExprKind};
 
     #[test]
     fn test_opt_zeroset() {

@@ -2,8 +2,8 @@ use if_chain::if_chain;
 use log::info;
 
 use super::Optimizer;
-use crate::parse::ExprKind;
 use crate::instruction::Instruction;
+use crate::parse::ExprKind;
 
 pub struct CopyRevOptimizer;
 

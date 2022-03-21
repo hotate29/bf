@@ -1,7 +1,7 @@
 use if_chain::if_chain;
 use log::info;
 
-use crate::{parse::ExprKind, instruction::Instruction};
+use crate::{instruction::Instruction, parse::ExprKind};
 
 use super::Optimizer;
 
@@ -39,7 +39,7 @@ impl Optimizer for MulAddRevOptimizer {
 #[cfg(test)]
 mod test {
     use super::MulAddRevOptimizer;
-    use crate::{optimize::test::expr_helper, parse::ExprKind, instruction::Instruction};
+    use crate::{instruction::Instruction, optimize::test::expr_helper, parse::ExprKind};
 
     #[test]
     fn test_opt_move_add_rev() {
