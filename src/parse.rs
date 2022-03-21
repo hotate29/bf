@@ -1,4 +1,4 @@
-use std::fmt::Display;
+use std::{collections::LinkedList, fmt::Display};
 
 use serde::Serialize;
 use thiserror::Error;
@@ -101,7 +101,7 @@ impl ExprKind {
     }
 }
 
-pub type Nods = Vec<Nod>;
+pub type Nods = LinkedList<Nod>;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Nod {
@@ -120,7 +120,7 @@ impl Nod {
                     Token::LeftBracket => {
                         let mut inner_node = Nods::new();
                         inner(&mut inner_node, depth + 1, token_iterator)?;
-                        nod.push(Nod::Loop(inner_node));
+                        nod.push_back(Nod::Loop(inner_node));
                     }
                     Token::RightBracket => {
                         // 深さ0の時点で]に遭遇するとエラー
@@ -131,7 +131,9 @@ impl Nod {
                             return Ok(());
                         };
                     }
-                    token => nod.push(Nod::Instruction(Instruction::from_token(&token).unwrap())),
+                    token => {
+                        nod.push_back(Nod::Instruction(Instruction::from_token(&token).unwrap()))
+                    }
                 }
             }
             // 深さ0の場合を除いて、]以外で関数を抜けた場合はエラー、
