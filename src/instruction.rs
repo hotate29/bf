@@ -24,6 +24,7 @@ pub enum Instruction {
 }
 
 impl Instruction {
+    #[inline]
     pub fn from_token(token: &Token) -> Option<Self> {
         match token {
             Token::Greater => Some(Self::PtrIncrement(1)),
@@ -73,6 +74,7 @@ impl Instruction {
             | Instruction::CopyRev(_) => None,
         }
     }
+    #[inline]
     pub fn merge(self, instruction: Instruction) -> Option<Instruction> {
         use Instruction::*;
 
@@ -105,7 +107,20 @@ impl Instruction {
                 }
             }
             (PtrDecrement(x), PtrDecrement(y)) => Some(PtrDecrement(x + y)),
+            (ZeroSet, ZeroSet) => Some(ZeroSet),
+            (ZeroSet, inst) | (inst, ZeroSet) if matches!(inst, Add(_) | Sub(_)) => Some(inst),
+            (ins, instruction) if ins.is_no_action() => Some(instruction),
             (_, _) => None,
         }
+    }
+    #[inline]
+    pub fn is_no_action(&self) -> bool {
+        matches!(
+            self,
+            Instruction::PtrIncrement(0)
+                | Instruction::PtrDecrement(0)
+                | Instruction::Add(0)
+                | Instruction::Sub(0)
+        )
     }
 }
