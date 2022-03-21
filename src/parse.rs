@@ -103,7 +103,7 @@ impl ExprKind {
 
 pub type Nods = LinkedList<Nod>;
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub enum Nod {
     Loop(Nods),
     Instruction(Instruction),
