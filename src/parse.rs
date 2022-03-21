@@ -123,15 +123,19 @@ impl Nod {
                         nod.push(Nod::Loop(inner_node));
                     }
                     Token::RightBracket => {
-                        if depth != 0 {
-                            return Ok(());
-                        } else {
+                        // 深さ0の時点で]に遭遇するとエラー
+                        // 例: ], []]
+                        if depth == 0 {
                             return Err(ParseError::InvalidBracket);
+                        } else {
+                            return Ok(());
                         };
                     }
                     token => nod.push(Nod::Instruction(Instruction::from_token(&token).unwrap())),
                 }
             }
+            // 深さ0の場合を除いて、]以外で関数を抜けた場合はエラー、
+            // 例: [, [[]
             if depth == 0 {
                 Ok(())
             } else {
@@ -139,11 +143,11 @@ impl Nod {
             }
         }
 
-        let mut token_iterator = tokens.iter().copied();
-
         let mut nods = Nods::new();
 
-        inner(&mut nods, 0, &mut token_iterator)?;
+        let mut tokens_iter = tokens.iter().copied();
+
+        inner(&mut nods, 0, &mut tokens_iter)?;
 
         Ok(nods)
     }
