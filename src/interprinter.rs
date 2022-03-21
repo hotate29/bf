@@ -1,5 +1,5 @@
-use crate::parse::{ExprKind, Node};
 use crate::instruction::Instruction;
+use crate::parse::{ExprKind, Node};
 
 use std::io::prelude::*;
 
