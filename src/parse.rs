@@ -109,7 +109,7 @@ pub enum Nod {
     Instruction(Instruction),
 }
 impl Nod {
-    pub fn from_tokens(tokens: &[Token]) -> Result<Nods, ParseError> {
+    pub fn from_tokens(tokens: impl IntoIterator<Item = Token>) -> Result<Nods, ParseError> {
         fn inner(
             nod: &mut Nods,
             depth: usize,
@@ -145,9 +145,9 @@ impl Nod {
 
         let mut nods = Nods::new();
 
-        let mut tokens_iter = tokens.iter().copied();
+        let mut tokens = tokens.into_iter();
 
-        inner(&mut nods, 0, &mut tokens_iter)?;
+        inner(&mut nods, 0, &mut tokens)?;
 
         Ok(nods)
     }
