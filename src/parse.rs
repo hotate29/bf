@@ -13,13 +13,13 @@ pub enum ParseError {
 
 #[derive(Debug, Clone, Copy, PartialEq, Serialize)]
 pub enum Token {
-    /// >
+    /// \>
     Greater,
-    /// >
+    /// \<
     Less,
-    /// +
+    /// \+
     Plus,
-    /// -
+    /// \-
     Minus,
     /// .
     Period,
