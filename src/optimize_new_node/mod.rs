@@ -197,6 +197,39 @@ fn copy_opt(node: &Nod) -> Option<Nods> {
     None
 }
 
+fn sub_add_opt(node: &Nod) -> Option<Nods> {
+    if let Nod::Loop(loop_nodes) = node {
+        if loop_nodes.len() == 7 {
+            let mut nodes_iter = loop_nodes.iter();
+
+            if let [Nod::Instruction(PtrDecrement(dec)), Nod::Instruction(Sub(1)), Nod::Instruction(PtrIncrement(inc)), Nod::Instruction(Sub(1)), Nod::Instruction(PtrDecrement(dec2)), Nod::Instruction(Add(1)), Nod::Instruction(PtrIncrement(inc2))] = {
+                [
+                    nodes_iter.next()?,
+                    nodes_iter.next()?,
+                    nodes_iter.next()?,
+                    nodes_iter.next()?,
+                    nodes_iter.next()?,
+                    nodes_iter.next()?,
+                    nodes_iter.next()?,
+                ]
+            } {
+                if dec == inc && dec2 == inc2 {
+                    eprintln!("match! {:?}", loop_nodes);
+                    return Some(
+                        [
+                            Nod::Instruction(SubToRev(*dec)),
+                            Nod::Instruction(AddToRev(*dec2)),
+                            Nod::Instruction(ZeroSet),
+                        ]
+                        .into(),
+                    );
+                }
+            }
+        }
+    }
+    None
+}
+
 fn merge_instruction(nodes: Nods) -> Nods {
     let mut new_nodes = Nods::new();
 
@@ -243,6 +276,8 @@ pub fn optimize(nodes: Nods) -> Nods {
         } else if let Some(mut optimized_nodes) = add_opt(&node) {
             new_nodes.append(&mut optimized_nodes);
         } else if let Some(mut optimized_nodes) = sub_opt(&node) {
+            new_nodes.append(&mut optimized_nodes);
+        } else if let Some(mut optimized_nodes) = sub_add_opt(&node) {
             new_nodes.append(&mut optimized_nodes);
         } else if let Some(mut optimized_nodes) = copy_opt(&node) {
             new_nodes.append(&mut optimized_nodes);
