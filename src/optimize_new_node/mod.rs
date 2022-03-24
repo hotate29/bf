@@ -68,6 +68,59 @@ fn add_opt(node: &Nod) -> Option<Nods> {
     None
 }
 
+fn sub_opt(node: &Nod) -> Option<Nods> {
+    if let Nod::Loop(loop_nodes) = node {
+        if loop_nodes.len() == 4 {
+            let mut nodes_iter = loop_nodes.iter();
+
+            if let [Nod::Instruction(Sub(1)), Nod::Instruction(PtrIncrement(ptr_increment)), Nod::Instruction(Sub(1)), Nod::Instruction(PtrDecrement(ptr_decrement))]
+            | [Nod::Instruction(PtrIncrement(ptr_increment)), Nod::Instruction(Sub(1)), Nod::Instruction(PtrDecrement(ptr_decrement)), Nod::Instruction(Sub(1))] = {
+                [
+                    nodes_iter.next()?,
+                    nodes_iter.next()?,
+                    nodes_iter.next()?,
+                    nodes_iter.next()?,
+                ]
+            } {
+                if ptr_increment == ptr_decrement {
+                    {
+                        return Some(
+                            [
+                                Nod::Instruction(SubTo(*ptr_increment)),
+                                Nod::Instruction(ZeroSet),
+                            ]
+                            .into(),
+                        );
+                    }
+                }
+            }
+
+            let mut nodes_iter = loop_nodes.iter();
+
+            if let [Nod::Instruction(Sub(1)), Nod::Instruction(PtrDecrement(ptr_increment)), Nod::Instruction(Sub(1)), Nod::Instruction(PtrIncrement(ptr_decrement))]
+            | [Nod::Instruction(PtrDecrement(ptr_increment)), Nod::Instruction(Sub(1)), Nod::Instruction(PtrIncrement(ptr_decrement)), Nod::Instruction(Sub(1))] = [
+                nodes_iter.next()?,
+                nodes_iter.next()?,
+                nodes_iter.next()?,
+                nodes_iter.next()?,
+            ] {
+                if ptr_decrement == ptr_increment {
+                    {
+                        return Some(
+                            [
+                                Nod::Instruction(SubToRev(*ptr_decrement)),
+                                Nod::Instruction(ZeroSet),
+                            ]
+                            .into(),
+                        );
+                    }
+                }
+            }
+        }
+    }
+    None
+}
+
 fn copy_opt(node: &Nod) -> Option<Nods> {
     if let Nod::Loop(loop_nodes) = node {
         if loop_nodes.len() == 4 {
@@ -140,6 +193,8 @@ pub fn optimize(nodes: Nods) -> Nods {
         if let Some(mut optimized_nodes) = zeroset_opt(&node) {
             new_nodes.append(&mut optimized_nodes);
         } else if let Some(mut optimized_nodes) = add_opt(&node) {
+            new_nodes.append(&mut optimized_nodes);
+        } else if let Some(mut optimized_nodes) = sub_opt(&node) {
             new_nodes.append(&mut optimized_nodes);
         } else if let Some(mut optimized_nodes) = copy_opt(&node) {
             new_nodes.append(&mut optimized_nodes);
