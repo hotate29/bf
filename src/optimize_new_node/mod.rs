@@ -123,7 +123,7 @@ fn sub_opt(node: &Nod) -> Option<Nods> {
 
 fn copy_opt(node: &Nod) -> Option<Nods> {
     if let Nod::Loop(loop_nodes) = node {
-        if loop_nodes.len() == 4 {
+        if loop_nodes.len() == 6 {
             let mut nodes_iter = loop_nodes.iter();
             if let [Nod::Instruction(Sub(1)), Nod::Instruction(PtrIncrement(x)), Nod::Instruction(Add(1)), Nod::Instruction(PtrIncrement(y)), Nod::Instruction(Add(1)), Nod::Instruction(PtrDecrement(z))] = [
                 nodes_iter.next()?,
@@ -138,6 +138,30 @@ fn copy_opt(node: &Nod) -> Option<Nods> {
                         [
                             Nod::Instruction(Copy(*x)),
                             Nod::Instruction(Copy(x + y)),
+                            Nod::Instruction(ZeroSet),
+                        ]
+                        .into(),
+                    );
+                }
+            }
+        }
+    }
+    if let Nod::Loop(loop_nodes) = node {
+        if loop_nodes.len() == 6 {
+            let mut nodes_iter = loop_nodes.iter();
+            if let [Nod::Instruction(Sub(1)), Nod::Instruction(PtrDecrement(x)), Nod::Instruction(Add(1)), Nod::Instruction(PtrDecrement(y)), Nod::Instruction(Add(1)), Nod::Instruction(PtrIncrement(z))] = [
+                nodes_iter.next()?,
+                nodes_iter.next()?,
+                nodes_iter.next()?,
+                nodes_iter.next()?,
+                nodes_iter.next()?,
+                nodes_iter.next()?,
+            ] {
+                if x + y == *z {
+                    return Some(
+                        [
+                            Nod::Instruction(CopyRev(*x)),
+                            Nod::Instruction(CopyRev(x + y)),
                             Nod::Instruction(ZeroSet),
                         ]
                         .into(),
