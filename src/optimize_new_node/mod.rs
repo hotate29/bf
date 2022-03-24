@@ -170,6 +170,30 @@ fn copy_opt(node: &Nod) -> Option<Nods> {
             }
         }
     }
+    if let Nod::Loop(loop_nodes) = node {
+        if loop_nodes.len() == 6 {
+            let mut nodes_iter = loop_nodes.iter();
+            if let [Nod::Instruction(Sub(1)), Nod::Instruction(PtrDecrement(x)), Nod::Instruction(Add(1)), Nod::Instruction(PtrIncrement(y)), Nod::Instruction(Add(1)), Nod::Instruction(PtrIncrement(z))] = [
+                nodes_iter.next()?,
+                nodes_iter.next()?,
+                nodes_iter.next()?,
+                nodes_iter.next()?,
+                nodes_iter.next()?,
+                nodes_iter.next()?,
+            ] {
+                if *x == y + z {
+                    return Some(
+                        [
+                            Nod::Instruction(CopyRev(*x)),
+                            Nod::Instruction(CopyRev(x - y)),
+                            Nod::Instruction(ZeroSet),
+                        ]
+                        .into(),
+                    );
+                }
+            }
+        }
+    }
     None
 }
 
