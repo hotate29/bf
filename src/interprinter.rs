@@ -206,7 +206,7 @@ impl<R: Read, W: Write> Iterator for InterPrinter<R, W> {
                         Instruction::MulAddRev(offset, value) => {
                             let value = self.state.at().wrapping_mul(value);
                             if value != 0 {
-                                self.state.add(offset as isize, value);
+                                self.state.add(-(offset as isize), value);
                             }
                         }
                         Instruction::Output(n) => {
