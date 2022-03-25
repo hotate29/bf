@@ -22,6 +22,7 @@ pub enum Instruction {
     OutputOffset(isize),
     Input(usize),
     ZeroSet,
+    ZeroSetOffset(isize),
     Copy(usize),
     CopyRev(usize),
 }
@@ -55,10 +56,11 @@ impl Instruction {
             | Instruction::MulAddRev(_, _)
             | Instruction::ZeroSet
             | Instruction::Copy(_)
-            | Instruction::CopyRev(_) => None,
-            Instruction::AddOffset(_, _) => todo!(),
-            Instruction::SubOffset(_, _) => todo!(),
-            Instruction::OutputOffset(_) => todo!(),
+            | Instruction::CopyRev(_)
+            | Instruction::AddOffset(_, _)
+            | Instruction::SubOffset(_, _)
+            | Instruction::OutputOffset(_)
+            | Instruction::ZeroSetOffset(_) => None,
         }
     }
     pub fn to_string(self) -> Option<String> {
@@ -77,10 +79,11 @@ impl Instruction {
             | Instruction::MulAddRev(_, _)
             | Instruction::ZeroSet
             | Instruction::Copy(_)
-            | Instruction::CopyRev(_) => None,
-            Instruction::AddOffset(_, _)
+            | Instruction::CopyRev(_)
+            | Instruction::AddOffset(_, _)
             | Instruction::SubOffset(_, _)
-            | Instruction::OutputOffset(_) => todo!(),
+            | Instruction::OutputOffset(_)
+            | Instruction::ZeroSetOffset(_) => todo!(),
         }
     }
     #[inline]
