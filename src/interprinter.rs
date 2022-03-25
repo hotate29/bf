@@ -1,5 +1,5 @@
 use crate::instruction::Instruction;
-use crate::parse::{ExprKind, Node};
+use crate::parse::{ExprKind, Node, Nods};
 
 use std::io::prelude::*;
 
@@ -9,8 +9,8 @@ struct State {
 }
 impl State {
     fn memory_extend(&mut self, offset: usize) {
-        if self.memory.len() <= self.pointer + offset {
-            self.memory.resize(self.pointer * 2 + offset, 0);
+        if self.memory.len() <= (self.pointer + offset + 1) {
+            self.memory.resize(self.pointer * 2 + offset + 1, 0);
         }
     }
     fn at(&self) -> u8 {
@@ -80,24 +80,24 @@ impl CInstruction {
     }
 }
 
-fn node_to_c_instructions(node: &Node) -> Vec<CInstruction> {
-    fn inner(c_instruction: &mut Vec<CInstruction>, node: &Node) {
-        for expr in &node.0 {
-            match expr {
-                ExprKind::Instructions(ins) => {
-                    c_instruction.extend(ins.iter().map(|ins| CInstruction::from_instruction(*ins)))
-                }
-                ExprKind::While(while_node) => {
+fn node_to_c_instructions(nodes: &Nods) -> Vec<CInstruction> {
+    fn inner(c_instruction: &mut Vec<CInstruction>, nodes: &Nods) {
+        for node in nodes {
+            match node {
+                crate::parse::Nod::Loop(loop_nodes) => {
                     c_instruction.push(CInstruction::WhileBegin);
-                    inner(c_instruction, while_node);
+                    inner(c_instruction, loop_nodes);
                     c_instruction.push(CInstruction::WhileEnd);
+                }
+                crate::parse::Nod::Instruction(instruction) => {
+                    c_instruction.push(CInstruction::from_instruction(*instruction))
                 }
             }
         }
     }
 
     let mut instructions = vec![];
-    inner(&mut instructions, node);
+    inner(&mut instructions, nodes);
     instructions
 }
 
@@ -114,7 +114,7 @@ impl<R: Read, W: Write> InterPrinter<R, W> {
     pub fn builder<'a>() -> InterPrinterBuilder<'a, R, W> {
         InterPrinterBuilder::default()
     }
-    fn new(root_node: &Node, memory_len: usize, input: R, output: W) -> Self {
+    fn new(root_node: &Nods, memory_len: usize, input: R, output: W) -> Self {
         let state = State {
             pointer: 0,
             memory: vec![0; memory_len],
@@ -220,6 +220,36 @@ impl<R: Read, W: Write> Iterator for InterPrinter<R, W> {
                             }
                         }
                         Instruction::ZeroSet => *self.state.at_offset_mut(0) = 0,
+                        Instruction::AddOffset(offset, value) => {
+                            let to = if offset < 0 {
+                                self.state.at_mut_rev(-offset as usize)
+                            } else {
+                                self.state.at_offset_mut(offset as usize)
+                            };
+                            *to = to.wrapping_add(value);
+                        }
+                        Instruction::SubOffset(offset, value) => {
+                            let to = if offset < 0 {
+                                self.state.at_mut_rev(-offset as usize)
+                            } else {
+                                self.state.at_offset_mut(offset as usize)
+                            };
+                            *to = to.wrapping_sub(value);
+                        }
+                        Instruction::OutputOffset(offset) => {
+                            if offset == 0 {
+                                self.state.output(&mut self.output);
+                            } else {
+                                let value = if offset < 0 {
+                                    self.state.at_mut_rev(-offset as usize)
+                                } else {
+                                    self.state.at_offset_mut(offset as usize)
+                                };
+
+                                self.output.write_all(&[*value]).unwrap();
+                            }
+                        }
+                        ins => panic!("unimplemented instruction. {ins:?}"),
                     };
                     self.now += 1
                 }
@@ -238,6 +268,7 @@ impl<R: Read, W: Write> Iterator for InterPrinter<R, W> {
 
 pub struct InterPrinterBuilder<'a, R: Read, W: Write> {
     root_node: Option<&'a Node>,
+    root_new_node: Option<&'a Nods>,
     memory_len: usize,
     input: Option<R>,
     output: Option<W>,
@@ -246,6 +277,7 @@ impl<'a, R: Read, W: Write> Default for InterPrinterBuilder<'a, R, W> {
     fn default() -> Self {
         Self {
             root_node: Default::default(),
+            root_new_node: Default::default(),
             memory_len: 1,
             input: Default::default(),
             output: Default::default(),
@@ -256,6 +288,12 @@ impl<'a, R: Read, W: Write> InterPrinterBuilder<'a, R, W> {
     pub fn root_node(self, root_node: &'a Node) -> Self {
         Self {
             root_node: Some(root_node),
+            ..self
+        }
+    }
+    pub fn root_new_node(self, root_new_node: &'a Nods) -> Self {
+        Self {
+            root_new_node: Some(root_new_node),
             ..self
         }
     }
@@ -281,13 +319,15 @@ impl<'a, R: Read, W: Write> InterPrinterBuilder<'a, R, W> {
             memory_len,
             input,
             output,
+            root_new_node,
         } = self;
 
-        let root_node = root_node.unwrap();
+        let root_new_node = root_new_node.unwrap();
+
         let input = input.unwrap();
         let output = output.unwrap();
 
-        InterPrinter::new(root_node, memory_len, input, output)
+        InterPrinter::new(root_new_node, memory_len, input, output)
     }
 }
 
