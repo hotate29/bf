@@ -16,36 +16,36 @@ impl State {
     fn at(&self) -> u8 {
         self.memory[self.pointer]
     }
-    fn at_offet(&mut self, offset: usize) -> u8 {
-        self.memory_extend(offset);
-        self.memory[self.pointer + offset]
+    fn at_offset(&mut self, offset: isize) -> u8 {
+        if offset < 0 {
+            assert!(
+                self.pointer >= (-offset as usize),
+                "マイナスのインデックスを参照"
+            );
+            self.memory[self.pointer - (-offset as usize)]
+        } else {
+            self.memory_extend(offset as usize);
+            self.memory[self.pointer + offset as usize]
+        }
     }
-    fn at_rev(&self, offset: usize) -> u8 {
-        assert!(self.pointer >= offset, "ポインターがマイナスに");
-        self.memory[self.pointer - offset]
+    fn at_offset_mut(&mut self, offset: isize) -> &mut u8 {
+        if offset < 0 {
+            assert!(
+                self.pointer >= (-offset as usize),
+                "マイナスのインデックスを参照"
+            );
+            &mut self.memory[self.pointer - (-offset as usize)]
+        } else {
+            self.memory_extend(offset as usize);
+            &mut self.memory[self.pointer + offset as usize]
+        }
     }
-    fn at_offset_mut(&mut self, offset: usize) -> &mut u8 {
-        self.memory_extend(offset);
-        &mut self.memory[self.pointer + offset]
-    }
-    fn at_mut_rev(&mut self, offset: usize) -> &mut u8 {
-        assert!(self.pointer >= offset, "ポインターがマイナスに");
-        &mut self.memory[self.pointer - offset]
-    }
-    fn add(&mut self, offset: usize, value: u8) {
+    fn add(&mut self, offset: isize, value: u8) {
         let a = self.at_offset_mut(offset);
         *a = a.wrapping_add(value);
     }
-    fn add_rev(&mut self, offset: usize, value: u8) {
-        let a = self.at_mut_rev(offset);
-        *a = a.wrapping_add(value);
-    }
-    fn sub(&mut self, offset: usize, value: u8) {
+    fn sub(&mut self, offset: isize, value: u8) {
         let a = self.at_offset_mut(offset);
-        *a = a.wrapping_sub(value);
-    }
-    fn sub_rev(&mut self, offset: usize, value: u8) {
-        let a = self.at_mut_rev(offset);
         *a = a.wrapping_sub(value);
     }
     fn pointer_add(&mut self, value: usize) {
@@ -56,8 +56,8 @@ impl State {
         assert!(self.pointer >= value, "ポインターがマイナスに");
         self.pointer -= value;
     }
-    fn output(&self, writer: &mut impl Write) {
-        let value = self.at();
+    fn output(&mut self, offset: isize, writer: &mut impl Write) {
+        let value = self.at_offset(offset);
         writer.write_all(&[value]).unwrap();
         writer.flush().unwrap();
     }
@@ -178,12 +178,12 @@ impl<R: Read, W: Write> Iterator for InterPrinter<R, W> {
                         }
                         Instruction::AddTo(offset) | Instruction::Copy(offset) => {
                             let value = self.state.at();
-                            self.state.add(offset, value);
+                            self.state.add(offset as isize, value);
                         }
                         Instruction::AddToRev(offset) | Instruction::CopyRev(offset) => {
                             let value = self.state.at();
                             if value != 0 {
-                                self.state.add_rev(offset, value);
+                                self.state.add(offset as isize, value);
                             }
                         }
                         Instruction::Sub(n) => {
@@ -191,27 +191,27 @@ impl<R: Read, W: Write> Iterator for InterPrinter<R, W> {
                         }
                         Instruction::SubTo(offset) => {
                             let value = self.state.at();
-                            self.state.sub(offset, value);
+                            self.state.sub(offset as isize, value);
                         }
                         Instruction::SubToRev(offset) => {
                             let value = self.state.at();
                             if value != 0 {
-                                self.state.sub_rev(offset, value);
+                                self.state.sub(offset as isize, value);
                             }
                         }
                         Instruction::MulAdd(offset, value) => {
                             let value = self.state.at().wrapping_mul(value);
-                            self.state.add(offset, value);
+                            self.state.add(offset as isize, value);
                         }
                         Instruction::MulAddRev(offset, value) => {
                             let value = self.state.at().wrapping_mul(value);
                             if value != 0 {
-                                self.state.add_rev(offset, value);
+                                self.state.add(offset as isize, value);
                             }
                         }
                         Instruction::Output(n) => {
                             for _ in 0..n {
-                                self.state.output(&mut self.output);
+                                self.state.output(0, &mut self.output);
                             }
                         }
                         Instruction::Input(n) => {
@@ -220,34 +220,11 @@ impl<R: Read, W: Write> Iterator for InterPrinter<R, W> {
                             }
                         }
                         Instruction::ZeroSet => *self.state.at_offset_mut(0) = 0,
-                        Instruction::AddOffset(offset, value) => {
-                            let to = if offset < 0 {
-                                self.state.at_mut_rev(-offset as usize)
-                            } else {
-                                self.state.at_offset_mut(offset as usize)
-                            };
-                            *to = to.wrapping_add(value);
-                        }
-                        Instruction::SubOffset(offset, value) => {
-                            let to = if offset < 0 {
-                                self.state.at_mut_rev(-offset as usize)
-                            } else {
-                                self.state.at_offset_mut(offset as usize)
-                            };
-                            *to = to.wrapping_sub(value);
-                        }
+                        Instruction::ZeroSetOffset(offset) => *self.state.at_offset_mut(offset) = 0,
+                        Instruction::AddOffset(offset, value) => self.state.add(offset, value),
+                        Instruction::SubOffset(offset, value) => self.state.sub(offset, value),
                         Instruction::OutputOffset(offset) => {
-                            if offset == 0 {
-                                self.state.output(&mut self.output);
-                            } else {
-                                let value = if offset < 0 {
-                                    self.state.at_mut_rev(-offset as usize)
-                                } else {
-                                    self.state.at_offset_mut(offset as usize)
-                                };
-
-                                self.output.write_all(&[*value]).unwrap();
-                            }
+                            self.state.output(offset, &mut self.output);
                         }
                         ins => panic!("unimplemented instruction. {ins:?}"),
                     };
