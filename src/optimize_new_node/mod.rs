@@ -260,8 +260,93 @@ fn merge_instruction(nodes: Nods) -> Nods {
     new_nodes
 }
 
+pub fn offset_opt(nodes: &Nods) -> Nods {
+    fn inner(nodes: &Nods) -> Nods {
+        let mut new_nodes = Nods::new();
+
+        let mut pointer_offset = 0isize;
+
+        for node in nodes {
+            match node {
+                Nod::Loop(loop_nodes) => {
+                    match pointer_offset.cmp(&0) {
+                        std::cmp::Ordering::Less => new_nodes
+                            .push_back(Nod::Instruction(PtrDecrement((-pointer_offset) as usize))),
+                        std::cmp::Ordering::Greater => new_nodes
+                            .push_back(Nod::Instruction(PtrIncrement(pointer_offset as usize))),
+                        std::cmp::Ordering::Equal => (),
+                    };
+                    pointer_offset = 0;
+                    new_nodes.push_back(Nod::Loop(inner(loop_nodes)));
+                }
+                Nod::Instruction(ins) => {
+                    match *ins {
+                        PtrIncrement(inc) => {
+                            pointer_offset += inc as isize;
+                            continue;
+                        }
+                        PtrDecrement(dec) => {
+                            pointer_offset -= dec as isize;
+                            continue;
+                        }
+                        _ => (),
+                    }
+
+                    match *ins {
+                        // とりあえず、基本命令だけ
+                        PtrIncrement(_) | PtrDecrement(_) => {
+                            unreachable!()
+                        }
+                        Add(value) => {
+                            new_nodes.push_back(Nod::Instruction(AddOffset(pointer_offset, value)))
+                        }
+                        Sub(value) => {
+                            new_nodes.push_back(Nod::Instruction(SubOffset(pointer_offset, value)))
+                        }
+                        Output(_) => {
+                            new_nodes.push_back(Nod::Instruction(OutputOffset(pointer_offset)))
+                        }
+                        ins => new_nodes.push_back(Nod::Instruction(ins)),
+                    }
+
+                    if let Some(merged_instruction) = new_nodes
+                        .iter()
+                        .nth_back(1)
+                        .and_then(|nod| nod.as_instruction())
+                        .zip(new_nodes.back().and_then(|nod| nod.as_instruction()))
+                        .and_then(|(last2_ins, last_ins)| last2_ins.merge(last_ins))
+                    {
+                        // eprintln!("aa");
+                        new_nodes.pop_back();
+                        new_nodes.pop_back();
+                        if !merged_instruction.is_no_action() {
+                            new_nodes.push_back(Nod::Instruction(merged_instruction))
+                        }
+                    }
+                }
+            }
+
+            // eprintln!("{pointer_offset}, {new_nodes:?}");
+        }
+
+        match pointer_offset.cmp(&0) {
+            std::cmp::Ordering::Less => {
+                new_nodes.push_back(Nod::Instruction(PtrDecrement((-pointer_offset) as usize)))
+            }
+            std::cmp::Ordering::Equal => (),
+            std::cmp::Ordering::Greater => {
+                new_nodes.push_back(Nod::Instruction(PtrIncrement(pointer_offset as usize)))
+            }
+        }
+        new_nodes
+    }
+    // eprintln!("{pointer_offset}, {instructions:?}");
+    inner(nodes)
+    // unimplemented!()
+}
+
 pub fn optimize(nodes: Nods) -> Nods {
-    let nodes = merge_instruction(nodes);
+    let nodes = offset_opt(&nodes);
     let mut new_nodes = Nods::new();
 
     for node in nodes {
