@@ -153,6 +153,12 @@ impl Nod {
 
         Ok(nods)
     }
+    pub fn as_instruction(&self) -> Option<Instruction> {
+        match self {
+            Nod::Loop(_) => None,
+            Nod::Instruction(ins) => Some(*ins),
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize)]
