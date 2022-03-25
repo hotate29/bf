@@ -10,6 +10,12 @@ fn zeroset_opt(node: &Nod) -> Option<Nods> {
                 let nodes = Nods::from([Nod::Instruction(ZeroSet)]);
                 return Some(nodes);
             }
+            if let Nod::Instruction(AddOffset(offset, 1) | SubOffset(offset, 1)) =
+                loop_nodes.front()?
+            {
+                let nodes = Nods::from([Nod::Instruction(ZeroSetOffset(*offset))]);
+                return Some(nodes);
+            }
         }
     }
     None
