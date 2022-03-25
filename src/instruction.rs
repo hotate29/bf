@@ -9,14 +9,17 @@ pub enum Instruction {
     PtrIncrement(usize),
     PtrDecrement(usize),
     Add(u8),
+    AddOffset(isize, u8),
     AddTo(usize),
     AddToRev(usize),
     Sub(u8),
+    SubOffset(isize, u8),
     SubTo(usize),
     SubToRev(usize),
     MulAdd(usize, u8),
     MulAddRev(usize, u8),
     Output(usize),
+    OutputOffset(isize),
     Input(usize),
     ZeroSet,
     Copy(usize),
@@ -53,6 +56,9 @@ impl Instruction {
             | Instruction::ZeroSet
             | Instruction::Copy(_)
             | Instruction::CopyRev(_) => None,
+            Instruction::AddOffset(_, _) => todo!(),
+            Instruction::SubOffset(_, _) => todo!(),
+            Instruction::OutputOffset(_) => todo!(),
         }
     }
     pub fn to_string(self) -> Option<String> {
@@ -72,6 +78,9 @@ impl Instruction {
             | Instruction::ZeroSet
             | Instruction::Copy(_)
             | Instruction::CopyRev(_) => None,
+            Instruction::AddOffset(_, _)
+            | Instruction::SubOffset(_, _)
+            | Instruction::OutputOffset(_) => todo!(),
         }
     }
     #[inline]
@@ -79,7 +88,7 @@ impl Instruction {
         use Instruction::*;
 
         match (self, instruction) {
-            (Add(x), Add(y)) => Some(Add((x + y) % u8::MAX)),
+            (Add(x), Add(y)) => Some(Add(x.wrapping_add(y))),
             (Sub(y), Add(x)) | (Add(x), Sub(y)) => {
                 let x = x as i32;
                 let y = y as i32;
@@ -92,7 +101,7 @@ impl Instruction {
                     Ordering::Equal => Some(Add(0)),
                 }
             }
-            (Sub(x), Sub(y)) => Some(Sub((x + y) % u8::MAX)),
+            (Sub(x), Sub(y)) => Some(Sub(x.wrapping_add(y) % u8::MAX)),
             (PtrIncrement(x), PtrIncrement(y)) => Some(PtrIncrement(x + y)),
             (PtrDecrement(y), PtrIncrement(x)) | (PtrIncrement(x), PtrDecrement(y)) => {
                 let x = x as isize;
@@ -110,6 +119,34 @@ impl Instruction {
             (ZeroSet, ZeroSet) => Some(ZeroSet),
             (ZeroSet, AddTo(_) | AddToRev(_) | SubTo(_) | SubToRev(_)) => Some(ZeroSet),
             (Add(_) | Sub(_), ZeroSet) => Some(ZeroSet),
+            (AddOffset(x_offset, x), AddOffset(y_offset, y)) if x_offset == y_offset => {
+                Some(AddOffset(x_offset, x.wrapping_add(y)))
+            }
+            (SubOffset(x_offset, x), SubOffset(y_offset, y)) if x_offset == y_offset => {
+                Some(SubOffset(x_offset, x.wrapping_add(y)))
+            }
+            (AddOffset(offset, x), Add(y)) => Some(AddOffset(offset, x.wrapping_add(y))),
+            (SubOffset(offset, x), Sub(y)) => Some(SubOffset(offset, x.wrapping_add(y))),
+            (AddOffset(add_offset, x), SubOffset(sub_offset, y)) if add_offset == sub_offset => {
+                let x = x as i16;
+                let y = y as i16;
+                let z = x - y;
+                if z < 0 {
+                    Some(SubOffset(add_offset, (-z) as u8))
+                } else {
+                    Some(AddOffset(add_offset, z as u8))
+                }
+            }
+            (SubOffset(sub_offset, x), AddOffset(add_offset, y)) if add_offset == sub_offset => {
+                let x = x as i16;
+                let y = y as i16;
+                let z = x - y;
+                if z < 0 {
+                    Some(AddOffset(add_offset, (-z) as u8))
+                } else {
+                    Some(SubOffset(add_offset, z as u8))
+                }
+            }
             (ins, instruction) if ins.is_no_action() => Some(instruction),
             (_, _) => None,
         }
@@ -121,7 +158,9 @@ impl Instruction {
             Instruction::PtrIncrement(0)
                 | Instruction::PtrDecrement(0)
                 | Instruction::Add(0)
+                | Instruction::AddOffset(_, 0)
                 | Instruction::Sub(0)
+                | Instruction::SubOffset(_, 0)
         )
     }
 }
