@@ -5,14 +5,15 @@ use std::fs;
 use std::io;
 
 use bf::interprinter::InterPrinter;
-use bf::optimize::{all_optimizer, optimize};
-use bf::parse::Node;
+use bf::parse::tokenize;
+use bf::parse::Nod;
 
 #[bench]
 fn bench_not_optimize_mandelbrot(bencher: &mut test::Bencher) {
     let source = fs::read_to_string("mandelbrot.bf").unwrap();
 
-    let root_node = Node::from_source(&source).unwrap();
+    let tokens = tokenize(&source);
+    let root_node = Nod::from_tokens(tokens).unwrap();
 
     bencher.iter(|| {
         InterPrinter::builder()
@@ -24,29 +25,31 @@ fn bench_not_optimize_mandelbrot(bencher: &mut test::Bencher) {
     })
 }
 
-#[bench]
-fn bench_optimized_mandelbrot(bencher: &mut test::Bencher) {
-    let source = fs::read_to_string("mandelbrot.bf").unwrap();
+// #[bench]
+// fn bench_optimized_mandelbrot(bencher: &mut test::Bencher) {
+//     let source = fs::read_to_string("mandelbrot.bf").unwrap();
 
-    let root_node = Node::from_source(&source).unwrap();
+//     let tokens = tokenize(&source);
+//     let root_node = Nod::from_tokens(tokens).unwrap();
 
-    let optimized_node = optimize(root_node, &all_optimizer());
+//     let optimized_node = optimize(root_node, &all_optimizer());
 
-    bencher.iter(|| {
-        InterPrinter::builder()
-            .root_node(&optimized_node)
-            .input(io::empty())
-            .output(io::sink())
-            .build()
-            .count();
-    })
-}
+//     bencher.iter(|| {
+//         InterPrinter::builder()
+//             .root_node(&optimized_node)
+//             .input(io::empty())
+//             .output(io::sink())
+//             .build()
+//             .count();
+//     })
+// }
 
 #[bench]
 fn bench_hello_world(bencher: &mut test::Bencher) {
     let hello_world = ">+++++++++[<++++++++>-]<.>+++++++[<++++>-]<+.+++++++..+++.[-]>++++++++[<++++>-]<.>+++++++++++[<+++++>-]<.>++++++++[<+++>-]<.+++.------.--------.[-]>++++++++[<++++>-]<+.[-]++++++++++.";
 
-    let root_node = Node::from_source(hello_world).unwrap();
+    let tokens = tokenize(hello_world);
+    let root_node = Nod::from_tokens(tokens).unwrap();
 
     bencher.iter(|| {
         InterPrinter::builder()
@@ -58,19 +61,21 @@ fn bench_hello_world(bencher: &mut test::Bencher) {
     })
 }
 
-#[bench]
-fn bench_optimized_hello_world(bencher: &mut test::Bencher) {
-    let hello_world = ">+++++++++[<++++++++>-]<.>+++++++[<++++>-]<+.+++++++..+++.[-]>++++++++[<++++>-]<.>+++++++++++[<+++++>-]<.>++++++++[<+++>-]<.+++.------.--------.[-]>++++++++[<++++>-]<+.[-]++++++++++.";
+// #[bench]
+// fn bench_optimized_hello_world(bencher: &mut test::Bencher) {
+//     let hello_world = ">+++++++++[<++++++++>-]<.>+++++++[<++++>-]<+.+++++++..+++.[-]>++++++++[<++++>-]<.>+++++++++++[<+++++>-]<.>++++++++[<+++>-]<.+++.------.--------.[-]>++++++++[<++++>-]<+.[-]++++++++++.";
 
-    let root_node = Node::from_source(hello_world).unwrap();
-    let optimized_node = optimize(root_node, &all_optimizer());
+//     let tokens = tokenize(hello_world);
+//     let root_node = Nod::from_tokens(tokens).unwrap();
 
-    bencher.iter(|| {
-        InterPrinter::builder()
-            .root_node(&optimized_node)
-            .input(io::empty())
-            .output(io::sink())
-            .build()
-            .count();
-    })
-}
+//     let optimized_node = optimize(root_node, &all_optimizer());
+
+//     bencher.iter(|| {
+//         InterPrinter::builder()
+//             .root_node(&optimized_node)
+//             .input(io::empty())
+//             .output(io::sink())
+//             .build()
+//             .count();
+//     })
+// }

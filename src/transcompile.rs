@@ -1,55 +1,52 @@
 use crate::instruction::Instruction;
-use crate::parse::{ExprKind, Node};
+use crate::parse::Nods;
 
-pub fn to_c(root_node: &Node) -> String {
-    fn inner(node: &Node, c_code: &mut String) {
-        for expr in &node.0 {
-            match expr {
-                ExprKind::Instructions(instructions) => {
-                    for instruction in instructions {
-                        match instruction {
-                            Instruction::PtrIncrement(n) => c_code.push_str(&format!("ptr+={n};")),
-                            Instruction::PtrDecrement(n) => c_code.push_str(&format!("ptr-={n};")),
-                            Instruction::Add(n) => c_code.push_str(&format!("*ptr+={n};")),
-                            Instruction::AddTo(offset) | Instruction::Copy(offset) => {
-                                c_code.push_str(&format!("ptr[{offset}]+=ptr[0];"))
-                            }
-                            Instruction::AddToRev(offset) | Instruction::CopyRev(offset) => c_code
-                                .push_str(&format!("if(ptr[0]!=0){{*(ptr-{offset})+=ptr[0];}}")),
-                            Instruction::SubTo(n) => c_code.push_str(&format!("ptr[{n}]-=ptr[0];")),
-                            Instruction::SubToRev(n) => {
-                                c_code.push_str(&format!("if(ptr[0]!=0){{*(ptr-{n})-=ptr[0];}}"))
-                            }
-                            Instruction::Sub(n) => c_code.push_str(&format!("*ptr-={n};")),
-                            Instruction::Output(n) => {
-                                for _ in 0..*n {
-                                    c_code.push_str("putchar(ptr[0]);")
-                                }
-                            }
-                            Instruction::Input(n) => {
-                                for _ in 0..*n {
-                                    c_code.push_str("ptr[0]=getchar();");
-                                }
-                            }
-                            Instruction::MulAdd(offset, value) => {
-                                c_code.push_str(&format!("ptr[{offset}]+={value}*ptr[0];"));
-                            }
-                            Instruction::MulAddRev(offset, value) => {
-                                c_code.push_str(&format!(
-                                    "if(*ptr!=0){{*(ptr-{offset})+={value}*ptr[0];}}"
-                                ));
-                            }
-                            Instruction::ZeroSet => {
-                                c_code.push_str("*ptr=0;");
-                            }
-                        }
-                    }
-                }
-                ExprKind::While(while_node) => {
+pub fn to_c2(root_node: &Nods) -> String {
+    fn inner(nodes: &Nods, c_code: &mut String) {
+        for node in nodes {
+            match node {
+                crate::parse::Nod::Loop(loop_nodes) => {
                     c_code.push_str("while(*ptr){");
-                    inner(while_node, c_code);
+                    inner(loop_nodes, c_code);
                     c_code.push('}');
                 }
+                crate::parse::Nod::Instruction(instruction) => match instruction {
+                    Instruction::PtrIncrement(n) => c_code.push_str(&format!("ptr+={n};")),
+                    Instruction::PtrDecrement(n) => c_code.push_str(&format!("ptr-={n};")),
+                    Instruction::Add(n) => c_code.push_str(&format!("*ptr+={n};")),
+                    Instruction::AddTo(offset) | Instruction::Copy(offset) => {
+                        c_code.push_str(&format!("ptr[{offset}]+=ptr[0];"))
+                    }
+                    Instruction::AddToRev(offset) | Instruction::CopyRev(offset) => {
+                        c_code.push_str(&format!("if(ptr[0]!=0){{*(ptr-{offset})+=ptr[0];}}"))
+                    }
+                    Instruction::SubTo(n) => c_code.push_str(&format!("ptr[{n}]-=ptr[0];")),
+                    Instruction::SubToRev(n) => {
+                        c_code.push_str(&format!("if(ptr[0]!=0){{*(ptr-{n})-=ptr[0];}}"))
+                    }
+                    Instruction::Sub(n) => c_code.push_str(&format!("*ptr-={n};")),
+                    Instruction::Output(n) => {
+                        for _ in 0..*n {
+                            c_code.push_str("putchar(ptr[0]);")
+                        }
+                    }
+                    Instruction::Input(n) => {
+                        for _ in 0..*n {
+                            c_code.push_str("ptr[0]=getchar();");
+                        }
+                    }
+                    Instruction::MulAdd(offset, value) => {
+                        c_code.push_str(&format!("ptr[{offset}]+={value}*ptr[0];"));
+                    }
+                    Instruction::MulAddRev(offset, value) => {
+                        c_code
+                            .push_str(&format!("if(*ptr!=0){{*(ptr-{offset})+={value}*ptr[0];}}"));
+                    }
+                    Instruction::ZeroSet => {
+                        c_code.push_str("*ptr=0;");
+                    }
+                    ins => panic!("unimplemented instruction. {ins:?}"),
+                },
             }
         }
     }

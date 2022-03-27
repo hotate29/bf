@@ -1,5 +1,5 @@
 use crate::instruction::Instruction;
-use crate::parse::{ExprKind, Node, Nods};
+use crate::parse::Nods;
 
 use std::io::prelude::*;
 
@@ -244,8 +244,7 @@ impl<R: Read, W: Write> Iterator for InterPrinter<R, W> {
 }
 
 pub struct InterPrinterBuilder<'a, R: Read, W: Write> {
-    root_node: Option<&'a Node>,
-    root_new_node: Option<&'a Nods>,
+    root_node: Option<&'a Nods>,
     memory_len: usize,
     input: Option<R>,
     output: Option<W>,
@@ -254,7 +253,6 @@ impl<'a, R: Read, W: Write> Default for InterPrinterBuilder<'a, R, W> {
     fn default() -> Self {
         Self {
             root_node: Default::default(),
-            root_new_node: Default::default(),
             memory_len: 1,
             input: Default::default(),
             output: Default::default(),
@@ -262,15 +260,9 @@ impl<'a, R: Read, W: Write> Default for InterPrinterBuilder<'a, R, W> {
     }
 }
 impl<'a, R: Read, W: Write> InterPrinterBuilder<'a, R, W> {
-    pub fn root_node(self, root_node: &'a Node) -> Self {
+    pub fn root_node(self, root_node: &'a Nods) -> Self {
         Self {
             root_node: Some(root_node),
-            ..self
-        }
-    }
-    pub fn root_new_node(self, root_new_node: &'a Nods) -> Self {
-        Self {
-            root_new_node: Some(root_new_node),
             ..self
         }
     }
@@ -296,15 +288,13 @@ impl<'a, R: Read, W: Write> InterPrinterBuilder<'a, R, W> {
             memory_len,
             input,
             output,
-            root_new_node,
         } = self;
 
-        let root_new_node = root_new_node.unwrap();
-
+        let root_node = root_node.unwrap();
         let input = input.unwrap();
         let output = output.unwrap();
 
-        InterPrinter::new(root_new_node, memory_len, input, output)
+        InterPrinter::new(root_node, memory_len, input, output)
     }
 }
 
@@ -312,17 +302,19 @@ impl<'a, R: Read, W: Write> InterPrinterBuilder<'a, R, W> {
 mod test {
     use std::{fs, io};
 
-    use crate::{
-        optimize::{all_optimizer, optimize},
-        parse::Node,
-    };
+    use crate::parse::{tokenize, Nod, Nods};
 
     use super::InterPrinter;
+
+    fn node_from_source(source: &str) -> Nods {
+        let tokens = tokenize(&source);
+        Nod::from_tokens(tokens).unwrap()
+    }
 
     #[test]
     fn test_memory_extend() {
         let source = ">".repeat(30001);
-        let root_node = Node::from_source(&source).unwrap();
+        let root_node = node_from_source(&source);
 
         InterPrinter::builder()
             .root_node(&root_node)
@@ -340,7 +332,7 @@ mod test {
         let mandelbrot_source = fs::read_to_string("mandelbrot.bf").unwrap();
         let assert_mandelbrot = fs::read_to_string("mandelbrot").unwrap();
 
-        let root_node = Node::from_source(&mandelbrot_source).unwrap();
+        let root_node = node_from_source(&mandelbrot_source);
 
         let mut output_buffer = Vec::new();
 
@@ -361,8 +353,7 @@ mod test {
         let mandelbrot_source = fs::read_to_string("mandelbrot.bf").unwrap();
         let assert_mandelbrot = fs::read_to_string("mandelbrot").unwrap();
 
-        let root_node = Node::from_source(&mandelbrot_source).unwrap();
-        let root_node = optimize(root_node, &all_optimizer());
+        let root_node = node_from_source(&mandelbrot_source);
 
         let mut output_buffer = Vec::new();
 
@@ -380,7 +371,7 @@ mod test {
     fn test_hello_world_interprinter() {
         let hello_world = ">+++++++++[<++++++++>-]<.>+++++++[<++++>-]<+.+++++++..+++.[-]>++++++++[<++++>-]<.>+++++++++++[<+++++>-]<.>++++++++[<+++>-]<.+++.------.--------.[-]>++++++++[<++++>-]<+.[-]++++++++++.";
 
-        let root_node = Node::from_source(hello_world).unwrap();
+        let root_node = node_from_source(&hello_world);
 
         let mut output_buffer = vec![];
 
@@ -398,8 +389,7 @@ mod test {
     fn test_optimized_hello_world_interprinter() {
         let hello_world = ">+++++++++[<++++++++>-]<.>+++++++[<++++>-]<+.+++++++..+++.[-]>++++++++[<++++>-]<.>+++++++++++[<+++++>-]<.>++++++++[<+++>-]<.+++.------.--------.[-]>++++++++[<++++>-]<+.[-]++++++++++.";
 
-        let root_node = Node::from_source(hello_world).unwrap();
-        let root_node = optimize(root_node, &all_optimizer());
+        let root_node = node_from_source(&hello_world);
 
         let mut output_buffer = vec![];
 
