@@ -1,24 +1,21 @@
 use std::{cmp::Ordering, collections::BTreeMap};
 
 use crate::{
-    instruction::{
-        self,
-        Instruction::{self, *},
-    },
-    parse::{Nod, Nods},
+    instruction::Instruction::{self, *},
+    parse::{Node, Nodes},
 };
 
-fn zeroset_opt(node: &Nod) -> Option<Nods> {
-    if let Nod::Loop(loop_nodes) = node {
+fn zeroset_opt(node: &Node) -> Option<Nodes> {
+    if let Node::Loop(loop_nodes) = node {
         if loop_nodes.len() == 1 {
-            if let Nod::Instruction(Add(1) | Sub(1)) = loop_nodes.front()? {
-                let nodes = Nods::from([Nod::Instruction(ZeroSet)]);
+            if let Node::Instruction(Add(1) | Sub(1)) = loop_nodes.front()? {
+                let nodes = Nodes::from([Node::Instruction(ZeroSet)]);
                 return Some(nodes);
             }
-            if let Nod::Instruction(AddOffset(offset, 1) | SubOffset(offset, 1)) =
+            if let Node::Instruction(AddOffset(offset, 1) | SubOffset(offset, 1)) =
                 loop_nodes.front()?
             {
-                let nodes = Nods::from([Nod::Instruction(ZeroSetOffset(*offset))]);
+                let nodes = Nodes::from([Node::Instruction(ZeroSetOffset(*offset))]);
                 return Some(nodes);
             }
         }
@@ -26,20 +23,26 @@ fn zeroset_opt(node: &Nod) -> Option<Nods> {
     None
 }
 
-fn loop_opt(node: &Nod) -> Option<Nods> {
-    let mut new_nodes = Nods::new();
-    if let Nod::Loop(loop_nodes) = node {
+fn loop_opt(node: &Node) -> Option<Nodes> {
+    let mut new_nodes = Nodes::new();
+    if let Node::Loop(loop_nodes) = node {
+        let mut f = false;
+
         for node in loop_nodes {
             let ins = node.as_instruction()?;
             match ins {
-                AddOffset(offset, value) if value == 1 => {
+                AddOffset(0, 1) | SubOffset(0, 1) => {
+                    f = true;
+                    new_nodes.push_back(Node::Instruction(ZeroSet))
+                }
+                AddOffset(offset, 1) => {
                     let ins = if offset < 0 {
                         AddToRev(-offset as usize)
                     } else {
                         AddTo(offset as usize)
                     };
 
-                    new_nodes.push_front(Nod::Instruction(ins));
+                    new_nodes.push_front(Node::Instruction(ins));
                 }
                 AddOffset(offset, value) => {
                     let ins = if offset < 0 {
@@ -48,28 +51,37 @@ fn loop_opt(node: &Nod) -> Option<Nods> {
                         MulAdd(offset as usize, value)
                     };
 
-                    new_nodes.push_front(Nod::Instruction(ins));
+                    new_nodes.push_front(Node::Instruction(ins));
                 }
-                SubOffset(0, 1) => {
-                    new_nodes.push_back(Nod::Instruction(ZeroSet));
+                SubOffset(offset, 1) => {
+                    let ins = if offset < 0 {
+                        SubToRev(-offset as usize)
+                    } else {
+                        SubTo(offset as usize)
+                    };
+
+                    new_nodes.push_front(Node::Instruction(ins));
                 }
                 PtrIncrement(_) | PtrDecrement(_) => return None,
                 _ => return None,
             }
         }
-
-        return Some(new_nodes);
+        if f {
+            return Some(new_nodes);
+        } else {
+            return None;
+        }
     }
     None
 }
 
-fn add_opt(node: &Nod) -> Option<Nods> {
-    if let Nod::Loop(loop_nodes) = node {
+fn add_opt(node: &Node) -> Option<Nodes> {
+    if let Node::Loop(loop_nodes) = node {
         if loop_nodes.len() == 4 {
             let mut nodes_iter = loop_nodes.iter();
 
-            if let [Nod::Instruction(Sub(1)), Nod::Instruction(PtrIncrement(ptr_increment)), Nod::Instruction(Add(1)), Nod::Instruction(PtrDecrement(ptr_decrement))]
-            | [Nod::Instruction(PtrIncrement(ptr_increment)), Nod::Instruction(Add(1)), Nod::Instruction(PtrDecrement(ptr_decrement)), Nod::Instruction(Sub(1))] = {
+            if let [Node::Instruction(Sub(1)), Node::Instruction(PtrIncrement(ptr_increment)), Node::Instruction(Add(1)), Node::Instruction(PtrDecrement(ptr_decrement))]
+            | [Node::Instruction(PtrIncrement(ptr_increment)), Node::Instruction(Add(1)), Node::Instruction(PtrDecrement(ptr_decrement)), Node::Instruction(Sub(1))] = {
                 [
                     nodes_iter.next()?,
                     nodes_iter.next()?,
@@ -81,8 +93,8 @@ fn add_opt(node: &Nod) -> Option<Nods> {
                     {
                         return Some(
                             [
-                                Nod::Instruction(AddTo(*ptr_increment)),
-                                Nod::Instruction(ZeroSet),
+                                Node::Instruction(AddTo(*ptr_increment)),
+                                Node::Instruction(ZeroSet),
                             ]
                             .into(),
                         );
@@ -92,8 +104,8 @@ fn add_opt(node: &Nod) -> Option<Nods> {
 
             let mut nodes_iter = loop_nodes.iter();
 
-            if let [Nod::Instruction(Sub(1)), Nod::Instruction(PtrDecrement(ptr_increment)), Nod::Instruction(Add(1)), Nod::Instruction(PtrIncrement(ptr_decrement))]
-            | [Nod::Instruction(PtrDecrement(ptr_increment)), Nod::Instruction(Add(1)), Nod::Instruction(PtrIncrement(ptr_decrement)), Nod::Instruction(Sub(1))] = [
+            if let [Node::Instruction(Sub(1)), Node::Instruction(PtrDecrement(ptr_increment)), Node::Instruction(Add(1)), Node::Instruction(PtrIncrement(ptr_decrement))]
+            | [Node::Instruction(PtrDecrement(ptr_increment)), Node::Instruction(Add(1)), Node::Instruction(PtrIncrement(ptr_decrement)), Node::Instruction(Sub(1))] = [
                 nodes_iter.next()?,
                 nodes_iter.next()?,
                 nodes_iter.next()?,
@@ -103,8 +115,8 @@ fn add_opt(node: &Nod) -> Option<Nods> {
                     {
                         return Some(
                             [
-                                Nod::Instruction(AddToRev(*ptr_decrement)),
-                                Nod::Instruction(ZeroSet),
+                                Node::Instruction(AddToRev(*ptr_decrement)),
+                                Node::Instruction(ZeroSet),
                             ]
                             .into(),
                         );
@@ -116,13 +128,13 @@ fn add_opt(node: &Nod) -> Option<Nods> {
     None
 }
 
-fn sub_opt(node: &Nod) -> Option<Nods> {
-    if let Nod::Loop(loop_nodes) = node {
+fn sub_opt(node: &Node) -> Option<Nodes> {
+    if let Node::Loop(loop_nodes) = node {
         if loop_nodes.len() == 4 {
             let mut nodes_iter = loop_nodes.iter();
 
-            if let [Nod::Instruction(Sub(1)), Nod::Instruction(PtrIncrement(ptr_increment)), Nod::Instruction(Sub(1)), Nod::Instruction(PtrDecrement(ptr_decrement))]
-            | [Nod::Instruction(PtrIncrement(ptr_increment)), Nod::Instruction(Sub(1)), Nod::Instruction(PtrDecrement(ptr_decrement)), Nod::Instruction(Sub(1))] = {
+            if let [Node::Instruction(Sub(1)), Node::Instruction(PtrIncrement(ptr_increment)), Node::Instruction(Sub(1)), Node::Instruction(PtrDecrement(ptr_decrement))]
+            | [Node::Instruction(PtrIncrement(ptr_increment)), Node::Instruction(Sub(1)), Node::Instruction(PtrDecrement(ptr_decrement)), Node::Instruction(Sub(1))] = {
                 [
                     nodes_iter.next()?,
                     nodes_iter.next()?,
@@ -134,8 +146,8 @@ fn sub_opt(node: &Nod) -> Option<Nods> {
                     {
                         return Some(
                             [
-                                Nod::Instruction(SubTo(*ptr_increment)),
-                                Nod::Instruction(ZeroSet),
+                                Node::Instruction(SubTo(*ptr_increment)),
+                                Node::Instruction(ZeroSet),
                             ]
                             .into(),
                         );
@@ -145,8 +157,8 @@ fn sub_opt(node: &Nod) -> Option<Nods> {
 
             let mut nodes_iter = loop_nodes.iter();
 
-            if let [Nod::Instruction(Sub(1)), Nod::Instruction(PtrDecrement(ptr_increment)), Nod::Instruction(Sub(1)), Nod::Instruction(PtrIncrement(ptr_decrement))]
-            | [Nod::Instruction(PtrDecrement(ptr_increment)), Nod::Instruction(Sub(1)), Nod::Instruction(PtrIncrement(ptr_decrement)), Nod::Instruction(Sub(1))] = [
+            if let [Node::Instruction(Sub(1)), Node::Instruction(PtrDecrement(ptr_increment)), Node::Instruction(Sub(1)), Node::Instruction(PtrIncrement(ptr_decrement))]
+            | [Node::Instruction(PtrDecrement(ptr_increment)), Node::Instruction(Sub(1)), Node::Instruction(PtrIncrement(ptr_decrement)), Node::Instruction(Sub(1))] = [
                 nodes_iter.next()?,
                 nodes_iter.next()?,
                 nodes_iter.next()?,
@@ -156,8 +168,8 @@ fn sub_opt(node: &Nod) -> Option<Nods> {
                     {
                         return Some(
                             [
-                                Nod::Instruction(SubToRev(*ptr_decrement)),
-                                Nod::Instruction(ZeroSet),
+                                Node::Instruction(SubToRev(*ptr_decrement)),
+                                Node::Instruction(ZeroSet),
                             ]
                             .into(),
                         );
@@ -169,11 +181,11 @@ fn sub_opt(node: &Nod) -> Option<Nods> {
     None
 }
 
-fn copy_opt(node: &Nod) -> Option<Nods> {
-    if let Nod::Loop(loop_nodes) = node {
+fn copy_opt(node: &Node) -> Option<Nodes> {
+    if let Node::Loop(loop_nodes) = node {
         if loop_nodes.len() == 6 {
             let mut nodes_iter = loop_nodes.iter();
-            if let [Nod::Instruction(Sub(1)), Nod::Instruction(PtrIncrement(x)), Nod::Instruction(Add(1)), Nod::Instruction(PtrIncrement(y)), Nod::Instruction(Add(1)), Nod::Instruction(PtrDecrement(z))] = [
+            if let [Node::Instruction(Sub(1)), Node::Instruction(PtrIncrement(x)), Node::Instruction(Add(1)), Node::Instruction(PtrIncrement(y)), Node::Instruction(Add(1)), Node::Instruction(PtrDecrement(z))] = [
                 nodes_iter.next()?,
                 nodes_iter.next()?,
                 nodes_iter.next()?,
@@ -184,9 +196,9 @@ fn copy_opt(node: &Nod) -> Option<Nods> {
                 if x + y == *z {
                     return Some(
                         [
-                            Nod::Instruction(Copy(*x)),
-                            Nod::Instruction(Copy(x + y)),
-                            Nod::Instruction(ZeroSet),
+                            Node::Instruction(Copy(*x)),
+                            Node::Instruction(Copy(x + y)),
+                            Node::Instruction(ZeroSet),
                         ]
                         .into(),
                     );
@@ -194,10 +206,10 @@ fn copy_opt(node: &Nod) -> Option<Nods> {
             }
         }
     }
-    if let Nod::Loop(loop_nodes) = node {
+    if let Node::Loop(loop_nodes) = node {
         if loop_nodes.len() == 6 {
             let mut nodes_iter = loop_nodes.iter();
-            if let [Nod::Instruction(Sub(1)), Nod::Instruction(PtrDecrement(x)), Nod::Instruction(Add(1)), Nod::Instruction(PtrDecrement(y)), Nod::Instruction(Add(1)), Nod::Instruction(PtrIncrement(z))] = [
+            if let [Node::Instruction(Sub(1)), Node::Instruction(PtrDecrement(x)), Node::Instruction(Add(1)), Node::Instruction(PtrDecrement(y)), Node::Instruction(Add(1)), Node::Instruction(PtrIncrement(z))] = [
                 nodes_iter.next()?,
                 nodes_iter.next()?,
                 nodes_iter.next()?,
@@ -208,9 +220,9 @@ fn copy_opt(node: &Nod) -> Option<Nods> {
                 if x + y == *z {
                     return Some(
                         [
-                            Nod::Instruction(CopyRev(*x)),
-                            Nod::Instruction(CopyRev(x + y)),
-                            Nod::Instruction(ZeroSet),
+                            Node::Instruction(CopyRev(*x)),
+                            Node::Instruction(CopyRev(x + y)),
+                            Node::Instruction(ZeroSet),
                         ]
                         .into(),
                     );
@@ -218,10 +230,10 @@ fn copy_opt(node: &Nod) -> Option<Nods> {
             }
         }
     }
-    if let Nod::Loop(loop_nodes) = node {
+    if let Node::Loop(loop_nodes) = node {
         if loop_nodes.len() == 6 {
             let mut nodes_iter = loop_nodes.iter();
-            if let [Nod::Instruction(Sub(1)), Nod::Instruction(PtrDecrement(x)), Nod::Instruction(Add(1)), Nod::Instruction(PtrIncrement(y)), Nod::Instruction(Add(1)), Nod::Instruction(PtrIncrement(z))] = [
+            if let [Node::Instruction(Sub(1)), Node::Instruction(PtrDecrement(x)), Node::Instruction(Add(1)), Node::Instruction(PtrIncrement(y)), Node::Instruction(Add(1)), Node::Instruction(PtrIncrement(z))] = [
                 nodes_iter.next()?,
                 nodes_iter.next()?,
                 nodes_iter.next()?,
@@ -232,9 +244,9 @@ fn copy_opt(node: &Nod) -> Option<Nods> {
                 if *x == y + z {
                     return Some(
                         [
-                            Nod::Instruction(CopyRev(*x)),
-                            Nod::Instruction(CopyRev(x - y)),
-                            Nod::Instruction(ZeroSet),
+                            Node::Instruction(CopyRev(*x)),
+                            Node::Instruction(CopyRev(x - y)),
+                            Node::Instruction(ZeroSet),
                         ]
                         .into(),
                     );
@@ -245,12 +257,12 @@ fn copy_opt(node: &Nod) -> Option<Nods> {
     None
 }
 
-fn sub_add_opt(node: &Nod) -> Option<Nods> {
-    if let Nod::Loop(loop_nodes) = node {
+fn sub_add_opt(node: &Node) -> Option<Nodes> {
+    if let Node::Loop(loop_nodes) = node {
         if loop_nodes.len() == 7 {
             let mut nodes_iter = loop_nodes.iter();
 
-            if let [Nod::Instruction(PtrDecrement(dec)), Nod::Instruction(Sub(1)), Nod::Instruction(PtrIncrement(inc)), Nod::Instruction(Sub(1)), Nod::Instruction(PtrDecrement(dec2)), Nod::Instruction(Add(1)), Nod::Instruction(PtrIncrement(inc2))] = {
+            if let [Node::Instruction(PtrDecrement(dec)), Node::Instruction(Sub(1)), Node::Instruction(PtrIncrement(inc)), Node::Instruction(Sub(1)), Node::Instruction(PtrDecrement(dec2)), Node::Instruction(Add(1)), Node::Instruction(PtrIncrement(inc2))] = {
                 [
                     nodes_iter.next()?,
                     nodes_iter.next()?,
@@ -265,9 +277,9 @@ fn sub_add_opt(node: &Nod) -> Option<Nods> {
                     eprintln!("match! {:?}", loop_nodes);
                     return Some(
                         [
-                            Nod::Instruction(SubToRev(*dec)),
-                            Nod::Instruction(AddToRev(*dec2)),
-                            Nod::Instruction(ZeroSet),
+                            Node::Instruction(SubToRev(*dec)),
+                            Node::Instruction(AddToRev(*dec2)),
+                            Node::Instruction(ZeroSet),
                         ]
                         .into(),
                     );
@@ -278,8 +290,8 @@ fn sub_add_opt(node: &Nod) -> Option<Nods> {
     None
 }
 
-fn merge_instruction(nodes: Nods) -> Nods {
-    let mut new_nodes = Nods::new();
+fn merge_instruction(nodes: Nodes) -> Nodes {
+    let mut new_nodes = Nodes::new();
 
     for node in nodes {
         new_nodes.push_back(node);
@@ -290,7 +302,7 @@ fn merge_instruction(nodes: Nods) -> Nods {
                 .nth_back(1)
                 .zip(new_nodes.back())
                 .and_then(|(back2, back)| {
-                    if let (Nod::Instruction(back2), Nod::Instruction(back)) = (back2, back) {
+                    if let (Node::Instruction(back2), Node::Instruction(back)) = (back2, back) {
                         back2.merge(*back)
                     } else {
                         None
@@ -300,7 +312,7 @@ fn merge_instruction(nodes: Nods) -> Nods {
             new_nodes.pop_back().unwrap();
             new_nodes.pop_back().unwrap();
             if !merged_inst.is_no_action() {
-                new_nodes.push_back(Nod::Instruction(merged_inst))
+                new_nodes.push_back(Node::Instruction(merged_inst))
             }
         }
     }
@@ -341,16 +353,15 @@ impl Instructions {
     }
 }
 
-pub fn offset_opt(nodes: &Nods) -> Option<Nods> {
-    fn inner(nodes: &Nods) -> Nods {
-        let mut new_nodes = Nods::new();
+pub fn offset_opt(nodes: &Nodes) -> Nodes {
+    fn inner(nodes: &Nodes) -> Nodes {
+        let mut new_nodes = Nodes::new();
 
         let mut pointer_offset = 0isize;
         let mut offset_instructions: BTreeMap<isize, Instructions> = BTreeMap::new();
-
         for node in nodes {
             match node {
-                Nod::Loop(loop_nodes) => {
+                Node::Loop(loop_nodes) => {
                     // offset_instructionsに溜めていたものを吐き出す。
                     for (offset, instruction) in offset_instructions.iter() {
                         let mut instructions = instruction
@@ -364,25 +375,25 @@ pub fn offset_opt(nodes: &Nods) -> Option<Nods> {
                                 Input(_) => todo!(),
                                 _ => unreachable!(),
                             })
-                            .map(Nod::Instruction)
+                            .map(Node::Instruction)
                             .collect();
                         new_nodes.append(&mut instructions)
                     }
                     match pointer_offset.cmp(&0) {
                         Ordering::Less => new_nodes
-                            .push_back(Nod::Instruction(PtrDecrement(-pointer_offset as usize))),
+                            .push_back(Node::Instruction(PtrDecrement(-pointer_offset as usize))),
                         Ordering::Equal => (),
                         Ordering::Greater => new_nodes
-                            .push_back(Nod::Instruction(PtrIncrement(pointer_offset as usize))),
+                            .push_back(Node::Instruction(PtrIncrement(pointer_offset as usize))),
                     };
 
                     let loop_nodes = inner(loop_nodes);
-                    new_nodes.push_back(Nod::Loop(loop_nodes));
+                    new_nodes.push_back(Node::Loop(loop_nodes));
 
                     pointer_offset = 0;
                     offset_instructions.clear()
                 }
-                Nod::Instruction(ins) => match ins {
+                Node::Instruction(ins) => match ins {
                     PtrIncrement(inc) => pointer_offset += *inc as isize,
                     PtrDecrement(dec) => pointer_offset -= *dec as isize,
                     Add(_) | Sub(_) | Output(_) | Input(_) => {
@@ -396,6 +407,38 @@ pub fn offset_opt(nodes: &Nods) -> Option<Nods> {
             };
         }
 
+        let include_loop =
+            new_nodes.iter().any(|node| matches!(node, Node::Loop(_))) && !new_nodes.is_empty();
+        let optimizable = !include_loop
+            && pointer_offset == 0
+            && offset_instructions
+                .get(&0)
+                .filter(|ins| ins.inner() == &[Sub(1)])
+                .is_some();
+
+        // let mut instructions = instruction
+        //     .inner()
+        //     .iter()
+        //     .copied()
+        //     .filter_map(|ins| match ins {
+        //         Add(1) if offset < &0 => Some(AddToRev(-offset as usize)),
+        //         Add(1) if offset > &0 => Some(AddTo(*offset as usize)),
+        //         Add(value) if offset > &0 => Some(MulAdd(*offset as usize, value)),
+        //         Add(value) if offset < &0 => Some(MulAddRev(-offset as usize, value)),
+        //         Add(_) if offset == &0 => unreachable!(),
+        //         Sub(1) if offset == &0 => None, // これは後で
+        //         Sub(1) if offset < &0 => Some(SubToRev(-offset as usize)),
+        //         Sub(1) if offset > &0 => Some(SubTo(*offset as usize)),
+        //         Output(_) => Some(OutputOffset(*offset)),
+        //         Input(_) => todo!(),
+        //         _ => unreachable!(),
+        //     })
+        //     .map(Nod::Instruction)
+        //     .collect();
+        // new_nodes.append(&mut instructions);
+        // new_nodes.push_back(Nod::Instruction(ZeroSet));
+        // }
+
         for (offset, instruction) in offset_instructions.iter() {
             let mut instructions = instruction
                 .inner()
@@ -408,62 +451,62 @@ pub fn offset_opt(nodes: &Nods) -> Option<Nods> {
                     Input(_) => todo!(),
                     _ => unreachable!(),
                 })
-                .map(Nod::Instruction)
+                .map(Node::Instruction)
                 .collect();
             new_nodes.append(&mut instructions)
         }
         match pointer_offset.cmp(&0) {
             Ordering::Less => {
-                new_nodes.push_back(Nod::Instruction(PtrDecrement(-pointer_offset as usize)))
+                new_nodes.push_back(Node::Instruction(PtrDecrement(-pointer_offset as usize)))
             }
             Ordering::Equal => (),
             Ordering::Greater => {
-                new_nodes.push_back(Nod::Instruction(PtrIncrement(pointer_offset as usize)))
+                new_nodes.push_back(Node::Instruction(PtrIncrement(pointer_offset as usize)))
             }
         };
 
         new_nodes
     }
     // eprintln!("{pointer_offset}, {instructions:?}");
-    Some(inner(nodes))
+    inner(nodes)
     // unimplemented!()
 }
 
-pub fn optimize(nodes: Nods) -> Nods {
-    fn inner(nodes: Nods) {
-        let mut new_nodes = Nods::new();
+pub fn optimize(nodes: Nodes) -> Nodes {
+    // eprintln!("{nodes:?}");
+    fn inner(nodes: Nodes) -> Nodes {
+        let mut new_nodes = Nodes::new();
 
         for node in nodes {
-            // let node = if let Nod::Loop(loop_nodes) = node {
-            //     Nod::Loop(merge_instruction(loop_nodes))
-            // } else {
-            //     node
-            // };
+            let node = if let Node::Loop(loop_nodes) = node {
+                Node::Loop(merge_instruction(loop_nodes))
+            } else {
+                node
+            };
 
-            // if let Some(mut optimized_nodes) = zeroset_opt(&node) {
-            //     new_nodes.append(&mut optimized_nodes);
-            // } else
             // if let Some(mut optimized_nodes) = loop_opt(&node) {
             //     new_nodes.append(&mut optimized_nodes);
             // }
-            // else if let Some(mut optimized_nodes) = add_opt(&node) {
-            //     new_nodes.append(&mut optimized_nodes);
-            // } else if let Some(mut optimized_nodes) = sub_opt(&node) {
-            //     new_nodes.append(&mut optimized_nodes);
-            // } else if let Some(mut optimized_nodes) = sub_add_opt(&node) {
-            //     new_nodes.append(&mut optimized_nodes);
-            // } else if let Some(mut optimized_nodes) = copy_opt(&node) {
-            //     new_nodes.append(&mut optimized_nodes);
-            // }
-            // else
-            if let Nod::Loop(nodes) = node {
-                let node = Nod::Loop(optimize(nodes));
+            if let Some(mut optimized_nodes) = zeroset_opt(&node) {
+                new_nodes.append(&mut optimized_nodes);
+            } else if let Some(mut optimized_nodes) = add_opt(&node) {
+                new_nodes.append(&mut optimized_nodes);
+            } else if let Some(mut optimized_nodes) = sub_opt(&node) {
+                new_nodes.append(&mut optimized_nodes);
+            } else if let Some(mut optimized_nodes) = sub_add_opt(&node) {
+                new_nodes.append(&mut optimized_nodes);
+            } else if let Some(mut optimized_nodes) = copy_opt(&node) {
+                new_nodes.append(&mut optimized_nodes);
+            } else if let Node::Loop(nodes) = node {
+                let node = Node::Loop(inner(nodes));
                 new_nodes.push_back(node);
             } else {
                 new_nodes.push_back(node);
             }
         }
+        new_nodes
     }
 
-    offset_opt(&nodes).unwrap()
+    let nodes = offset_opt(&nodes);
+    inner(nodes)
 }

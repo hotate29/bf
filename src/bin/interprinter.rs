@@ -2,7 +2,7 @@ use std::{env::args, fs, io};
 
 use bf::{
     interprinter::InterPrinter,
-    parse::{tokenize, Nod, Nods},
+    parse::{tokenize, Node, Nodes},
 };
 
 fn main() {
@@ -14,7 +14,7 @@ fn main() {
     let optimize_flag = args.get(2).map_or(false, |arg| arg == "O");
 
     let tokens = tokenize(&code);
-    let mut root_node = Nod::from_tokens(tokens).unwrap();
+    let mut root_node = Node::from_tokens(tokens).unwrap();
 
     if optimize_flag {
         // root_node = optimize(root_node, &all_optimizer());

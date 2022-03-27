@@ -1,16 +1,16 @@
 use crate::instruction::Instruction;
-use crate::parse::Nods;
+use crate::parse::Nodes;
 
-pub fn to_c2(root_node: &Nods) -> String {
-    fn inner(nodes: &Nods, c_code: &mut String) {
+pub fn to_c2(root_node: &Nodes) -> String {
+    fn inner(nodes: &Nodes, c_code: &mut String) {
         for node in nodes {
             match node {
-                crate::parse::Nod::Loop(loop_nodes) => {
+                crate::parse::Node::Loop(loop_nodes) => {
                     c_code.push_str("while(*ptr){");
                     inner(loop_nodes, c_code);
                     c_code.push('}');
                 }
-                crate::parse::Nod::Instruction(instruction) => match instruction {
+                crate::parse::Node::Instruction(instruction) => match instruction {
                     Instruction::PtrIncrement(n) => c_code.push_str(&format!("ptr+={n};")),
                     Instruction::PtrDecrement(n) => c_code.push_str(&format!("ptr-={n};")),
                     Instruction::Add(n) => c_code.push_str(&format!("*ptr+={n};")),

@@ -67,26 +67,26 @@ impl Display for Token {
 pub fn tokenize(code: &str) -> Vec<Token> {
     code.chars().filter_map(Token::from_char).collect()
 }
-pub type Nods = LinkedList<Nod>;
+pub type Nodes = LinkedList<Node>;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
-pub enum Nod {
-    Loop(Nods),
+pub enum Node {
+    Loop(Nodes),
     Instruction(Instruction),
 }
-impl Nod {
-    pub fn from_tokens(tokens: impl IntoIterator<Item = Token>) -> Result<Nods, ParseError> {
+impl Node {
+    pub fn from_tokens(tokens: impl IntoIterator<Item = Token>) -> Result<Nodes, ParseError> {
         fn inner(
-            nod: &mut Nods,
+            nod: &mut Nodes,
             depth: usize,
             token_iterator: &mut impl Iterator<Item = Token>,
         ) -> Result<(), ParseError> {
             while let Some(token) = token_iterator.next() {
                 match token {
                     Token::LeftBracket => {
-                        let mut inner_node = Nods::new();
+                        let mut inner_node = Nodes::new();
                         inner(&mut inner_node, depth + 1, token_iterator)?;
-                        nod.push_back(Nod::Loop(inner_node));
+                        nod.push_back(Node::Loop(inner_node));
                     }
                     Token::RightBracket => {
                         // 深さ0の時点で]に遭遇するとエラー
@@ -98,7 +98,7 @@ impl Nod {
                         };
                     }
                     token => {
-                        nod.push_back(Nod::Instruction(Instruction::from_token(&token).unwrap()))
+                        nod.push_back(Node::Instruction(Instruction::from_token(&token).unwrap()))
                     }
                 }
             }
@@ -111,7 +111,7 @@ impl Nod {
             }
         }
 
-        let mut nods = Nods::new();
+        let mut nods = Nodes::new();
 
         let mut tokens = tokens.into_iter();
 
@@ -121,8 +121,8 @@ impl Nod {
     }
     pub fn as_instruction(&self) -> Option<Instruction> {
         match self {
-            Nod::Loop(_) => None,
-            Nod::Instruction(ins) => Some(*ins),
+            Node::Loop(_) => None,
+            Node::Instruction(ins) => Some(*ins),
         }
     }
 }

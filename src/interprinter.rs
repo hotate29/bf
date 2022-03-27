@@ -1,5 +1,5 @@
 use crate::instruction::Instruction;
-use crate::parse::Nods;
+use crate::parse::Nodes;
 
 use std::io::prelude::*;
 
@@ -80,16 +80,16 @@ impl CInstruction {
     }
 }
 
-fn node_to_c_instructions(nodes: &Nods) -> Vec<CInstruction> {
-    fn inner(c_instruction: &mut Vec<CInstruction>, nodes: &Nods) {
+fn node_to_c_instructions(nodes: &Nodes) -> Vec<CInstruction> {
+    fn inner(c_instruction: &mut Vec<CInstruction>, nodes: &Nodes) {
         for node in nodes {
             match node {
-                crate::parse::Nod::Loop(loop_nodes) => {
+                crate::parse::Node::Loop(loop_nodes) => {
                     c_instruction.push(CInstruction::WhileBegin);
                     inner(c_instruction, loop_nodes);
                     c_instruction.push(CInstruction::WhileEnd);
                 }
-                crate::parse::Nod::Instruction(instruction) => {
+                crate::parse::Node::Instruction(instruction) => {
                     c_instruction.push(CInstruction::from_instruction(*instruction))
                 }
             }
@@ -114,7 +114,7 @@ impl<R: Read, W: Write> InterPrinter<R, W> {
     pub fn builder<'a>() -> InterPrinterBuilder<'a, R, W> {
         InterPrinterBuilder::default()
     }
-    fn new(root_node: &Nods, memory_len: usize, input: R, output: W) -> Self {
+    fn new(root_node: &Nodes, memory_len: usize, input: R, output: W) -> Self {
         let state = State {
             pointer: 0,
             memory: vec![0; memory_len],
@@ -244,7 +244,7 @@ impl<R: Read, W: Write> Iterator for InterPrinter<R, W> {
 }
 
 pub struct InterPrinterBuilder<'a, R: Read, W: Write> {
-    root_node: Option<&'a Nods>,
+    root_node: Option<&'a Nodes>,
     memory_len: usize,
     input: Option<R>,
     output: Option<W>,
@@ -260,7 +260,7 @@ impl<'a, R: Read, W: Write> Default for InterPrinterBuilder<'a, R, W> {
     }
 }
 impl<'a, R: Read, W: Write> InterPrinterBuilder<'a, R, W> {
-    pub fn root_node(self, root_node: &'a Nods) -> Self {
+    pub fn root_node(self, root_node: &'a Nodes) -> Self {
         Self {
             root_node: Some(root_node),
             ..self
@@ -302,13 +302,13 @@ impl<'a, R: Read, W: Write> InterPrinterBuilder<'a, R, W> {
 mod test {
     use std::{fs, io};
 
-    use crate::parse::{tokenize, Nod, Nods};
+    use crate::parse::{tokenize, Node, Nodes};
 
     use super::InterPrinter;
 
-    fn node_from_source(source: &str) -> Nods {
+    fn node_from_source(source: &str) -> Nodes {
         let tokens = tokenize(&source);
-        Nod::from_tokens(tokens).unwrap()
+        Node::from_tokens(tokens).unwrap()
     }
 
     #[test]
