@@ -325,9 +325,6 @@ struct Instructions {
     inner: Vec<Instruction>,
 }
 impl Instructions {
-    fn new() -> Self {
-        Self { inner: vec![] }
-    }
     fn from_ins(ins: Instruction) -> Self {
         Self { inner: vec![ins] }
     }
@@ -407,14 +404,14 @@ pub fn offset_opt(nodes: &Nodes) -> Nodes {
             };
         }
 
-        let include_loop =
-            new_nodes.iter().any(|node| matches!(node, Node::Loop(_))) && !new_nodes.is_empty();
-        let optimizable = !include_loop
-            && pointer_offset == 0
-            && offset_instructions
-                .get(&0)
-                .filter(|ins| ins.inner() == &[Sub(1)])
-                .is_some();
+        // let include_loop =
+        //     new_nodes.iter().any(|node| matches!(node, Node::Loop(_))) && !new_nodes.is_empty();
+        // let optimizable = !include_loop
+        //     && pointer_offset == 0
+        //     && offset_instructions
+        //         .get(&0)
+        //         .filter(|ins| ins.inner() == &[Sub(1)])
+        //         .is_some();
 
         // let mut instructions = instruction
         //     .inner()
@@ -507,6 +504,6 @@ pub fn optimize(nodes: Nodes) -> Nodes {
         new_nodes
     }
 
-    let nodes = offset_opt(&nodes);
+    // let nodes = offset_opt(&nodes);
     inner(nodes)
 }
