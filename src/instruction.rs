@@ -83,7 +83,7 @@ impl Instruction {
             | Instruction::AddOffset(_, _)
             | Instruction::SubOffset(_, _)
             | Instruction::OutputOffset(_)
-            | Instruction::ZeroSetOffset(_) => todo!(),
+            | Instruction::ZeroSetOffset(_) => None,
         }
     }
     #[inline]
