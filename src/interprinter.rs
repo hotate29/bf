@@ -307,7 +307,7 @@ mod test {
     use super::InterPrinter;
 
     fn node_from_source(source: &str) -> Nodes {
-        let tokens = tokenize(&source);
+        let tokens = tokenize(source);
         Node::from_tokens(tokens).unwrap()
     }
 
@@ -371,7 +371,7 @@ mod test {
     fn test_hello_world_interprinter() {
         let hello_world = ">+++++++++[<++++++++>-]<.>+++++++[<++++>-]<+.+++++++..+++.[-]>++++++++[<++++>-]<.>+++++++++++[<+++++>-]<.>++++++++[<+++>-]<.+++.------.--------.[-]>++++++++[<++++>-]<+.[-]++++++++++.";
 
-        let root_node = node_from_source(&hello_world);
+        let root_node = node_from_source(hello_world);
 
         let mut output_buffer = vec![];
 
@@ -389,7 +389,7 @@ mod test {
     fn test_optimized_hello_world_interprinter() {
         let hello_world = ">+++++++++[<++++++++>-]<.>+++++++[<++++>-]<+.+++++++..+++.[-]>++++++++[<++++>-]<.>+++++++++++[<+++++>-]<.>++++++++[<+++>-]<.+++.------.--------.[-]>++++++++[<++++>-]<+.[-]++++++++++.";
 
-        let root_node = node_from_source(&hello_world);
+        let root_node = node_from_source(hello_world);
 
         let mut output_buffer = vec![];
 

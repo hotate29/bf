@@ -129,7 +129,7 @@ impl Node {
 
 #[cfg(test)]
 mod test {
-    use crate::{instruction::Instruction, parse::Token};
+    use crate::parse::Token;
 
     #[test]
     fn test_token_from_char() {
