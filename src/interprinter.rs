@@ -242,10 +242,8 @@ impl<R: Read, W: Write> InterPrinter<R, W> {
                 CInstruction::WhileBegin => self.now += 1,
                 CInstruction::WhileEnd => self.now = self.while_begin_jump_table[self.now],
             }
-            Ok(())
-        } else {
-            Ok(())
         }
+        Ok(())
     }
 }
 
