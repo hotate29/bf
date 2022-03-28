@@ -302,13 +302,21 @@ impl<'a, R: Read, W: Write> InterPrinterBuilder<'a, R, W> {
 mod test {
     use std::{fs, io};
 
-    use crate::parse::{tokenize, Node, Nodes};
+    use crate::{
+        optimize::optimize,
+        parse::{tokenize, Node, Nodes},
+    };
 
     use super::InterPrinter;
 
     fn node_from_source(source: &str) -> Nodes {
         let tokens = tokenize(source);
         Node::from_tokens(tokens).unwrap()
+    }
+    fn node_from_source_optimized(source: &str) -> Nodes {
+        let tokens = tokenize(source);
+        let nodes = Node::from_tokens(tokens).unwrap();
+        optimize(nodes)
     }
 
     #[test]
@@ -353,7 +361,7 @@ mod test {
         let mandelbrot_source = fs::read_to_string("mandelbrot.bf").unwrap();
         let assert_mandelbrot = fs::read_to_string("mandelbrot").unwrap();
 
-        let root_node = node_from_source(&mandelbrot_source);
+        let root_node = node_from_source_optimized(&mandelbrot_source);
 
         let mut output_buffer = Vec::new();
 
@@ -389,7 +397,7 @@ mod test {
     fn test_optimized_hello_world_interprinter() {
         let hello_world = ">+++++++++[<++++++++>-]<.>+++++++[<++++>-]<+.+++++++..+++.[-]>++++++++[<++++>-]<.>+++++++++++[<+++++>-]<.>++++++++[<+++>-]<.+++.------.--------.[-]>++++++++[<++++>-]<+.[-]++++++++++.";
 
-        let root_node = node_from_source(hello_world);
+        let root_node = node_from_source_optimized(hello_world);
 
         let mut output_buffer = vec![];
 
