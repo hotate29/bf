@@ -505,5 +505,6 @@ pub fn optimize(nodes: Nodes) -> Nodes {
     }
 
     // let nodes = offset_opt(&nodes);
+    let nodes = merge_instruction(nodes);
     inner(nodes)
 }
