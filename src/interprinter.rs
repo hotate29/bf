@@ -3,6 +3,8 @@ use crate::parse::Nodes;
 
 use std::io::prelude::*;
 
+type Result<T> = std::result::Result<T, Error>;
+
 struct State {
     pointer: usize,
     memory: Vec<u8>,
@@ -16,37 +18,39 @@ impl State {
     fn at(&self) -> u8 {
         self.memory[self.pointer]
     }
-    fn at_offset(&mut self, offset: isize) -> u8 {
+    fn at_offset(&mut self, offset: isize) -> Result<u8> {
         if offset < 0 {
-            assert!(
-                self.pointer >= (-offset as usize),
-                "マイナスのインデックスを参照"
-            );
-            self.memory[self.pointer - (-offset as usize)]
+            if self.pointer < (-offset as usize) {
+                Err(Error::NegativePointer(self.pointer as isize + offset))
+            } else {
+                Ok(self.memory[self.pointer - (-offset as usize)])
+            }
         } else {
             self.memory_extend(offset as usize);
-            self.memory[self.pointer + offset as usize]
+            Ok(self.memory[self.pointer + offset as usize])
         }
     }
-    fn at_offset_mut(&mut self, offset: isize) -> &mut u8 {
+    fn at_offset_mut(&mut self, offset: isize) -> Result<&mut u8> {
         if offset < 0 {
-            assert!(
-                self.pointer >= (-offset as usize),
-                "マイナスのインデックスを参照"
-            );
-            &mut self.memory[self.pointer - (-offset as usize)]
+            if self.pointer < (-offset as usize) {
+                Err(Error::NegativePointer(self.pointer as isize + offset))
+            } else {
+                Ok(&mut self.memory[self.pointer - (-offset as usize)])
+            }
         } else {
             self.memory_extend(offset as usize);
-            &mut self.memory[self.pointer + offset as usize]
+            Ok(&mut self.memory[self.pointer + offset as usize])
         }
     }
-    fn add(&mut self, offset: isize, value: u8) {
-        let a = self.at_offset_mut(offset);
+    fn add(&mut self, offset: isize, value: u8) -> Result<()> {
+        let a = self.at_offset_mut(offset)?;
         *a = a.wrapping_add(value);
+        Ok(())
     }
-    fn sub(&mut self, offset: isize, value: u8) {
-        let a = self.at_offset_mut(offset);
+    fn sub(&mut self, offset: isize, value: u8) -> Result<()> {
+        let a = self.at_offset_mut(offset)?;
         *a = a.wrapping_sub(value);
+        Ok(())
     }
     fn pointer_add(&mut self, value: usize) {
         self.pointer += value;
@@ -56,15 +60,17 @@ impl State {
         assert!(self.pointer >= value, "ポインターがマイナスに");
         self.pointer -= value;
     }
-    fn output(&mut self, offset: isize, writer: &mut impl Write) {
-        let value = self.at_offset(offset);
+    fn output(&mut self, offset: isize, writer: &mut impl Write) -> Result<()> {
+        let value = self.at_offset(offset)?;
         writer.write_all(&[value]).unwrap();
         writer.flush().unwrap();
+        Ok(())
     }
-    fn input(&mut self, reader: &mut impl Read) {
+    fn input(&mut self, reader: &mut impl Read) -> Result<()> {
         let mut buf = [0];
         reader.read_exact(&mut buf).unwrap();
-        *self.at_offset_mut(0) = buf[0];
+        *self.at_offset_mut(0)? = buf[0];
+        Ok(())
     }
 }
 
@@ -99,6 +105,10 @@ fn node_to_c_instructions(nodes: &Nodes) -> Vec<CInstruction> {
     let mut instructions = vec![];
     inner(&mut instructions, nodes);
     instructions
+}
+
+pub enum Error {
+    NegativePointer(isize),
 }
 
 pub struct InterPrinter<R: Read, W: Write> {
@@ -164,7 +174,7 @@ impl<R: Read, W: Write> InterPrinter<R, W> {
 }
 
 impl<R: Read, W: Write> Iterator for InterPrinter<R, W> {
-    type Item = ();
+    type Item = Result<()>;
 
     #[inline]
     fn next(&mut self) -> Option<Self::Item> {
@@ -237,7 +247,7 @@ impl<R: Read, W: Write> Iterator for InterPrinter<R, W> {
                 CInstruction::WhileBegin => self.now += 1,
                 CInstruction::WhileEnd => self.now = self.while_begin_jump_table[self.now],
             }
-            Some(())
+            Some(Ok(()))
         } else {
             None
         }
