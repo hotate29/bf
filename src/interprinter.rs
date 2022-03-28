@@ -171,71 +171,66 @@ impl<R: Read, W: Write> InterPrinter<R, W> {
     pub fn now(&self) -> usize {
         self.now
     }
-}
-
-impl<R: Read, W: Write> Iterator for InterPrinter<R, W> {
-    type Item = Result<()>;
-
     #[inline]
-    fn next(&mut self) -> Option<Self::Item> {
+    fn step(&mut self) -> Result<()> {
         if self.now < self.instructions.len() {
             match self.instructions[self.now] {
                 CInstruction::Instruction(instruction) => {
                     match instruction {
                         Instruction::PtrIncrement(n) => self.state.pointer_add(n),
                         Instruction::PtrDecrement(n) => self.state.pointer_sub(n),
-                        Instruction::Add(n) => {
-                            self.state.add(0, n);
-                        }
+                        Instruction::Add(n) => self.state.add(0, n)?,
                         Instruction::AddTo(offset) | Instruction::Copy(offset) => {
                             let value = self.state.at();
-                            self.state.add(offset as isize, value);
+                            self.state.add(offset as isize, value)?;
                         }
                         Instruction::AddToRev(offset) | Instruction::CopyRev(offset) => {
                             let value = self.state.at();
                             if value != 0 {
-                                self.state.add(offset as isize, value);
+                                self.state.add(offset as isize, value)?;
                             }
                         }
                         Instruction::Sub(n) => {
-                            self.state.sub(0, n);
+                            self.state.sub(0, n)?;
                         }
                         Instruction::SubTo(offset) => {
                             let value = self.state.at();
-                            self.state.sub(offset as isize, value);
+                            self.state.sub(offset as isize, value)?;
                         }
                         Instruction::SubToRev(offset) => {
                             let value = self.state.at();
                             if value != 0 {
-                                self.state.sub(offset as isize, value);
+                                self.state.sub(offset as isize, value)?;
                             }
                         }
                         Instruction::MulAdd(offset, value) => {
                             let value = self.state.at().wrapping_mul(value);
-                            self.state.add(offset as isize, value);
+                            self.state.add(offset as isize, value)?;
                         }
                         Instruction::MulAddRev(offset, value) => {
                             let value = self.state.at().wrapping_mul(value);
                             if value != 0 {
-                                self.state.add(-(offset as isize), value);
+                                self.state.add(-(offset as isize), value)?;
                             }
                         }
                         Instruction::Output(n) => {
                             for _ in 0..n {
-                                self.state.output(0, &mut self.output);
+                                self.state.output(0, &mut self.output)?;
                             }
                         }
                         Instruction::Input(n) => {
                             for _ in 0..n {
-                                self.state.input(&mut self.input);
+                                self.state.input(&mut self.input)?;
                             }
                         }
-                        Instruction::ZeroSet => *self.state.at_offset_mut(0) = 0,
-                        Instruction::ZeroSetOffset(offset) => *self.state.at_offset_mut(offset) = 0,
-                        Instruction::AddOffset(offset, value) => self.state.add(offset, value),
-                        Instruction::SubOffset(offset, value) => self.state.sub(offset, value),
+                        Instruction::ZeroSet => *self.state.at_offset_mut(0)? = 0,
+                        Instruction::ZeroSetOffset(offset) => {
+                            *self.state.at_offset_mut(offset)? = 0
+                        }
+                        Instruction::AddOffset(offset, value) => self.state.add(offset, value)?,
+                        Instruction::SubOffset(offset, value) => self.state.sub(offset, value)?,
                         Instruction::OutputOffset(offset) => {
-                            self.state.output(offset, &mut self.output);
+                            self.state.output(offset, &mut self.output)?
                         }
                         ins => panic!("unimplemented instruction. {ins:?}"),
                     };
@@ -247,7 +242,20 @@ impl<R: Read, W: Write> Iterator for InterPrinter<R, W> {
                 CInstruction::WhileBegin => self.now += 1,
                 CInstruction::WhileEnd => self.now = self.while_begin_jump_table[self.now],
             }
-            Some(Ok(()))
+            Ok(())
+        } else {
+            Ok(())
+        }
+    }
+}
+
+impl<R: Read, W: Write> Iterator for InterPrinter<R, W> {
+    type Item = Result<()>;
+
+    #[inline]
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.now < self.instructions.len() {
+            Some(self.step())
         } else {
             None
         }
