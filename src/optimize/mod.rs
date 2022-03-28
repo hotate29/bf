@@ -90,15 +90,13 @@ fn add_opt(node: &Node) -> Option<Nodes> {
                 ]
             } {
                 if ptr_increment == ptr_decrement {
-                    {
-                        return Some(
-                            [
-                                Node::Instruction(AddTo(*ptr_increment)),
-                                Node::Instruction(ZeroSet),
-                            ]
-                            .into(),
-                        );
-                    }
+                    return Some(
+                        [
+                            Node::Instruction(AddTo(*ptr_increment)),
+                            Node::Instruction(ZeroSet),
+                        ]
+                        .into(),
+                    );
                 }
             }
 
@@ -112,15 +110,13 @@ fn add_opt(node: &Node) -> Option<Nodes> {
                 nodes_iter.next()?,
             ] {
                 if ptr_decrement == ptr_increment {
-                    {
-                        return Some(
-                            [
-                                Node::Instruction(AddToRev(*ptr_decrement)),
-                                Node::Instruction(ZeroSet),
-                            ]
-                            .into(),
-                        );
-                    }
+                    return Some(
+                        [
+                            Node::Instruction(AddToRev(*ptr_decrement)),
+                            Node::Instruction(ZeroSet),
+                        ]
+                        .into(),
+                    );
                 }
             }
         }
@@ -143,15 +139,13 @@ fn sub_opt(node: &Node) -> Option<Nodes> {
                 ]
             } {
                 if ptr_increment == ptr_decrement {
-                    {
-                        return Some(
-                            [
-                                Node::Instruction(SubTo(*ptr_increment)),
-                                Node::Instruction(ZeroSet),
-                            ]
-                            .into(),
-                        );
-                    }
+                    return Some(
+                        [
+                            Node::Instruction(SubTo(*ptr_increment)),
+                            Node::Instruction(ZeroSet),
+                        ]
+                        .into(),
+                    );
                 }
             }
 
@@ -165,15 +159,13 @@ fn sub_opt(node: &Node) -> Option<Nodes> {
                 nodes_iter.next()?,
             ] {
                 if ptr_decrement == ptr_increment {
-                    {
-                        return Some(
-                            [
-                                Node::Instruction(SubToRev(*ptr_decrement)),
-                                Node::Instruction(ZeroSet),
-                            ]
-                            .into(),
-                        );
-                    }
+                    return Some(
+                        [
+                            Node::Instruction(SubToRev(*ptr_decrement)),
+                            Node::Instruction(ZeroSet),
+                        ]
+                        .into(),
+                    );
                 }
             }
         }
