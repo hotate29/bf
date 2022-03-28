@@ -166,6 +166,7 @@ impl<R: Read, W: Write> InterPrinter<R, W> {
 impl<R: Read, W: Write> Iterator for InterPrinter<R, W> {
     type Item = ();
 
+    #[inline]
     fn next(&mut self) -> Option<Self::Item> {
         if self.now < self.instructions.len() {
             match self.instructions[self.now] {
