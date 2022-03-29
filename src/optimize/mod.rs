@@ -288,18 +288,12 @@ fn merge_instruction(nodes: Nodes) -> Nodes {
     for node in nodes {
         new_nodes.push_back(node);
 
-        while let Some(merged_inst) =
-            new_nodes
-                .iter()
-                .nth_back(1)
-                .zip(new_nodes.back())
-                .and_then(|(back2, back)| {
-                    if let (Node::Instruction(back2), Node::Instruction(back)) = (back2, back) {
-                        back2.merge(*back)
-                    } else {
-                        None
-                    }
-                })
+        while let Some(merged_inst) = new_nodes
+            .iter()
+            .nth_back(1)
+            .zip(new_nodes.back())
+            .and_then(|(back2, back)| back2.as_instruction().zip(back.as_instruction()))
+            .and_then(|(back2, back)| back2.merge(back))
         {
             new_nodes.pop_back().unwrap();
             new_nodes.pop_back().unwrap();
