@@ -499,3 +499,23 @@ pub fn optimize(nodes: Nodes) -> Nodes {
 
     inner(nodes)
 }
+
+#[cfg(test)]
+mod test {
+    use crate::{instruction::Instruction::*, parse::Node};
+
+    use super::merge_instruction;
+
+    #[test]
+    fn test_merge_instruction() {
+        let nodes = [
+            Node::Instruction(Add(1)),
+            Node::Instruction(Sub(1)),
+            Node::Instruction(PtrIncrement(1)),
+            Node::Instruction(PtrDecrement(1)),
+            Node::Instruction(Add(1)),
+        ]
+        .into();
+        assert_eq!(merge_instruction(nodes), [Node::Instruction(Add(1))].into());
+    }
+}
