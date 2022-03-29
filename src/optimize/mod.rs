@@ -507,7 +507,7 @@ mod test {
         parse::{tokenize, Node, Nodes},
     };
 
-    use super::{add_opt, merge_instruction, zeroset_opt};
+    use super::{add_opt, merge_instruction, sub_opt, zeroset_opt};
 
     #[test]
     fn test_merge_instruction() {
@@ -589,5 +589,30 @@ mod test {
         );
 
         assert_node(add_opt, "[-<<<++>>>]", None);
+    }
+
+    #[test]
+    fn test_sub_opt() {
+        assert_node(
+            sub_opt,
+            "[->>>-<<<]",
+            Some([Node::Instruction(SubTo(3)), Node::Instruction(ZeroSet)].into()),
+        );
+        assert_node(
+            sub_opt,
+            "[>>>-<<<-]",
+            Some([Node::Instruction(SubTo(3)), Node::Instruction(ZeroSet)].into()),
+        );
+
+        assert_node(
+            sub_opt,
+            "[-<<<->>>]",
+            Some([Node::Instruction(SubToRev(3)), Node::Instruction(ZeroSet)].into()),
+        );
+        assert_node(
+            sub_opt,
+            "[<<<->>>-]",
+            Some([Node::Instruction(SubToRev(3)), Node::Instruction(ZeroSet)].into()),
+        );
     }
 }
