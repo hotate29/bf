@@ -502,9 +502,12 @@ pub fn optimize(nodes: Nodes) -> Nodes {
 
 #[cfg(test)]
 mod test {
-    use crate::{instruction::Instruction::*, parse::Node};
+    use crate::{
+        instruction::Instruction::*,
+        parse::{tokenize, Node, Nodes},
+    };
 
-    use super::merge_instruction;
+    use super::{merge_instruction, zeroset_opt};
 
     #[test]
     fn test_merge_instruction() {
@@ -517,5 +520,47 @@ mod test {
         ]
         .into();
         assert_eq!(merge_instruction(nodes), [Node::Instruction(Add(1))].into());
+    }
+    fn optimize_node(code: &str, optimizer: impl FnOnce(&Node) -> Option<Nodes>) -> Option<Nodes> {
+        let tokens = tokenize(code);
+        let mut nodes = Node::from_tokens(tokens).unwrap();
+        if nodes.len() == 1 {
+            if let Node::Loop(loop_nodes) = nodes.pop_front().unwrap() {
+                let merged_loop_node = merge_instruction(loop_nodes);
+                let loop_node = Node::Loop(merged_loop_node);
+
+                optimizer(&loop_node)
+            } else {
+                panic!()
+            }
+        } else {
+            panic!()
+        }
+    }
+
+    fn assert_node(
+        optimizer: impl FnOnce(&Node) -> Option<Nodes>,
+        code: &str,
+        node: Option<Nodes>,
+    ) {
+        let optimized_node = optimize_node(code, optimizer);
+        assert_eq!(node, optimized_node);
+    }
+
+    #[test]
+    fn test_zeroset_opt() {
+        assert_node(
+            zeroset_opt,
+            "[-]",
+            Some([Node::Instruction(ZeroSet)].into()),
+        );
+
+        assert_node(
+            zeroset_opt,
+            "[+]",
+            Some([Node::Instruction(ZeroSet)].into()),
+        );
+
+        assert_node(zeroset_opt, "[--]", None);
     }
 }
