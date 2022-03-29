@@ -464,6 +464,7 @@ pub fn offset_opt(nodes: &Nodes) -> Nodes {
 pub fn optimize(nodes: Nodes) -> Nodes {
     // eprintln!("{nodes:?}");
     fn inner(nodes: Nodes) -> Nodes {
+        let nodes = merge_instruction(nodes);
         let mut new_nodes = Nodes::new();
 
         for node in nodes {
@@ -496,7 +497,5 @@ pub fn optimize(nodes: Nodes) -> Nodes {
         new_nodes
     }
 
-    // let nodes = offset_opt(&nodes);
-    let nodes = merge_instruction(nodes);
     inner(nodes)
 }
