@@ -35,16 +35,7 @@ impl State {
         self.memory.get(self.pointer)
     }
     fn at_offset(&mut self, offset: isize) -> Result<u8> {
-        if offset <= 0 {
-            let p = self.pointer as isize + offset;
-            if p < 0 {
-                Err(Error::NegativePointer(p))
-            } else {
-                Ok(self.memory.get(p as usize))
-            }
-        } else {
-            Ok(self.memory.get(self.pointer + offset as usize))
-        }
+        self.at_offset_mut(offset).map(|v| *v)
     }
     fn at_offset_mut(&mut self, offset: isize) -> Result<&mut u8> {
         if offset <= 0 {
