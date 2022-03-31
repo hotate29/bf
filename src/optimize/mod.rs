@@ -486,6 +486,8 @@ mod test {
     }
 
     #[rstest(input, expected,
+        case("+++", [Node::Instruction(AddOffset(0, 3))].into()),
+        case("[[[]]]", [Node::Loop([Node::Loop([Node::Loop([].into())].into())].into())].into()),
         case("[->>>-<<<]", [Node::Instruction(SubTo(3)), Node::Instruction(ZeroSet)].into()),
         case("+++>-<[->>>-<<<]", [Node::Instruction(AddOffset(0, 3)),Node::Instruction(SubOffset(1, 1)), Node::Instruction(SubTo(3)), Node::Instruction(ZeroSet)].into()),
         case("[>>>-<<<-]", [Node::Instruction(SubTo(3)), Node::Instruction(ZeroSet)].into()),
