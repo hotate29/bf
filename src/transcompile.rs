@@ -20,13 +20,13 @@ pub fn to_c2(root_node: &Nodes) -> String {
                     Instruction::AddTo(offset) if *offset > 0 => {
                         c_code.push_str(&format!("if(ptr[0]!=0){{*(ptr-{offset})+=ptr[0];}}"))
                     }
+                    Instruction::Sub(n) => c_code.push_str(&format!("*ptr-={n};")),
                     Instruction::SubTo(offset) if *offset >= 0 => {
                         c_code.push_str(&format!("ptr[{offset}]-=ptr[0];"))
                     }
                     Instruction::SubTo(offset) if *offset < 0 => {
                         c_code.push_str(&format!("if(ptr[0]!=0){{*(ptr-{offset})-=ptr[0];}}"))
                     }
-                    Instruction::Sub(n) => c_code.push_str(&format!("*ptr-={n};")),
                     Instruction::Output(n) => {
                         for _ in 0..*n {
                             c_code.push_str("putchar(ptr[0]);")
@@ -37,10 +37,10 @@ pub fn to_c2(root_node: &Nodes) -> String {
                             c_code.push_str("ptr[0]=getchar();");
                         }
                     }
-                    Instruction::MulAdd(offset, value) => {
+                    Instruction::MulAdd(offset, value) if *offset >= 0 => {
                         c_code.push_str(&format!("ptr[{offset}]+={value}*ptr[0];"));
                     }
-                    Instruction::MulAddRev(offset, value) => {
+                    Instruction::MulAdd(offset, value) if *offset < 0 => {
                         c_code
                             .push_str(&format!("if(*ptr!=0){{*(ptr-{offset})+={value}*ptr[0];}}"));
                     }

@@ -237,12 +237,9 @@ impl<R: Read, W: Write> InterPrinter<R, W> {
                         }
                         Instruction::MulAdd(offset, value) => {
                             let value = self.state.at().wrapping_mul(value);
-                            self.state.add(offset as isize, value)?;
-                        }
-                        Instruction::MulAddRev(offset, value) => {
-                            let value = self.state.at().wrapping_mul(value);
+                            // 後ろを参照するので、ここはちゃんと確認
                             if value != 0 {
-                                self.state.add(-(offset as isize), value)?;
+                                self.state.add(offset, value)?;
                             }
                         }
                         Instruction::Output(n) => {

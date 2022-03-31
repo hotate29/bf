@@ -14,8 +14,7 @@ pub enum Instruction {
     Sub(u8),
     SubOffset(isize, u8),
     SubTo(isize),
-    MulAdd(usize, u8),
-    MulAddRev(usize, u8),
+    MulAdd(isize, u8),
     Output(usize),
     OutputOffset(isize),
     Input(usize),
@@ -49,7 +48,6 @@ impl Instruction {
             Instruction::AddTo(_)
             | Instruction::SubTo(_)
             | Instruction::MulAdd(_, _)
-            | Instruction::MulAddRev(_, _)
             | Instruction::ZeroSet
             | Instruction::Copy(_)
             | Instruction::CopyRev(_)
@@ -70,7 +68,6 @@ impl Instruction {
             Instruction::AddTo(_)
             | Instruction::SubTo(_)
             | Instruction::MulAdd(_, _)
-            | Instruction::MulAddRev(_, _)
             | Instruction::ZeroSet
             | Instruction::Copy(_)
             | Instruction::CopyRev(_)

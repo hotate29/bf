@@ -252,8 +252,7 @@ pub fn offset_opt(nodes: &Nodes) -> Nodes {
                 for instruction in instructions.inner {
                     let instruction = match instruction {
                         Add(1) => AddTo(offset),
-                        Add(value) if offset > 0 => MulAdd(offset as usize, value),
-                        Add(value) if offset < 0 => MulAddRev(-offset as usize, value),
+                        Add(value) => MulAdd(offset, value),
                         Sub(1) if offset == 0 => continue,
                         Sub(1) => SubTo(offset),
                         Output(_) => OutputOffset(offset),
