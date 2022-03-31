@@ -57,53 +57,57 @@ fn loop_opt(node: &Node) -> Option<Nodes> {
     None
 }
 
-fn add_opt(node: &Node) -> Option<Nodes> {
-    if let Node::Loop(loop_nodes) = node {
-        if loop_nodes.len() == 4 {
-            let mut nodes_iter = loop_nodes.iter();
+pub struct AddOptimizer;
 
-            if let [Node::Instruction(Sub(1)), Node::Instruction(PtrIncrement(ptr_increment)), Node::Instruction(Add(1)), Node::Instruction(PtrDecrement(ptr_decrement))]
-            | [Node::Instruction(PtrIncrement(ptr_increment)), Node::Instruction(Add(1)), Node::Instruction(PtrDecrement(ptr_decrement)), Node::Instruction(Sub(1))] = {
-                [
-                    nodes_iter.next()?,
-                    nodes_iter.next()?,
-                    nodes_iter.next()?,
-                    nodes_iter.next()?,
-                ]
-            } {
-                if ptr_increment == ptr_decrement {
-                    return Some(
-                        [
-                            Node::Instruction(AddTo(*ptr_increment)),
-                            Node::Instruction(ZeroSet),
-                        ]
-                        .into(),
-                    );
+impl Optimizer for AddOptimizer {
+    fn optimize_node(&self, node: &Node) -> Option<Nodes> {
+        if let Node::Loop(loop_nodes) = node {
+            if loop_nodes.len() == 4 {
+                let mut nodes_iter = loop_nodes.iter();
+
+                if let [Node::Instruction(Sub(1)), Node::Instruction(PtrIncrement(ptr_increment)), Node::Instruction(Add(1)), Node::Instruction(PtrDecrement(ptr_decrement))]
+                | [Node::Instruction(PtrIncrement(ptr_increment)), Node::Instruction(Add(1)), Node::Instruction(PtrDecrement(ptr_decrement)), Node::Instruction(Sub(1))] = {
+                    [
+                        nodes_iter.next()?,
+                        nodes_iter.next()?,
+                        nodes_iter.next()?,
+                        nodes_iter.next()?,
+                    ]
+                } {
+                    if ptr_increment == ptr_decrement {
+                        return Some(
+                            [
+                                Node::Instruction(AddTo(*ptr_increment)),
+                                Node::Instruction(ZeroSet),
+                            ]
+                            .into(),
+                        );
+                    }
                 }
-            }
 
-            let mut nodes_iter = loop_nodes.iter();
+                let mut nodes_iter = loop_nodes.iter();
 
-            if let [Node::Instruction(Sub(1)), Node::Instruction(PtrDecrement(ptr_increment)), Node::Instruction(Add(1)), Node::Instruction(PtrIncrement(ptr_decrement))]
-            | [Node::Instruction(PtrDecrement(ptr_increment)), Node::Instruction(Add(1)), Node::Instruction(PtrIncrement(ptr_decrement)), Node::Instruction(Sub(1))] = [
-                nodes_iter.next()?,
-                nodes_iter.next()?,
-                nodes_iter.next()?,
-                nodes_iter.next()?,
-            ] {
-                if ptr_decrement == ptr_increment {
-                    return Some(
-                        [
-                            Node::Instruction(AddToRev(*ptr_decrement)),
-                            Node::Instruction(ZeroSet),
-                        ]
-                        .into(),
-                    );
+                if let [Node::Instruction(Sub(1)), Node::Instruction(PtrDecrement(ptr_increment)), Node::Instruction(Add(1)), Node::Instruction(PtrIncrement(ptr_decrement))]
+                | [Node::Instruction(PtrDecrement(ptr_increment)), Node::Instruction(Add(1)), Node::Instruction(PtrIncrement(ptr_decrement)), Node::Instruction(Sub(1))] = [
+                    nodes_iter.next()?,
+                    nodes_iter.next()?,
+                    nodes_iter.next()?,
+                    nodes_iter.next()?,
+                ] {
+                    if ptr_decrement == ptr_increment {
+                        return Some(
+                            [
+                                Node::Instruction(AddToRev(*ptr_decrement)),
+                                Node::Instruction(ZeroSet),
+                            ]
+                            .into(),
+                        );
+                    }
                 }
             }
         }
+        None
     }
-    None
 }
 
 fn sub_opt(node: &Node) -> Option<Nodes> {
@@ -500,7 +504,7 @@ mod test {
         parse::{tokenize, Node, Nodes},
     };
 
-    use super::{merge_instruction, Optimizer, ZeroSetOptimizer};
+    use super::{merge_instruction, AddOptimizer, Optimizer, ZeroSetOptimizer};
 
     #[test]
     fn test_merge_instruction() {
@@ -553,32 +557,32 @@ mod test {
         assert_node(ZeroSetOptimizer, "[--]", None);
     }
 
-    // #[test]
-    // fn test_add_opt() {
-    //     assert_node(
-    //         add_opt,
-    //         "[->>>+<<<]",
-    //         Some([Node::Instruction(AddTo(3)), Node::Instruction(ZeroSet)].into()),
-    //     );
-    //     assert_node(
-    //         add_opt,
-    //         "[>>>+<<<-]",
-    //         Some([Node::Instruction(AddTo(3)), Node::Instruction(ZeroSet)].into()),
-    //     );
+    #[test]
+    fn test_add_opt() {
+        assert_node(
+            AddOptimizer,
+            "[->>>+<<<]",
+            Some([Node::Instruction(AddTo(3)), Node::Instruction(ZeroSet)].into()),
+        );
+        assert_node(
+            AddOptimizer,
+            "[>>>+<<<-]",
+            Some([Node::Instruction(AddTo(3)), Node::Instruction(ZeroSet)].into()),
+        );
 
-    //     assert_node(
-    //         add_opt,
-    //         "[-<<<+>>>]",
-    //         Some([Node::Instruction(AddToRev(3)), Node::Instruction(ZeroSet)].into()),
-    //     );
-    //     assert_node(
-    //         add_opt,
-    //         "[<<<+>>>-]",
-    //         Some([Node::Instruction(AddToRev(3)), Node::Instruction(ZeroSet)].into()),
-    //     );
+        assert_node(
+            AddOptimizer,
+            "[-<<<+>>>]",
+            Some([Node::Instruction(AddToRev(3)), Node::Instruction(ZeroSet)].into()),
+        );
+        assert_node(
+            AddOptimizer,
+            "[<<<+>>>-]",
+            Some([Node::Instruction(AddToRev(3)), Node::Instruction(ZeroSet)].into()),
+        );
 
-    //     assert_node(add_opt, "[-<<<++>>>]", None);
-    // }
+        assert_node(AddOptimizer, "[-<<<++>>>]", None);
+    }
 
     // #[test]
     // fn test_sub_opt() {
