@@ -463,9 +463,9 @@ impl Optimizer for ZeroSetOptimizer {
     }
 }
 
-pub fn optimize(nodes: Nodes) -> Nodes {
+pub fn optimize(nodes: Nodes, optimizers: &[Box<dyn Optimizer>]) -> Nodes {
     // eprintln!("{nodes:?}");
-    fn inner(nodes: Nodes) -> Nodes {
+    fn inner(nodes: Nodes, optimizers: &[Box<dyn Optimizer>]) -> Nodes {
         let nodes = merge_instruction(nodes);
         let mut new_nodes = Nodes::new();
 
@@ -476,22 +476,15 @@ pub fn optimize(nodes: Nodes) -> Nodes {
                 node
             };
 
-            // if let Some(mut optimized_nodes) = loop_opt(&node) {
-            //     new_nodes.append(&mut optimized_nodes);
-            // }
-            if let Some(mut optimized_nodes) = zeroset_opt(&node) {
-                new_nodes.append(&mut optimized_nodes);
-            } else if let Some(mut optimized_nodes) = add_opt(&node) {
-                new_nodes.append(&mut optimized_nodes);
-            } else if let Some(mut optimized_nodes) = sub_opt(&node) {
-                new_nodes.append(&mut optimized_nodes);
-            } else if let Some(mut optimized_nodes) = sub_add_opt(&node) {
-                new_nodes.append(&mut optimized_nodes);
-            } else if let Some(mut optimized_nodes) = copy_opt(&node) {
-                new_nodes.append(&mut optimized_nodes);
-            } else if let Node::Loop(nodes) = node {
-                let node = Node::Loop(inner(nodes));
-                new_nodes.push_back(node);
+            let optimized_node = optimizers
+                .iter()
+                .find_map(|optimizer| optimizer.optimize_node(&node));
+
+            if let Some(mut optimized_node) = optimized_node {
+                new_nodes.append(&mut optimized_node);
+            } else if let Node::Loop(loop_nodes) = node {
+                let optimized_nodes = inner(loop_nodes, optimizers);
+                new_nodes.push_back(Node::Loop(optimized_nodes));
             } else {
                 new_nodes.push_back(node);
             }
@@ -499,7 +492,7 @@ pub fn optimize(nodes: Nodes) -> Nodes {
         new_nodes
     }
 
-    inner(nodes)
+    inner(nodes, optimizers)
 }
 
 #[cfg(test)]
