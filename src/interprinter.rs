@@ -19,11 +19,12 @@ impl State {
         self.memory[self.pointer]
     }
     fn at_offset(&mut self, offset: isize) -> Result<u8> {
-        if offset < 0 {
-            if self.pointer < (-offset as usize) {
-                Err(Error::NegativePointer(self.pointer as isize + offset))
+        if offset <= 0 {
+            let p = self.pointer as isize + offset;
+            if p < 0 {
+                Err(Error::NegativePointer(p))
             } else {
-                Ok(self.memory[self.pointer - (-offset as usize)])
+                Ok(self.memory[p as usize])
             }
         } else {
             self.memory_extend(offset as usize);
@@ -31,11 +32,12 @@ impl State {
         }
     }
     fn at_offset_mut(&mut self, offset: isize) -> Result<&mut u8> {
-        if offset < 0 {
-            if self.pointer < (-offset as usize) {
-                Err(Error::NegativePointer(self.pointer as isize + offset))
+        if offset <= 0 {
+            let p = self.pointer as isize + offset;
+            if p < 0 {
+                Err(Error::NegativePointer(p))
             } else {
-                Ok(&mut self.memory[self.pointer - (-offset as usize)])
+                Ok(&mut self.memory[p as usize])
             }
         } else {
             self.memory_extend(offset as usize);
