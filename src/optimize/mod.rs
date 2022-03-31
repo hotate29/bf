@@ -410,7 +410,9 @@ pub fn optimize(nodes: Nodes, optimizers: &[Box<dyn Optimizer>]) -> Nodes {
 
 #[cfg(test)]
 mod test {
-    use super::{merge_instruction, AddOptimizer, Optimizer, SubOptimizer, ZeroSetOptimizer};
+    use super::{
+        merge_instruction, offset_opt, AddOptimizer, Optimizer, SubOptimizer, ZeroSetOptimizer,
+    };
     use crate::{
         instruction::Instruction::*,
         parse::{tokenize, Node, Nodes},
@@ -481,5 +483,24 @@ mod test {
     )]
     fn test_sub_opt(input: &str, expected: Option<Nodes>) {
         assert_node(SubOptimizer, input, expected);
+    }
+
+    #[rstest(input, expected,
+        case("[->>>-<<<]", [Node::Instruction(SubTo(3)), Node::Instruction(ZeroSet)].into()),
+        case("+++>-<[->>>-<<<]", [Node::Instruction(AddOffset(0, 3)),Node::Instruction(SubOffset(1, 1)), Node::Instruction(SubTo(3)), Node::Instruction(ZeroSet)].into()),
+        case("[>>>-<<<-]", [Node::Instruction(SubTo(3)), Node::Instruction(ZeroSet)].into()),
+        case("[>>>->+<<<<-]", [Node::Instruction(SubTo(3)), Node::Instruction(AddTo(4)), Node::Instruction(ZeroSet)].into()),
+        case("+++[>>>[-][[->+<]]<<<]", [Node::Instruction(AddOffset(0, 3)), Node::Loop([Node::Instruction(PtrIncrement(3)), Node::Instruction(ZeroSet), Node::Loop([Node::Instruction(AddTo(1)), Node::Instruction(ZeroSet)].into()), Node::Instruction(PtrDecrement(3))].into())].into()),
+        case("[>>>.<<<]", [Node::Loop([Node::Instruction(OutputOffset(3))].into())].into()),
+        // TODO: MulSubを実装する
+        #[should_panic]
+        case("[-<<<-->>>]", [Node::Loop([Node::Instruction(SubOffset(0, 1)), Node::Instruction(SubOffset(-3, 2))].into())].into()),
+    )]
+    fn test_offset_opt(input: &str, expected: Nodes) {
+        let tokens = tokenize(input);
+        let nodes = Node::from_tokens(tokens).unwrap();
+
+        let optimized_node = offset_opt(&nodes);
+        assert_eq!(optimized_node, expected)
     }
 }
