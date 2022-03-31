@@ -455,6 +455,10 @@ fn offset_opt(nodes: &Nodes) -> Nodes {
     // unimplemented!()
 }
 
+trait Optimizer {
+    fn optimize_node(node: &Node) -> Option<Nodes>;
+}
+
 pub fn optimize(nodes: Nodes) -> Nodes {
     // eprintln!("{nodes:?}");
     fn inner(nodes: Nodes) -> Nodes {
