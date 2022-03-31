@@ -14,10 +14,10 @@ pub fn to_c2(root_node: &Nodes) -> String {
                     Instruction::PtrIncrement(n) => c_code.push_str(&format!("ptr+={n};")),
                     Instruction::PtrDecrement(n) => c_code.push_str(&format!("ptr-={n};")),
                     Instruction::Add(n) => c_code.push_str(&format!("*ptr+={n};")),
-                    Instruction::AddTo(offset) | Instruction::Copy(offset) => {
+                    Instruction::AddTo(offset) if *offset < 0 => {
                         c_code.push_str(&format!("ptr[{offset}]+=ptr[0];"))
                     }
-                    Instruction::AddToRev(offset) | Instruction::CopyRev(offset) => {
+                    Instruction::AddTo(offset) if *offset > 0 => {
                         c_code.push_str(&format!("if(ptr[0]!=0){{*(ptr-{offset})+=ptr[0];}}"))
                     }
                     Instruction::SubTo(n) => c_code.push_str(&format!("ptr[{n}]-=ptr[0];")),
@@ -45,6 +45,10 @@ pub fn to_c2(root_node: &Nodes) -> String {
                     Instruction::ZeroSet => {
                         c_code.push_str("*ptr=0;");
                     }
+                    Instruction::AddOffset(offset, value) => todo!(),
+                    Instruction::SubOffset(_, _) => todo!(),
+                    Instruction::OutputOffset(_) => todo!(),
+                    Instruction::ZeroSetOffset(_) => todo!(),
                     ins => panic!("unimplemented instruction. {ins:?}"),
                 },
             }

@@ -25,7 +25,7 @@ impl Optimizer for AddOptimizer {
                     if ptr_increment == ptr_decrement {
                         return Some(
                             [
-                                Node::Instruction(AddTo(*ptr_increment)),
+                                Node::Instruction(AddTo(*ptr_increment as isize)),
                                 Node::Instruction(ZeroSet),
                             ]
                             .into(),
@@ -45,7 +45,7 @@ impl Optimizer for AddOptimizer {
                     if ptr_decrement == ptr_increment {
                         return Some(
                             [
-                                Node::Instruction(AddToRev(*ptr_decrement)),
+                                Node::Instruction(AddTo(-(*ptr_decrement as isize))),
                                 Node::Instruction(ZeroSet),
                             ]
                             .into(),
@@ -251,8 +251,7 @@ pub fn offset_opt(nodes: &Nodes) -> Nodes {
             for (offset, instructions) in offset_map {
                 for instruction in instructions.inner {
                     let instruction = match instruction {
-                        Add(1) if offset > 0 => AddTo(offset as usize),
-                        Add(1) if offset < 0 => AddToRev(-offset as usize),
+                        Add(1) => AddTo(offset),
                         Add(value) if offset > 0 => MulAdd(offset as usize, value),
                         Add(value) if offset < 0 => MulAddRev(-offset as usize, value),
                         Sub(1) if offset > 0 => SubTo(offset as usize),
@@ -421,8 +420,8 @@ mod test {
     #[rstest(input, expected,
         case("[->>>+<<<]", Some([Node::Instruction(AddTo(3)), Node::Instruction(ZeroSet)].into())),
         case("[>>>+<<<-]", Some([Node::Instruction(AddTo(3)), Node::Instruction(ZeroSet)].into())),
-        case("[-<<<+>>>]", Some([Node::Instruction(AddToRev(3)), Node::Instruction(ZeroSet)].into())),
-        case("[<<<+>>>-]", Some([Node::Instruction(AddToRev(3)), Node::Instruction(ZeroSet)].into())),
+        case("[-<<<+>>>]", Some([Node::Instruction(AddTo(-3)), Node::Instruction(ZeroSet)].into())),
+        case("[<<<+>>>-]", Some([Node::Instruction(AddTo(-3)), Node::Instruction(ZeroSet)].into())),
         case("[-<<<++>>>]", None),
     )]
     fn test_add_opt(input: &str, expected: Option<Nodes>) {
