@@ -13,8 +13,7 @@ pub enum Instruction {
     AddTo(isize),
     Sub(u8),
     SubOffset(isize, u8),
-    SubTo(usize),
-    SubToRev(usize),
+    SubTo(isize),
     MulAdd(usize, u8),
     MulAddRev(usize, u8),
     Output(usize),
@@ -49,7 +48,6 @@ impl Instruction {
             Instruction::Input(n) => Some(format!("{},", n)),
             Instruction::AddTo(_)
             | Instruction::SubTo(_)
-            | Instruction::SubToRev(_)
             | Instruction::MulAdd(_, _)
             | Instruction::MulAddRev(_, _)
             | Instruction::ZeroSet
@@ -71,7 +69,6 @@ impl Instruction {
             Instruction::Input(n) => Some(",".repeat(n)),
             Instruction::AddTo(_)
             | Instruction::SubTo(_)
-            | Instruction::SubToRev(_)
             | Instruction::MulAdd(_, _)
             | Instruction::MulAddRev(_, _)
             | Instruction::ZeroSet
@@ -117,7 +114,7 @@ impl Instruction {
             }
             (PtrDecrement(x), PtrDecrement(y)) => Some(PtrDecrement(x + y)),
             (ZeroSet, ZeroSet) => Some(ZeroSet),
-            (ZeroSet, AddTo(_) | SubTo(_) | SubToRev(_)) => Some(ZeroSet),
+            (ZeroSet, AddTo(_) | SubTo(_)) => Some(ZeroSet),
             (Add(_) | Sub(_), ZeroSet) => Some(ZeroSet),
             // (AddOffset(x_offset, x), AddOffset(y_offset, y)) if x_offset == y_offset => {
             //     Some(AddOffset(x_offset, x.wrapping_add(y)))

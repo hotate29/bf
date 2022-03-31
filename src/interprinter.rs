@@ -230,12 +230,9 @@ impl<R: Read, W: Write> InterPrinter<R, W> {
                         }
                         Instruction::SubTo(offset) => {
                             let value = self.state.at();
-                            self.state.sub(offset as isize, value)?;
-                        }
-                        Instruction::SubToRev(offset) => {
-                            let value = self.state.at();
+                            // 後ろを参照するので、ここはちゃんと確認
                             if value != 0 {
-                                self.state.sub(-(offset as isize), value)?;
+                                self.state.sub(offset, value)?;
                             }
                         }
                         Instruction::MulAdd(offset, value) => {

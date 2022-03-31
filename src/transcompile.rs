@@ -20,9 +20,11 @@ pub fn to_c2(root_node: &Nodes) -> String {
                     Instruction::AddTo(offset) if *offset > 0 => {
                         c_code.push_str(&format!("if(ptr[0]!=0){{*(ptr-{offset})+=ptr[0];}}"))
                     }
-                    Instruction::SubTo(n) => c_code.push_str(&format!("ptr[{n}]-=ptr[0];")),
-                    Instruction::SubToRev(n) => {
-                        c_code.push_str(&format!("if(ptr[0]!=0){{*(ptr-{n})-=ptr[0];}}"))
+                    Instruction::SubTo(offset) if *offset >= 0 => {
+                        c_code.push_str(&format!("ptr[{offset}]-=ptr[0];"))
+                    }
+                    Instruction::SubTo(offset) if *offset < 0 => {
+                        c_code.push_str(&format!("if(ptr[0]!=0){{*(ptr-{offset})-=ptr[0];}}"))
                     }
                     Instruction::Sub(n) => c_code.push_str(&format!("*ptr-={n};")),
                     Instruction::Output(n) => {

@@ -78,7 +78,7 @@ impl Optimizer for SubOptimizer {
                     if ptr_increment == ptr_decrement {
                         return Some(
                             [
-                                Node::Instruction(SubTo(*ptr_increment)),
+                                Node::Instruction(SubTo(*ptr_increment as isize)),
                                 Node::Instruction(ZeroSet),
                             ]
                             .into(),
@@ -98,7 +98,7 @@ impl Optimizer for SubOptimizer {
                     if ptr_decrement == ptr_increment {
                         return Some(
                             [
-                                Node::Instruction(SubToRev(*ptr_decrement)),
+                                Node::Instruction(SubTo(-(*ptr_decrement as isize))),
                                 Node::Instruction(ZeroSet),
                             ]
                             .into(),
@@ -254,9 +254,8 @@ pub fn offset_opt(nodes: &Nodes) -> Nodes {
                         Add(1) => AddTo(offset),
                         Add(value) if offset > 0 => MulAdd(offset as usize, value),
                         Add(value) if offset < 0 => MulAddRev(-offset as usize, value),
-                        Sub(1) if offset > 0 => SubTo(offset as usize),
-                        Sub(1) if offset < 0 => SubToRev(-offset as usize),
                         Sub(1) if offset == 0 => continue,
+                        Sub(1) => SubTo(offset),
                         Output(_) => OutputOffset(offset),
                         // Input(_) => todo!(),
                         // ZeroSet => ZeroSetOffset(offset),
@@ -431,8 +430,8 @@ mod test {
     #[rstest(input, expected,
         case("[->>>-<<<]", Some([Node::Instruction(SubTo(3)), Node::Instruction(ZeroSet)].into())),
         case("[>>>-<<<-]", Some([Node::Instruction(SubTo(3)), Node::Instruction(ZeroSet)].into())),
-        case("[-<<<->>>]", Some([Node::Instruction(SubToRev(3)), Node::Instruction(ZeroSet)].into())),
-        case("[<<<->>>-]", Some([Node::Instruction(SubToRev(3)), Node::Instruction(ZeroSet)].into())),
+        case("[-<<<->>>]", Some([Node::Instruction(SubTo(-3)), Node::Instruction(ZeroSet)].into())),
+        case("[<<<->>>-]", Some([Node::Instruction(SubTo(-3)), Node::Instruction(ZeroSet)].into())),
         case("[-<<<-->>>]", None),
     )]
     fn test_sub_opt(input: &str, expected: Option<Nodes>) {
