@@ -305,7 +305,7 @@ pub fn offset_opt(nodes: &Nodes) -> Nodes {
                         Sub(1) if offset == 0 => continue,
                         Output(_) => OutputOffset(offset),
                         // Input(_) => todo!(),
-                        ZeroSet => ZeroSetOffset(offset),
+                        // ZeroSet => ZeroSetOffset(offset),
                         _ => panic!(),
                     };
                     new_nodes.push_back(Node::Instruction(instruction));
