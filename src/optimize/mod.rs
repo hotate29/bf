@@ -336,7 +336,7 @@ impl Instructions {
     }
 }
 
-pub fn offset_opt(nodes: &Nodes) -> Nodes {
+fn offset_opt(nodes: &Nodes) -> Nodes {
     fn inner(nodes: &Nodes) -> Nodes {
         let mut new_nodes = Nodes::new();
 
