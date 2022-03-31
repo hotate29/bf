@@ -122,34 +122,34 @@ impl Instruction {
             (ZeroSet, ZeroSet) => Some(ZeroSet),
             (ZeroSet, AddTo(_) | AddToRev(_) | SubTo(_) | SubToRev(_)) => Some(ZeroSet),
             (Add(_) | Sub(_), ZeroSet) => Some(ZeroSet),
-            (AddOffset(x_offset, x), AddOffset(y_offset, y)) if x_offset == y_offset => {
-                Some(AddOffset(x_offset, x.wrapping_add(y)))
-            }
-            (SubOffset(x_offset, x), SubOffset(y_offset, y)) if x_offset == y_offset => {
-                Some(SubOffset(x_offset, x.wrapping_add(y)))
-            }
-            (AddOffset(offset, x), Add(y)) => Some(AddOffset(offset, x.wrapping_add(y))),
-            (SubOffset(offset, x), Sub(y)) => Some(SubOffset(offset, x.wrapping_add(y))),
-            (AddOffset(add_offset, x), SubOffset(sub_offset, y)) if add_offset == sub_offset => {
-                let x = x as i16;
-                let y = y as i16;
-                let z = x - y;
-                if z < 0 {
-                    Some(SubOffset(add_offset, (-z) as u8))
-                } else {
-                    Some(AddOffset(add_offset, z as u8))
-                }
-            }
-            (SubOffset(sub_offset, x), AddOffset(add_offset, y)) if add_offset == sub_offset => {
-                let x = x as i16;
-                let y = y as i16;
-                let z = x - y;
-                if z < 0 {
-                    Some(AddOffset(add_offset, (-z) as u8))
-                } else {
-                    Some(SubOffset(add_offset, z as u8))
-                }
-            }
+            // (AddOffset(x_offset, x), AddOffset(y_offset, y)) if x_offset == y_offset => {
+            //     Some(AddOffset(x_offset, x.wrapping_add(y)))
+            // }
+            // (SubOffset(x_offset, x), SubOffset(y_offset, y)) if x_offset == y_offset => {
+            //     Some(SubOffset(x_offset, x.wrapping_add(y)))
+            // }
+            // (AddOffset(offset, x), Add(y)) => Some(AddOffset(offset, x.wrapping_add(y))),
+            // (SubOffset(offset, x), Sub(y)) => Some(SubOffset(offset, x.wrapping_add(y))),
+            // (AddOffset(add_offset, x), SubOffset(sub_offset, y)) if add_offset == sub_offset => {
+            //     let x = x as i16;
+            //     let y = y as i16;
+            //     let z = x - y;
+            //     if z < 0 {
+            //         Some(SubOffset(add_offset, (-z) as u8))
+            //     } else {
+            //         Some(AddOffset(add_offset, z as u8))
+            //     }
+            // }
+            // (SubOffset(sub_offset, x), AddOffset(add_offset, y)) if add_offset == sub_offset => {
+            //     let x = x as i16;
+            //     let y = y as i16;
+            //     let z = x - y;
+            //     if z < 0 {
+            //         Some(AddOffset(add_offset, (-z) as u8))
+            //     } else {
+            //         Some(SubOffset(add_offset, z as u8))
+            //     }
+            // }
             (ins, instruction) if ins.is_no_action() => Some(instruction),
             (_, _) => None,
         }
