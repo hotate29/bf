@@ -471,7 +471,8 @@ pub fn optimize(nodes: Nodes, optimizers: &[Box<dyn Optimizer>]) -> Nodes {
 
         for node in nodes {
             let node = if let Node::Loop(loop_nodes) = node {
-                Node::Loop(merge_instruction(loop_nodes))
+                let loop_nodes = merge_instruction(loop_nodes);
+                Node::Loop(inner(loop_nodes, optimizers))
             } else {
                 node
             };
@@ -482,9 +483,6 @@ pub fn optimize(nodes: Nodes, optimizers: &[Box<dyn Optimizer>]) -> Nodes {
 
             if let Some(mut optimized_node) = optimized_node {
                 new_nodes.append(&mut optimized_node);
-            } else if let Node::Loop(loop_nodes) = node {
-                let optimized_nodes = inner(loop_nodes, optimizers);
-                new_nodes.push_back(Node::Loop(optimized_nodes));
             } else {
                 new_nodes.push_back(node);
             }
