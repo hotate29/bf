@@ -1,7 +1,9 @@
 use crate::instruction::Instruction;
 use crate::parse::Nodes;
 
-use std::io::prelude::*;
+use std::io::{self, Read, Write};
+
+use thiserror::Error;
 
 type Result<T> = std::result::Result<T, Error>;
 
@@ -50,14 +52,12 @@ impl State {
         }
     }
     fn add(&mut self, offset: isize, value: u8) -> Result<()> {
-        let a = self.at_offset_mut(offset)?;
-        *a = a.wrapping_add(value);
-        Ok(())
+        self.at_offset_mut(offset)
+            .map(|a| *a = a.wrapping_add(value))
     }
     fn sub(&mut self, offset: isize, value: u8) -> Result<()> {
-        let a = self.at_offset_mut(offset)?;
-        *a = a.wrapping_sub(value);
-        Ok(())
+        self.at_offset_mut(offset)
+            .map(|a| *a = a.wrapping_sub(value))
     }
     fn pointer_add(&mut self, value: usize) {
         self.pointer += value;
@@ -74,13 +74,13 @@ impl State {
     }
     fn output(&mut self, offset: isize, writer: &mut impl Write) -> Result<()> {
         let value = self.at_offset(offset)?;
-        writer.write_all(&[value]).unwrap();
-        writer.flush().unwrap();
+        writer.write_all(&[value])?;
+        writer.flush()?;
         Ok(())
     }
     fn input(&mut self, reader: &mut impl Read) -> Result<()> {
         let mut buf = [0];
-        reader.read_exact(&mut buf).unwrap();
+        reader.read_exact(&mut buf)?;
         *self.at_offset_mut(0)? = buf[0];
         Ok(())
     }
@@ -119,8 +119,11 @@ fn node_to_c_instructions(nodes: &Nodes) -> Vec<CInstruction> {
     instructions
 }
 
-#[derive(Debug)]
+#[derive(Debug, Error)]
 pub enum Error {
+    #[error("{0}")]
+    IoError(#[from] io::Error),
+    #[error("{0}")]
     NegativePointer(isize),
 }
 
