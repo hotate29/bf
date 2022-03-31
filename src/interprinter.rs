@@ -334,117 +334,117 @@ impl<'a, R: Read, W: Write> InterPrinterBuilder<'a, R, W> {
     }
 }
 
-// #[cfg(test)]
-// mod test {
-//     use std::{fs, io};
+#[cfg(test)]
+mod test {
+    use std::{fs, io};
 
-//     use crate::{
-//         optimize::optimize,
-//         parse::{tokenize, Node, Nodes},
-//     };
+    use crate::{
+        optimize::{all_optimizers, optimize},
+        parse::{tokenize, Node, Nodes},
+    };
 
-//     use super::InterPrinter;
+    use super::InterPrinter;
 
-//     fn node_from_source(source: &str) -> Nodes {
-//         let tokens = tokenize(source);
-//         Node::from_tokens(tokens).unwrap()
-//     }
-//     fn node_from_source_optimized(source: &str) -> Nodes {
-//         let tokens = tokenize(source);
-//         let nodes = Node::from_tokens(tokens).unwrap();
-//         optimize(nodes)
-//     }
+    fn node_from_source(source: &str) -> Nodes {
+        let tokens = tokenize(source);
+        Node::from_tokens(tokens).unwrap()
+    }
+    fn node_from_source_optimized(source: &str) -> Nodes {
+        let tokens = tokenize(source);
+        let nodes = Node::from_tokens(tokens).unwrap();
+        optimize(nodes, &all_optimizers())
+    }
 
-//     #[test]
-//     fn test_memory_extend() {
-//         let source = ">".repeat(30001);
-//         let root_node = node_from_source(&source);
+    #[test]
+    fn test_memory_extend() {
+        let source = ">".repeat(30001);
+        let root_node = node_from_source(&source);
 
-//         InterPrinter::builder()
-//             .root_node(&root_node)
-//             .input(io::empty())
-//             .output(io::sink())
-//             .build()
-//             .count();
-//     }
+        InterPrinter::builder()
+            .root_node(&root_node)
+            .input(io::empty())
+            .output(io::sink())
+            .build()
+            .count();
+    }
 
-//     // デバックビルドだとめちゃくちゃ時間がかかるので、デフォルトでは実行しないようになっている
-//     // 実行する場合は、`cargo test --release -- --ignored`
-//     #[test]
-//     #[ignore]
-//     fn test_interprinter_mandelbrot() {
-//         let mandelbrot_source = fs::read_to_string("mandelbrot.bf").unwrap();
-//         let assert_mandelbrot = fs::read_to_string("mandelbrot").unwrap();
+    // デバックビルドだとめちゃくちゃ時間がかかるので、デフォルトでは実行しないようになっている
+    // 実行する場合は、`cargo test --release -- --ignored`
+    #[test]
+    #[ignore]
+    fn test_interprinter_mandelbrot() {
+        let mandelbrot_source = fs::read_to_string("mandelbrot.bf").unwrap();
+        let assert_mandelbrot = fs::read_to_string("mandelbrot").unwrap();
 
-//         let root_node = node_from_source(&mandelbrot_source);
+        let root_node = node_from_source(&mandelbrot_source);
 
-//         let mut output_buffer = Vec::new();
+        let mut output_buffer = Vec::new();
 
-//         InterPrinter::builder()
-//             .root_node(&root_node)
-//             .input(io::empty())
-//             .output(&mut output_buffer)
-//             .build()
-//             .count();
+        InterPrinter::builder()
+            .root_node(&root_node)
+            .input(io::empty())
+            .output(&mut output_buffer)
+            .build()
+            .count();
 
-//         let output_string = String::from_utf8(output_buffer).unwrap();
-//         assert_eq!(output_string, assert_mandelbrot);
-//     }
+        let output_string = String::from_utf8(output_buffer).unwrap();
+        assert_eq!(output_string, assert_mandelbrot);
+    }
 
-//     #[test]
-//     #[ignore]
-//     fn test_optimized_interprinter_mandelbrot() {
-//         let mandelbrot_source = fs::read_to_string("mandelbrot.bf").unwrap();
-//         let assert_mandelbrot = fs::read_to_string("mandelbrot").unwrap();
+    #[test]
+    #[ignore]
+    fn test_optimized_interprinter_mandelbrot() {
+        let mandelbrot_source = fs::read_to_string("mandelbrot.bf").unwrap();
+        let assert_mandelbrot = fs::read_to_string("mandelbrot").unwrap();
 
-//         let root_node = node_from_source_optimized(&mandelbrot_source);
+        let root_node = node_from_source_optimized(&mandelbrot_source);
 
-//         let mut output_buffer = Vec::new();
+        let mut output_buffer = Vec::new();
 
-//         InterPrinter::builder()
-//             .root_node(&root_node)
-//             .input(io::empty())
-//             .output(&mut output_buffer)
-//             .build()
-//             .count();
+        InterPrinter::builder()
+            .root_node(&root_node)
+            .input(io::empty())
+            .output(&mut output_buffer)
+            .build()
+            .count();
 
-//         let output_string = String::from_utf8(output_buffer).unwrap();
-//         assert_eq!(output_string, assert_mandelbrot);
-//     }
-//     #[test]
-//     fn test_hello_world_interprinter() {
-//         let hello_world = ">+++++++++[<++++++++>-]<.>+++++++[<++++>-]<+.+++++++..+++.[-]>++++++++[<++++>-]<.>+++++++++++[<+++++>-]<.>++++++++[<+++>-]<.+++.------.--------.[-]>++++++++[<++++>-]<+.[-]++++++++++.";
+        let output_string = String::from_utf8(output_buffer).unwrap();
+        assert_eq!(output_string, assert_mandelbrot);
+    }
+    #[test]
+    fn test_hello_world_interprinter() {
+        let hello_world = ">+++++++++[<++++++++>-]<.>+++++++[<++++>-]<+.+++++++..+++.[-]>++++++++[<++++>-]<.>+++++++++++[<+++++>-]<.>++++++++[<+++>-]<.+++.------.--------.[-]>++++++++[<++++>-]<+.[-]++++++++++.";
 
-//         let root_node = node_from_source(hello_world);
+        let root_node = node_from_source(hello_world);
 
-//         let mut output_buffer = vec![];
+        let mut output_buffer = vec![];
 
-//         InterPrinter::builder()
-//             .root_node(&root_node)
-//             .input(io::empty())
-//             .output(&mut output_buffer)
-//             .build()
-//             .count();
+        InterPrinter::builder()
+            .root_node(&root_node)
+            .input(io::empty())
+            .output(&mut output_buffer)
+            .build()
+            .count();
 
-//         let output = String::from_utf8(output_buffer).unwrap();
-//         assert_eq!(output, "Hello World!\n");
-//     }
-//     #[test]
-//     fn test_optimized_hello_world_interprinter() {
-//         let hello_world = ">+++++++++[<++++++++>-]<.>+++++++[<++++>-]<+.+++++++..+++.[-]>++++++++[<++++>-]<.>+++++++++++[<+++++>-]<.>++++++++[<+++>-]<.+++.------.--------.[-]>++++++++[<++++>-]<+.[-]++++++++++.";
+        let output = String::from_utf8(output_buffer).unwrap();
+        assert_eq!(output, "Hello World!\n");
+    }
+    #[test]
+    fn test_optimized_hello_world_interprinter() {
+        let hello_world = ">+++++++++[<++++++++>-]<.>+++++++[<++++>-]<+.+++++++..+++.[-]>++++++++[<++++>-]<.>+++++++++++[<+++++>-]<.>++++++++[<+++>-]<.+++.------.--------.[-]>++++++++[<++++>-]<+.[-]++++++++++.";
 
-//         let root_node = node_from_source_optimized(hello_world);
+        let root_node = node_from_source_optimized(hello_world);
 
-//         let mut output_buffer = vec![];
+        let mut output_buffer = vec![];
 
-//         InterPrinter::builder()
-//             .root_node(&root_node)
-//             .input(io::empty())
-//             .output(&mut output_buffer)
-//             .build()
-//             .count();
+        InterPrinter::builder()
+            .root_node(&root_node)
+            .input(io::empty())
+            .output(&mut output_buffer)
+            .build()
+            .count();
 
-//         let output = String::from_utf8(output_buffer).unwrap();
-//         assert_eq!(output, "Hello World!\n");
-//     }
-// }
+        let output = String::from_utf8(output_buffer).unwrap();
+        assert_eq!(output, "Hello World!\n");
+    }
+}
