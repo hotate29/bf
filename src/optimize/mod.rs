@@ -500,7 +500,7 @@ mod test {
         parse::{tokenize, Node, Nodes},
     };
 
-    use super::{add_opt, merge_instruction, sub_opt};
+    use super::{merge_instruction, Optimizer, ZeroSetOptimizer};
 
     #[test]
     fn test_merge_instruction() {
@@ -514,7 +514,7 @@ mod test {
         .into();
         assert_eq!(merge_instruction(nodes), [Node::Instruction(Add(1))].into());
     }
-    fn optimize_node(code: &str, optimizer: impl FnOnce(&Node) -> Option<Nodes>) -> Option<Nodes> {
+    fn optimize_node(code: &str, optimizer: impl Optimizer) -> Option<Nodes> {
         let tokens = tokenize(code);
         let mut nodes = Node::from_tokens(tokens).unwrap();
         if nodes.len() == 1 {
@@ -522,7 +522,7 @@ mod test {
                 let merged_loop_node = merge_instruction(loop_nodes);
                 let loop_node = Node::Loop(merged_loop_node);
 
-                optimizer(&loop_node)
+                optimizer.optimize_node(&loop_node)
             } else {
                 panic!()
             }
@@ -531,81 +531,77 @@ mod test {
         }
     }
 
-    fn assert_node(
-        optimizer: impl FnOnce(&Node) -> Option<Nodes>,
-        code: &str,
-        node: Option<Nodes>,
-    ) {
+    fn assert_node(optimizer: impl Optimizer, code: &str, node: Option<Nodes>) {
         let optimized_node = optimize_node(code, optimizer);
         assert_eq!(node, optimized_node);
     }
 
+    #[test]
+    fn test_zeroset_opt() {
+        assert_node(
+            ZeroSetOptimizer,
+            "[-]",
+            Some([Node::Instruction(ZeroSet)].into()),
+        );
+
+        assert_node(
+            ZeroSetOptimizer,
+            "[+]",
+            Some([Node::Instruction(ZeroSet)].into()),
+        );
+
+        assert_node(ZeroSetOptimizer, "[--]", None);
+    }
+
     // #[test]
-    // fn test_zeroset_opt() {
+    // fn test_add_opt() {
     //     assert_node(
-    //         zeroset_opt,
-    //         "[-]",
-    //         Some([Node::Instruction(ZeroSet)].into()),
+    //         add_opt,
+    //         "[->>>+<<<]",
+    //         Some([Node::Instruction(AddTo(3)), Node::Instruction(ZeroSet)].into()),
+    //     );
+    //     assert_node(
+    //         add_opt,
+    //         "[>>>+<<<-]",
+    //         Some([Node::Instruction(AddTo(3)), Node::Instruction(ZeroSet)].into()),
     //     );
 
     //     assert_node(
-    //         zeroset_opt,
-    //         "[+]",
-    //         Some([Node::Instruction(ZeroSet)].into()),
+    //         add_opt,
+    //         "[-<<<+>>>]",
+    //         Some([Node::Instruction(AddToRev(3)), Node::Instruction(ZeroSet)].into()),
+    //     );
+    //     assert_node(
+    //         add_opt,
+    //         "[<<<+>>>-]",
+    //         Some([Node::Instruction(AddToRev(3)), Node::Instruction(ZeroSet)].into()),
     //     );
 
-    //     assert_node(zeroset_opt, "[--]", None);
+    //     assert_node(add_opt, "[-<<<++>>>]", None);
     // }
 
-    #[test]
-    fn test_add_opt() {
-        assert_node(
-            add_opt,
-            "[->>>+<<<]",
-            Some([Node::Instruction(AddTo(3)), Node::Instruction(ZeroSet)].into()),
-        );
-        assert_node(
-            add_opt,
-            "[>>>+<<<-]",
-            Some([Node::Instruction(AddTo(3)), Node::Instruction(ZeroSet)].into()),
-        );
+    // #[test]
+    // fn test_sub_opt() {
+    //     assert_node(
+    //         sub_opt,
+    //         "[->>>-<<<]",
+    //         Some([Node::Instruction(SubTo(3)), Node::Instruction(ZeroSet)].into()),
+    //     );
+    //     assert_node(
+    //         sub_opt,
+    //         "[>>>-<<<-]",
+    //         Some([Node::Instruction(SubTo(3)), Node::Instruction(ZeroSet)].into()),
+    //     );
 
-        assert_node(
-            add_opt,
-            "[-<<<+>>>]",
-            Some([Node::Instruction(AddToRev(3)), Node::Instruction(ZeroSet)].into()),
-        );
-        assert_node(
-            add_opt,
-            "[<<<+>>>-]",
-            Some([Node::Instruction(AddToRev(3)), Node::Instruction(ZeroSet)].into()),
-        );
-
-        assert_node(add_opt, "[-<<<++>>>]", None);
-    }
-
-    #[test]
-    fn test_sub_opt() {
-        assert_node(
-            sub_opt,
-            "[->>>-<<<]",
-            Some([Node::Instruction(SubTo(3)), Node::Instruction(ZeroSet)].into()),
-        );
-        assert_node(
-            sub_opt,
-            "[>>>-<<<-]",
-            Some([Node::Instruction(SubTo(3)), Node::Instruction(ZeroSet)].into()),
-        );
-
-        assert_node(
-            sub_opt,
-            "[-<<<->>>]",
-            Some([Node::Instruction(SubToRev(3)), Node::Instruction(ZeroSet)].into()),
-        );
-        assert_node(
-            sub_opt,
-            "[<<<->>>-]",
-            Some([Node::Instruction(SubToRev(3)), Node::Instruction(ZeroSet)].into()),
-        );
-    }
+    //     assert_node(
+    //         sub_opt,
+    //         "[-<<<->>>]",
+    //         Some([Node::Instruction(SubToRev(3)), Node::Instruction(ZeroSet)].into()),
+    //     );
+    //     assert_node(
+    //         sub_opt,
+    //         "[<<<->>>-]",
+    //         Some([Node::Instruction(SubToRev(3)), Node::Instruction(ZeroSet)].into()),
+    //     );
+    // }
 }
