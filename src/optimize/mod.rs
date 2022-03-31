@@ -218,6 +218,7 @@ impl Instructions {
 }
 
 pub fn offset_opt(nodes: &Nodes) -> Nodes {
+    #[derive(Debug)]
     enum Nod {
         Loop(Nodes),
         Instructions(Nodes),
@@ -292,7 +293,7 @@ pub fn offset_opt(nodes: &Nodes) -> Nodes {
         {
             // 最適化をするぞ！バリバリ！
             // 注: ここで出力するのは命令列で、ループではない。これの扱いをどうする？
-            for (offset, instructions) in (offset_map) {
+            for (offset, instructions) in offset_map {
                 for instruction in instructions.inner {
                     let instruction = match instruction {
                         Add(1) if offset > 0 => AddTo(offset as usize),
