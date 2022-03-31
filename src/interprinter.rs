@@ -10,18 +10,22 @@ type Result<T> = std::result::Result<T, Error>;
 struct Memory(Vec<u8>);
 
 impl Memory {
+    #[inline]
     fn extend(&mut self, index: usize) {
         if self.0.len() <= index + 1 {
             self.0.resize(self.0.len() * 2 + index + 1, 0);
         }
     }
+    #[inline]
     fn inner(&self) -> &Vec<u8> {
         &self.0
     }
+    #[inline]
     fn get(&mut self, index: usize) -> u8 {
         self.extend(index);
         self.0[index]
     }
+    #[inline]
     fn get_mut(&mut self, index: usize) -> &mut u8 {
         self.extend(index);
         &mut self.0[index]
@@ -33,12 +37,15 @@ struct State {
     memory: Memory,
 }
 impl State {
+    #[inline]
     fn at(&mut self) -> u8 {
         self.memory.get(self.pointer)
     }
+    #[inline]
     fn at_offset(&mut self, offset: isize) -> Result<u8> {
         self.at_offset_mut(offset).map(|v| *v)
     }
+    #[inline]
     fn at_offset_mut(&mut self, offset: isize) -> Result<&mut u8> {
         if offset <= 0 {
             let p = self.pointer as isize + offset;
@@ -51,17 +58,21 @@ impl State {
             Ok(self.memory.get_mut(self.pointer + offset as usize))
         }
     }
+    #[inline]
     fn add(&mut self, offset: isize, value: u8) -> Result<()> {
         self.at_offset_mut(offset)
             .map(|a| *a = a.wrapping_add(value))
     }
+    #[inline]
     fn sub(&mut self, offset: isize, value: u8) -> Result<()> {
         self.at_offset_mut(offset)
             .map(|a| *a = a.wrapping_sub(value))
     }
+    #[inline]
     fn pointer_add(&mut self, value: usize) {
         self.pointer += value;
     }
+    #[inline]
     fn pointer_sub(&mut self, value: usize) -> Result<()> {
         if self.pointer < value {
             Err(Error::NegativePointer(
@@ -72,12 +83,14 @@ impl State {
             Ok(())
         }
     }
+    #[inline]
     fn output(&mut self, offset: isize, writer: &mut impl Write) -> Result<()> {
         let value = self.at_offset(offset)?;
         writer.write_all(&[value])?;
         writer.flush()?;
         Ok(())
     }
+    #[inline]
     fn input(&mut self, reader: &mut impl Read) -> Result<()> {
         let mut buf = [0];
         reader.read_exact(&mut buf)?;
