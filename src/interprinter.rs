@@ -339,6 +339,7 @@ mod test {
     use std::{fs, io};
 
     use crate::{
+        interprinter::Memory,
         optimize::{all_optimizers, optimize},
         parse::{tokenize, Node, Nodes},
     };
@@ -357,15 +358,19 @@ mod test {
 
     #[test]
     fn test_memory_extend() {
-        let source = ">".repeat(30001);
-        let root_node = node_from_source(&source);
+        {
+            let mut memory = Memory(Vec::new());
+            memory.get(0); // 自動で伸びるはず...!
 
-        InterPrinter::builder()
-            .root_node(&root_node)
-            .input(io::empty())
-            .output(io::sink())
-            .build()
-            .count();
+            assert!(!memory.0.is_empty());
+        }
+
+        {
+            let mut memory = Memory(Vec::new());
+            memory.get_mut(0); // 自動で伸びるはず...!2
+
+            assert!(!memory.0.is_empty());
+        }
     }
 
     // デバックビルドだとめちゃくちゃ時間がかかるので、デフォルトでは実行しないようになっている
