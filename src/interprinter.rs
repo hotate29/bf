@@ -190,7 +190,7 @@ impl<R: Read, W: Write> InterPrinter<R, W> {
                         Instruction::AddToRev(offset) | Instruction::CopyRev(offset) => {
                             let value = self.state.at();
                             if value != 0 {
-                                self.state.add(offset as isize, value)?;
+                                self.state.add(-(offset as isize), value)?;
                             }
                         }
                         Instruction::Sub(n) => {
@@ -203,7 +203,7 @@ impl<R: Read, W: Write> InterPrinter<R, W> {
                         Instruction::SubToRev(offset) => {
                             let value = self.state.at();
                             if value != 0 {
-                                self.state.sub(offset as isize, value)?;
+                                self.state.sub(-(offset as isize), value)?;
                             }
                         }
                         Instruction::MulAdd(offset, value) => {
