@@ -231,6 +231,7 @@ pub fn offset_opt(nodes: &Nodes) -> Nodes {
         let mut offset_map: BTreeMap<isize, Instructions> = BTreeMap::new();
 
         let mut has_loop = false;
+        let mut has_output = false;
 
         for node in nodes {
             match node {
@@ -268,6 +269,8 @@ pub fn offset_opt(nodes: &Nodes) -> Nodes {
                     pointer_offset = 0;
                 }
                 Node::Instruction(instruction) => {
+                    has_output |= matches!(instruction, Output(_));
+
                     match instruction {
                         PtrIncrement(inc) => pointer_offset += *inc as isize,
                         PtrDecrement(dec) => pointer_offset -= *dec as isize,
@@ -287,6 +290,8 @@ pub fn offset_opt(nodes: &Nodes) -> Nodes {
         if pointer_offset == 0
             && !has_loop
             && looop
+            // [->>>.<<<]を弾く
+            && !has_output
             && offset_map
                 .get(&0)
                 .filter(|ins| ins.inner() == &[Sub(1)])
@@ -294,6 +299,7 @@ pub fn offset_opt(nodes: &Nodes) -> Nodes {
         {
             // 最適化をするぞ！バリバリ！
             // 注: ここで出力するのは命令列で、ループではない。これの扱いをどうする？
+
             for (offset, instructions) in offset_map {
                 for instruction in instructions.inner {
                     let instruction = match instruction {
