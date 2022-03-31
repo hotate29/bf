@@ -58,9 +58,15 @@ impl State {
         self.pointer += value;
         self.memory_extend(value); // メモリーを伸ばす
     }
-    fn pointer_sub(&mut self, value: usize) {
-        assert!(self.pointer >= value, "ポインターがマイナスに");
-        self.pointer -= value;
+    fn pointer_sub(&mut self, value: usize) -> Result<()> {
+        if self.pointer < value {
+            Err(Error::NegativePointer(
+                self.pointer as isize - value as isize,
+            ))
+        } else {
+            self.pointer -= value;
+            Ok(())
+        }
     }
     fn output(&mut self, offset: isize, writer: &mut impl Write) -> Result<()> {
         let value = self.at_offset(offset)?;
@@ -181,7 +187,7 @@ impl<R: Read, W: Write> InterPrinter<R, W> {
                 CInstruction::Instruction(instruction) => {
                     match instruction {
                         Instruction::PtrIncrement(n) => self.state.pointer_add(n),
-                        Instruction::PtrDecrement(n) => self.state.pointer_sub(n),
+                        Instruction::PtrDecrement(n) => self.state.pointer_sub(n)?,
                         Instruction::Add(n) => self.state.add(0, n)?,
                         Instruction::AddTo(offset) | Instruction::Copy(offset) => {
                             let value = self.state.at();
