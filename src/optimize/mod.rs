@@ -218,81 +218,129 @@ impl Instructions {
 }
 
 pub fn offset_opt(nodes: &Nodes) -> Nodes {
-    let mut new_nodes = Nodes::new();
+    enum Nod {
+        Loop(Nodes),
+        Instructions(Nodes),
+    }
 
-    let mut pointer_offset = 0;
-    let mut offset_map: BTreeMap<isize, Instructions> = BTreeMap::new();
+    fn inner(nodes: &Nodes) -> Nod {
+        let mut new_nodes = Nodes::new();
 
-    for node in nodes {
-        match node {
-            Node::Loop(loop_nodes) => {
-                for (offset, instructions) in offset_map {
-                    for instruction in instructions.inner {
-                        let instruction = match instruction {
-                            Add(value) => AddOffset(offset, value),
-                            Sub(value) => SubOffset(offset, value),
-                            Output(_) => OutputOffset(offset),
-                            Input(_) => todo!(),
-                            ZeroSet => ZeroSetOffset(offset),
-                            _ => panic!(),
-                        };
-                        new_nodes.push_back(Node::Instruction(instruction));
+        let mut pointer_offset = 0;
+        let mut offset_map: BTreeMap<isize, Instructions> = BTreeMap::new();
+
+        let mut has_loop = false;
+
+        for node in nodes {
+            match node {
+                Node::Loop(loop_nodes) => {
+                    has_loop = true;
+
+                    for (offset, instructions) in offset_map {
+                        for instruction in instructions.inner {
+                            let instruction = match instruction {
+                                Add(value) => AddOffset(offset, value),
+                                Sub(value) => SubOffset(offset, value),
+                                Output(_) => OutputOffset(offset),
+                                Input(_) => todo!(),
+                                ZeroSet => ZeroSetOffset(offset),
+                                _ => panic!(),
+                            };
+                            new_nodes.push_back(Node::Instruction(instruction));
+                        }
                     }
-                }
 
-                match pointer_offset.cmp(&0) {
-                    Ordering::Less => new_nodes
-                        .push_back(Node::Instruction(PtrDecrement(-pointer_offset as usize))),
-                    Ordering::Greater => new_nodes
-                        .push_back(Node::Instruction(PtrIncrement(pointer_offset as usize))),
-                    Ordering::Equal => (),
-                }
-
-                new_nodes.push_back(Node::Loop(offset_opt(loop_nodes)));
-                offset_map = BTreeMap::new();
-                pointer_offset = 0;
-            }
-            Node::Instruction(instruction) => {
-                match instruction {
-                    PtrIncrement(inc) => pointer_offset += *inc as isize,
-                    PtrDecrement(dec) => pointer_offset -= *dec as isize,
-                    ins @ (Add(_) | Sub(_) | Output(_) | ZeroSet) => {
-                        offset_map
-                            .entry(pointer_offset)
-                            .and_modify(|instructions| instructions.push(*ins))
-                            .or_insert_with(|| Instructions::from_ins(*ins));
+                    match pointer_offset.cmp(&0) {
+                        Ordering::Less => new_nodes
+                            .push_back(Node::Instruction(PtrDecrement(-pointer_offset as usize))),
+                        Ordering::Greater => new_nodes
+                            .push_back(Node::Instruction(PtrIncrement(pointer_offset as usize))),
+                        Ordering::Equal => (),
                     }
-                    Input(_) => todo!(),
-                    _ => panic!(),
-                };
+
+                    match inner(loop_nodes) {
+                        Nod::Loop(loop_nodes) => new_nodes.push_back(Node::Loop(loop_nodes)),
+                        Nod::Instructions(mut instructions) => new_nodes.append(&mut instructions),
+                    }
+
+                    offset_map = BTreeMap::new();
+                    pointer_offset = 0;
+                }
+                Node::Instruction(instruction) => {
+                    match instruction {
+                        PtrIncrement(inc) => pointer_offset += *inc as isize,
+                        PtrDecrement(dec) => pointer_offset -= *dec as isize,
+                        ins @ (Add(_) | Sub(_) | Output(_) | ZeroSet) => {
+                            offset_map
+                                .entry(pointer_offset)
+                                .and_modify(|instructions| instructions.push(*ins))
+                                .or_insert_with(|| Instructions::from_ins(*ins));
+                        }
+                        Input(_) => todo!(),
+                        _ => panic!(),
+                    };
+                }
             }
         }
-    }
 
-    for (offset, instructions) in offset_map {
-        for instruction in instructions.inner {
-            let instruction = match instruction {
-                Add(value) => AddOffset(offset, value),
-                Sub(value) => SubOffset(offset, value),
-                Output(_) => OutputOffset(offset),
-                Input(_) => todo!(),
-                ZeroSet => ZeroSetOffset(offset),
-                _ => panic!(),
-            };
-            new_nodes.push_back(Node::Instruction(instruction));
+        if pointer_offset == 0
+            && !has_loop
+            && offset_map
+                .get(&0)
+                .filter(|ins| ins.inner() == &[Sub(1)])
+                .is_some()
+        {
+            // 最適化をするぞ！バリバリ！
+            // 注: ここで出力するのは命令列で、ループではない。これの扱いをどうする？
+            for (offset, instructions) in (offset_map) {
+                for instruction in instructions.inner {
+                    let instruction = match instruction {
+                        Add(1) if offset > 0 => AddTo(offset as usize),
+                        Add(1) if offset < 0 => AddToRev(-offset as usize),
+                        Add(value) if offset > 0 => MulAdd(offset as usize, value),
+                        Add(value) if offset < 0 => MulAddRev(-offset as usize, value),
+                        Sub(1) if offset > 0 => SubTo(offset as usize),
+                        Sub(1) if offset < 0 => SubToRev(-offset as usize),
+                        Sub(1) if offset == 0 => continue,
+                        Output(_) => OutputOffset(offset),
+                        // Input(_) => todo!(),
+                        ZeroSet => ZeroSetOffset(offset),
+                        _ => panic!(),
+                    };
+                    new_nodes.push_back(Node::Instruction(instruction));
+                }
+            }
+            new_nodes.push_back(Node::Instruction(ZeroSet));
+            Nod::Instructions(new_nodes)
+        } else {
+            for (offset, instructions) in offset_map {
+                for instruction in instructions.inner {
+                    let instruction = match instruction {
+                        Add(value) => AddOffset(offset, value),
+                        Sub(value) => SubOffset(offset, value),
+                        Output(_) => OutputOffset(offset),
+                        Input(_) => todo!(),
+                        ZeroSet => ZeroSetOffset(offset),
+                        _ => panic!(),
+                    };
+                    new_nodes.push_back(Node::Instruction(instruction));
+                }
+            }
+            match pointer_offset.cmp(&0) {
+                Ordering::Less => {
+                    new_nodes.push_back(Node::Instruction(PtrDecrement(-pointer_offset as usize)))
+                }
+                Ordering::Greater => {
+                    new_nodes.push_back(Node::Instruction(PtrIncrement(pointer_offset as usize)))
+                }
+                Ordering::Equal => (),
+            }
+            Nod::Loop(new_nodes)
         }
     }
-    match pointer_offset.cmp(&0) {
-        Ordering::Less => {
-            new_nodes.push_back(Node::Instruction(PtrDecrement(-pointer_offset as usize)))
-        }
-        Ordering::Greater => {
-            new_nodes.push_back(Node::Instruction(PtrIncrement(pointer_offset as usize)))
-        }
-        Ordering::Equal => (),
+    match inner(nodes) {
+        Nod::Loop(nodes) | Nod::Instructions(nodes) => nodes,
     }
-
-    new_nodes
 }
 
 pub trait Optimizer {
