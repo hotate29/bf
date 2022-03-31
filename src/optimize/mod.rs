@@ -224,7 +224,7 @@ pub fn offset_opt(nodes: &Nodes) -> Nodes {
         Instructions(Nodes),
     }
 
-    fn inner(nodes: &Nodes) -> Nod {
+    fn inner(nodes: &Nodes, looop: bool) -> Nod {
         let mut new_nodes = Nodes::new();
 
         let mut pointer_offset = 0;
@@ -259,7 +259,7 @@ pub fn offset_opt(nodes: &Nodes) -> Nodes {
                         Ordering::Equal => (),
                     }
 
-                    match inner(loop_nodes) {
+                    match inner(loop_nodes, true) {
                         Nod::Loop(loop_nodes) => new_nodes.push_back(Node::Loop(loop_nodes)),
                         Nod::Instructions(mut instructions) => new_nodes.append(&mut instructions),
                     }
@@ -286,6 +286,7 @@ pub fn offset_opt(nodes: &Nodes) -> Nodes {
 
         if pointer_offset == 0
             && !has_loop
+            && looop
             && offset_map
                 .get(&0)
                 .filter(|ins| ins.inner() == &[Sub(1)])
@@ -339,7 +340,7 @@ pub fn offset_opt(nodes: &Nodes) -> Nodes {
             Nod::Loop(new_nodes)
         }
     }
-    match inner(nodes) {
+    match inner(nodes, false) {
         Nod::Loop(nodes) | Nod::Instructions(nodes) => nodes,
     }
 }
@@ -488,6 +489,7 @@ mod test {
     #[rstest(input, expected,
         case("+++", [Node::Instruction(AddOffset(0, 3))].into()),
         case("[[[]]]", [Node::Loop([Node::Loop([Node::Loop([].into())].into())].into())].into()),
+        case("->+<", [Node::Instruction(SubOffset(0, 1)), Node::Instruction(AddOffset(1, 1))].into()),
         case("[->>>-<<<]", [Node::Instruction(SubTo(3)), Node::Instruction(ZeroSet)].into()),
         case("+++>-<[->>>-<<<]", [Node::Instruction(AddOffset(0, 3)),Node::Instruction(SubOffset(1, 1)), Node::Instruction(SubTo(3)), Node::Instruction(ZeroSet)].into()),
         case("[>>>-<<<-]", [Node::Instruction(SubTo(3)), Node::Instruction(ZeroSet)].into()),
