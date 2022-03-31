@@ -5,58 +5,6 @@ use crate::{
     parse::{Node, Nodes},
 };
 
-fn loop_opt(node: &Node) -> Option<Nodes> {
-    let mut new_nodes = Nodes::new();
-    if let Node::Loop(loop_nodes) = node {
-        let mut f = false;
-
-        for node in loop_nodes {
-            let ins = node.as_instruction()?;
-            match ins {
-                AddOffset(0, 1) | SubOffset(0, 1) => {
-                    f = true;
-                    new_nodes.push_back(Node::Instruction(ZeroSet))
-                }
-                AddOffset(offset, 1) => {
-                    let ins = if offset < 0 {
-                        AddToRev(-offset as usize)
-                    } else {
-                        AddTo(offset as usize)
-                    };
-
-                    new_nodes.push_front(Node::Instruction(ins));
-                }
-                AddOffset(offset, value) => {
-                    let ins = if offset < 0 {
-                        MulAddRev(-offset as usize, value)
-                    } else {
-                        MulAdd(offset as usize, value)
-                    };
-
-                    new_nodes.push_front(Node::Instruction(ins));
-                }
-                SubOffset(offset, 1) => {
-                    let ins = if offset < 0 {
-                        SubToRev(-offset as usize)
-                    } else {
-                        SubTo(offset as usize)
-                    };
-
-                    new_nodes.push_front(Node::Instruction(ins));
-                }
-                PtrIncrement(_) | PtrDecrement(_) => return None,
-                _ => return None,
-            }
-        }
-        if f {
-            return Some(new_nodes);
-        } else {
-            return None;
-        }
-    }
-    None
-}
-
 pub struct AddOptimizer;
 
 impl Optimizer for AddOptimizer {
