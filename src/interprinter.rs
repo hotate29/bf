@@ -109,9 +109,9 @@ fn node_to_c_instructions(nodes: &Nodes) -> Vec<CInstruction> {
     instructions
 }
 
+#[derive(Debug)]
 pub enum Error {
     NegativePointer(isize),
-#[derive(Debug)]
 }
 
 pub struct InterPrinter<R: Read, W: Write> {
