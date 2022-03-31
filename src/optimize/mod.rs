@@ -471,6 +471,14 @@ impl Optimizer for ZeroSetOptimizer {
     }
 }
 
+pub fn all_optimizers() -> Vec<Box<dyn Optimizer>> {
+    vec![
+        Box::new(ZeroSetOptimizer),
+        Box::new(AddOptimizer),
+        Box::new(SubOptimizer),
+    ]
+}
+
 pub fn optimize(nodes: Nodes, optimizers: &[Box<dyn Optimizer>]) -> Nodes {
     // eprintln!("{nodes:?}");
     fn inner(nodes: Nodes, optimizers: &[Box<dyn Optimizer>]) -> Nodes {
