@@ -5,13 +5,16 @@ use std::io::prelude::*;
 
 type Result<T> = std::result::Result<T, Error>;
 
-pub struct Memory(Vec<u8>);
+struct Memory(Vec<u8>);
 
 impl Memory {
     fn extend(&mut self, index: usize) {
         if self.0.len() <= index + 1 {
             self.0.resize(self.0.len() * 2 + index + 1, 0);
         }
+    }
+    fn inner(&self) -> &Vec<u8> {
+        &self.0
     }
     fn get(&mut self, index: usize) -> u8 {
         self.extend(index);
@@ -181,8 +184,8 @@ impl<R: Read, W: Write> InterPrinter<R, W> {
             output,
         }
     }
-    pub fn memory(&self) -> &Memory {
-        &self.state.memory
+    pub fn memory(&self) -> &Vec<u8> {
+        self.state.memory.inner()
     }
     pub fn pointer(&self) -> usize {
         self.state.pointer
