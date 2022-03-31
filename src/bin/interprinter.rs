@@ -2,7 +2,8 @@ use std::{env::args, fs, io};
 
 use bf::{
     interprinter::InterPrinter,
-    parse::{tokenize, Node, Nodes},
+    optimize::{self, all_optimizers},
+    parse::{tokenize, Node},
 };
 
 fn main() {
@@ -17,7 +18,7 @@ fn main() {
     let mut root_node = Node::from_tokens(tokens).unwrap();
 
     if optimize_flag {
-        // root_node = optimize(root_node, &all_optimizer());
+        root_node = optimize::optimize(root_node, &all_optimizers());
     }
 
     let step_count = InterPrinter::builder()
