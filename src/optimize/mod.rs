@@ -511,12 +511,13 @@ pub fn optimize(nodes: Nodes, optimizers: &[Box<dyn Optimizer>]) -> Nodes {
 
 #[cfg(test)]
 mod test {
+    use super::{merge_instruction, AddOptimizer, Optimizer, SubOptimizer, ZeroSetOptimizer};
     use crate::{
         instruction::Instruction::*,
         parse::{tokenize, Node, Nodes},
     };
 
-    use super::{merge_instruction, AddOptimizer, Optimizer, SubOptimizer, ZeroSetOptimizer};
+    use rstest::rstest;
 
     #[test]
     fn test_merge_instruction() {
@@ -552,72 +553,34 @@ mod test {
         assert_eq!(node, optimized_node);
     }
 
-    #[test]
-    fn test_zeroset_opt() {
-        assert_node(
-            ZeroSetOptimizer,
-            "[-]",
-            Some([Node::Instruction(ZeroSet)].into()),
-        );
-
-        assert_node(
-            ZeroSetOptimizer,
-            "[+]",
-            Some([Node::Instruction(ZeroSet)].into()),
-        );
-
-        assert_node(ZeroSetOptimizer, "[--]", None);
+    #[rstest(input, expected,
+        case("[-]", Some([Node::Instruction(ZeroSet)].into())),
+        case("[+]", Some([Node::Instruction(ZeroSet)].into())),
+        case("[++]", None),
+    )]
+    fn test_zeroset_opt(input: &str, expected: Option<Nodes>) {
+        assert_node(ZeroSetOptimizer, input, expected);
     }
 
-    #[test]
-    fn test_add_opt() {
-        assert_node(
-            AddOptimizer,
-            "[->>>+<<<]",
-            Some([Node::Instruction(AddTo(3)), Node::Instruction(ZeroSet)].into()),
-        );
-        assert_node(
-            AddOptimizer,
-            "[>>>+<<<-]",
-            Some([Node::Instruction(AddTo(3)), Node::Instruction(ZeroSet)].into()),
-        );
-
-        assert_node(
-            AddOptimizer,
-            "[-<<<+>>>]",
-            Some([Node::Instruction(AddToRev(3)), Node::Instruction(ZeroSet)].into()),
-        );
-        assert_node(
-            AddOptimizer,
-            "[<<<+>>>-]",
-            Some([Node::Instruction(AddToRev(3)), Node::Instruction(ZeroSet)].into()),
-        );
-
-        assert_node(AddOptimizer, "[-<<<++>>>]", None);
+    #[rstest(input, expected,
+        case("[->>>+<<<]", Some([Node::Instruction(AddTo(3)), Node::Instruction(ZeroSet)].into())),
+        case("[>>>+<<<-]", Some([Node::Instruction(AddTo(3)), Node::Instruction(ZeroSet)].into())),
+        case("[-<<<+>>>]", Some([Node::Instruction(AddToRev(3)), Node::Instruction(ZeroSet)].into())),
+        case("[<<<+>>>-]", Some([Node::Instruction(AddToRev(3)), Node::Instruction(ZeroSet)].into())),
+        case("[-<<<++>>>]", None),
+    )]
+    fn test_add_opt(input: &str, expected: Option<Nodes>) {
+        assert_node(AddOptimizer, input, expected);
     }
 
-    #[test]
-    fn test_sub_opt() {
-        assert_node(
-            SubOptimizer,
-            "[->>>-<<<]",
-            Some([Node::Instruction(SubTo(3)), Node::Instruction(ZeroSet)].into()),
-        );
-        assert_node(
-            SubOptimizer,
-            "[>>>-<<<-]",
-            Some([Node::Instruction(SubTo(3)), Node::Instruction(ZeroSet)].into()),
-        );
-
-        assert_node(
-            SubOptimizer,
-            "[-<<<->>>]",
-            Some([Node::Instruction(SubToRev(3)), Node::Instruction(ZeroSet)].into()),
-        );
-        assert_node(
-            SubOptimizer,
-            "[<<<->>>-]",
-            Some([Node::Instruction(SubToRev(3)), Node::Instruction(ZeroSet)].into()),
-        );
+    #[rstest(input, expected,
+        case("[->>>-<<<]", Some([Node::Instruction(SubTo(3)), Node::Instruction(ZeroSet)].into())),
+        case("[>>>-<<<-]", Some([Node::Instruction(SubTo(3)), Node::Instruction(ZeroSet)].into())),
+        case("[-<<<->>>]", Some([Node::Instruction(SubToRev(3)), Node::Instruction(ZeroSet)].into())),
+        case("[<<<->>>-]", Some([Node::Instruction(SubToRev(3)), Node::Instruction(ZeroSet)].into())),
+        case("[-<<<-->>>]", None),
+    )]
+    fn test_sub_opt(input: &str, expected: Option<Nodes>) {
+        assert_node(SubOptimizer, input, expected);
     }
 }
