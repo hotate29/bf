@@ -441,7 +441,11 @@ mod test {
     }
 
     #[rstest(input, expected,
+        case("", [].into()),
         case("+++", [Node::Instruction(AddOffset(0, 3))].into()),
+        case("+++---", [].into()),
+        case(">+++<-", [Node::Instruction(SubOffset(0, 1)), Node::Instruction(AddOffset(1, 3))].into()),
+        case(">+++", [Node::Instruction(AddOffset(1, 3)), Node::Instruction(PtrIncrement(1))].into()),
         case("[[[]]]", [Node::Loop([Node::Loop([Node::Loop([].into())].into())].into())].into()),
         case("->+<", [Node::Instruction(SubOffset(0, 1)), Node::Instruction(AddOffset(1, 1))].into()),
         case("[->>>-<<<]", [Node::Instruction(SubTo(3)), Node::Instruction(ZeroSet)].into()),
@@ -449,7 +453,7 @@ mod test {
         case("[>>>-<<<-]", [Node::Instruction(SubTo(3)), Node::Instruction(ZeroSet)].into()),
         case("[>>>->+<<<<-]", [Node::Instruction(SubTo(3)), Node::Instruction(AddTo(4)), Node::Instruction(ZeroSet)].into()),
         case("+++[>>>[-][[->+<]]<<<]", [Node::Instruction(AddOffset(0, 3)), Node::Loop([Node::Instruction(PtrIncrement(3)), Node::Instruction(ZeroSet), Node::Loop([Node::Instruction(AddTo(1)), Node::Instruction(ZeroSet)].into()), Node::Instruction(PtrDecrement(3))].into())].into()),
-        case("[>>>.<<<]", [Node::Loop([Node::Instruction(OutputOffset(3))].into())].into()),
+        case("[->>>.<<<]", [Node::Loop([Node::Instruction(SubOffset(0, 1)), Node::Instruction(OutputOffset(3))].into())].into()),
         // TODO: MulSubを実装する
         #[should_panic]
         case("[-<<<-->>>]", [Node::Loop([Node::Instruction(SubOffset(0, 1)), Node::Instruction(SubOffset(-3, 2))].into())].into()),
