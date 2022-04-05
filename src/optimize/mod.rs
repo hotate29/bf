@@ -161,6 +161,7 @@ pub fn offset_opt(nodes: &Nodes) -> Nodes {
 
         let mut pointer_offset: isize = 0;
         let mut offset_map: BTreeMap<isize, Instructions> = BTreeMap::new();
+        let mut output_order = Vec::new();
 
         let mut has_loop = false;
         let mut has_output = false;
@@ -169,6 +170,21 @@ pub fn offset_opt(nodes: &Nodes) -> Nodes {
             match node {
                 Node::Loop(loop_nodes) => {
                     has_loop = true;
+
+                    for order in output_order {
+                        let instructions = offset_map.remove(&order).unwrap();
+                        for instruction in instructions.inner() {
+                            let instruction = match instruction {
+                                Add(value) => AddOffset(order, *value),
+                                Sub(value) => SubOffset(order, *value),
+                                Output(repeat) => OutputOffset(*repeat, order),
+                                Input(_) => todo!(),
+                                ZeroSet => ZeroSetOffset(order),
+                                _ => panic!(),
+                            };
+                            new_nodes.push_back(instruction.into());
+                        }
+                    }
 
                     for (offset, instructions) in offset_map {
                         for instruction in instructions.inner {
@@ -200,10 +216,17 @@ pub fn offset_opt(nodes: &Nodes) -> Nodes {
                     }
 
                     offset_map = BTreeMap::new();
+                    output_order = Vec::new();
                     pointer_offset = 0;
                 }
                 Node::Instruction(instruction) => {
                     has_output |= matches!(instruction, Output(_));
+
+                    if matches!(instruction, Output(_))
+                        && output_order.last() != Some(&pointer_offset)
+                    {
+                        output_order.push(pointer_offset);
+                    }
 
                     match instruction {
                         PtrIncrement(inc) => pointer_offset += *inc as isize,
@@ -252,6 +275,21 @@ pub fn offset_opt(nodes: &Nodes) -> Nodes {
             new_nodes.push_back(ZeroSet.into());
             Nod::Instructions(new_nodes)
         } else {
+            for order in output_order {
+                let instructions = offset_map.remove(&order).unwrap();
+                for instruction in instructions.inner() {
+                    let instruction = match instruction {
+                        Add(value) => AddOffset(order, *value),
+                        Sub(value) => SubOffset(order, *value),
+                        Output(repeat) => OutputOffset(*repeat, order),
+                        Input(_) => todo!(),
+                        ZeroSet => ZeroSetOffset(order),
+                        _ => panic!(),
+                    };
+                    new_nodes.push_back(instruction.into());
+                }
+            }
+
             for (offset, instructions) in offset_map {
                 for instruction in instructions.inner {
                     let instruction = match instruction {
