@@ -211,7 +211,9 @@ impl<R: Read, W: Write> InterPrinter<R, W> {
                         Instruction::Add(n) => self.state.add(0, n)?,
                         Instruction::AddTo(offset) => {
                             let value = self.state.at();
-                            self.state.add(offset as isize, value)?;
+                            if value != 0 {
+                                self.state.add(offset, value)?;
+                            }
                         }
                         Instruction::Copy(offset) => {
                             let value = self.state.at();
