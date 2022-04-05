@@ -24,11 +24,7 @@ impl Optimizer for AddOptimizer {
                 } {
                     if ptr_increment == ptr_decrement {
                         return Some(
-                            [
-                                Node::Instruction(AddTo(*ptr_increment as isize)),
-                                Node::Instruction(ZeroSet),
-                            ]
-                            .into(),
+                            [AddTo(*ptr_increment as isize).into(), ZeroSet.into()].into(),
                         );
                     }
                 }
@@ -44,11 +40,7 @@ impl Optimizer for AddOptimizer {
                 ] {
                     if ptr_decrement == ptr_increment {
                         return Some(
-                            [
-                                Node::Instruction(AddTo(-(*ptr_decrement as isize))),
-                                Node::Instruction(ZeroSet),
-                            ]
-                            .into(),
+                            [AddTo(-(*ptr_decrement as isize)).into(), ZeroSet.into()].into(),
                         );
                     }
                 }
@@ -77,11 +69,7 @@ impl Optimizer for SubOptimizer {
                 } {
                     if ptr_increment == ptr_decrement {
                         return Some(
-                            [
-                                Node::Instruction(SubTo(*ptr_increment as isize)),
-                                Node::Instruction(ZeroSet),
-                            ]
-                            .into(),
+                            [SubTo(*ptr_increment as isize).into(), ZeroSet.into()].into(),
                         );
                     }
                 }
@@ -97,11 +85,7 @@ impl Optimizer for SubOptimizer {
                 ] {
                     if ptr_decrement == ptr_increment {
                         return Some(
-                            [
-                                Node::Instruction(SubTo(-(*ptr_decrement as isize))),
-                                Node::Instruction(ZeroSet),
-                            ]
-                            .into(),
+                            [SubTo(-(*ptr_decrement as isize)).into(), ZeroSet.into()].into(),
                         );
                     }
                 }
@@ -127,7 +111,7 @@ fn merge_instruction(nodes: Nodes) -> Nodes {
             new_nodes.pop_back().unwrap();
             new_nodes.pop_back().unwrap();
             if !merged_inst.is_no_action() {
-                new_nodes.push_back(Node::Instruction(merged_inst))
+                new_nodes.push_back(merged_inst.into())
             }
         }
     }
@@ -196,16 +180,17 @@ pub fn offset_opt(nodes: &Nodes) -> Nodes {
                                 ZeroSet => ZeroSetOffset(offset),
                                 _ => panic!(),
                             };
-                            new_nodes.push_back(Node::Instruction(instruction));
+                            new_nodes.push_back(instruction.into());
                         }
                     }
 
                     match pointer_offset.cmp(&0) {
-                        Ordering::Less => new_nodes.push_back(Node::Instruction(PtrDecrement(
-                            pointer_offset.abs() as usize,
-                        ))),
-                        Ordering::Greater => new_nodes
-                            .push_back(Node::Instruction(PtrIncrement(pointer_offset as usize))),
+                        Ordering::Less => {
+                            new_nodes.push_back(PtrDecrement(pointer_offset.abs() as usize).into())
+                        }
+                        Ordering::Greater => {
+                            new_nodes.push_back(PtrIncrement(pointer_offset as usize).into())
+                        }
                         Ordering::Equal => (),
                     }
 
@@ -261,10 +246,10 @@ pub fn offset_opt(nodes: &Nodes) -> Nodes {
                         // ZeroSet => ZeroSetOffset(offset),
                         _ => panic!(),
                     };
-                    new_nodes.push_back(Node::Instruction(instruction));
+                    new_nodes.push_back(instruction.into());
                 }
             }
-            new_nodes.push_back(Node::Instruction(ZeroSet));
+            new_nodes.push_back(ZeroSet.into());
             Nod::Instructions(new_nodes)
         } else {
             for (offset, instructions) in offset_map {
@@ -277,15 +262,15 @@ pub fn offset_opt(nodes: &Nodes) -> Nodes {
                         ZeroSet => ZeroSetOffset(offset),
                         _ => panic!(),
                     };
-                    new_nodes.push_back(Node::Instruction(instruction));
+                    new_nodes.push_back(instruction.into());
                 }
             }
             match pointer_offset.cmp(&0) {
-                Ordering::Less => new_nodes.push_back(Node::Instruction(PtrDecrement(
-                    pointer_offset.abs() as usize,
-                ))),
+                Ordering::Less => {
+                    new_nodes.push_back(PtrDecrement(pointer_offset.abs() as usize).into())
+                }
                 Ordering::Greater => {
-                    new_nodes.push_back(Node::Instruction(PtrIncrement(pointer_offset as usize)))
+                    new_nodes.push_back(PtrIncrement(pointer_offset as usize).into())
                 }
                 Ordering::Equal => (),
             }
@@ -308,13 +293,13 @@ impl Optimizer for ZeroSetOptimizer {
         if let Node::Loop(loop_nodes) = node {
             if loop_nodes.len() == 1 {
                 if let Node::Instruction(Add(1) | Sub(1)) = loop_nodes.front()? {
-                    let nodes = Nodes::from([Node::Instruction(ZeroSet)]);
+                    let nodes = [ZeroSet.into()].into();
                     return Some(nodes);
                 }
                 if let Node::Instruction(AddOffset(offset, 1) | SubOffset(offset, 1)) =
                     loop_nodes.front()?
                 {
-                    let nodes = Nodes::from([Node::Instruction(ZeroSetOffset(*offset))]);
+                    let nodes = [ZeroSetOffset(*offset).into()].into();
                     return Some(nodes);
                 }
             }
@@ -376,14 +361,14 @@ mod test {
     #[test]
     fn test_merge_instruction() {
         let nodes = [
-            Node::Instruction(Add(1)),
-            Node::Instruction(Sub(1)),
-            Node::Instruction(PtrIncrement(1)),
-            Node::Instruction(PtrDecrement(1)),
-            Node::Instruction(Add(1)),
+            Add(1).into(),
+            Sub(1).into(),
+            PtrIncrement(1).into(),
+            PtrDecrement(1).into(),
+            Add(1).into(),
         ]
         .into();
-        assert_eq!(merge_instruction(nodes), [Node::Instruction(Add(1))].into());
+        assert_eq!(merge_instruction(nodes), [Add(1).into()].into());
     }
     fn optimize_node(code: &str, optimizer: impl Optimizer) -> Option<Nodes> {
         let tokens = tokenize(code);
@@ -408,8 +393,8 @@ mod test {
     }
 
     #[rstest(input, expected,
-        case("[-]", Some([Node::Instruction(ZeroSet)].into())),
-        case("[+]", Some([Node::Instruction(ZeroSet)].into())),
+        case("[-]", Some([ZeroSet.into()].into())),
+        case("[+]", Some([ZeroSet.into()].into())),
         case("[++]", None),
     )]
     fn test_zeroset_opt(input: &str, expected: Option<Nodes>) {
@@ -417,10 +402,10 @@ mod test {
     }
 
     #[rstest(input, expected,
-        case("[->>>+<<<]", Some([Node::Instruction(AddTo(3)), Node::Instruction(ZeroSet)].into())),
-        case("[>>>+<<<-]", Some([Node::Instruction(AddTo(3)), Node::Instruction(ZeroSet)].into())),
-        case("[-<<<+>>>]", Some([Node::Instruction(AddTo(-3)), Node::Instruction(ZeroSet)].into())),
-        case("[<<<+>>>-]", Some([Node::Instruction(AddTo(-3)), Node::Instruction(ZeroSet)].into())),
+        case("[->>>+<<<]", Some([AddTo(3).into(), ZeroSet.into()].into())),
+        case("[>>>+<<<-]", Some([AddTo(3).into(), ZeroSet.into()].into())),
+        case("[-<<<+>>>]", Some([AddTo(-3).into(), ZeroSet.into()].into())),
+        case("[<<<+>>>-]", Some([AddTo(-3).into(), ZeroSet.into()].into())),
         case("[-<<<++>>>]", None),
     )]
     fn test_add_opt(input: &str, expected: Option<Nodes>) {
@@ -428,10 +413,10 @@ mod test {
     }
 
     #[rstest(input, expected,
-        case("[->>>-<<<]", Some([Node::Instruction(SubTo(3)), Node::Instruction(ZeroSet)].into())),
-        case("[>>>-<<<-]", Some([Node::Instruction(SubTo(3)), Node::Instruction(ZeroSet)].into())),
-        case("[-<<<->>>]", Some([Node::Instruction(SubTo(-3)), Node::Instruction(ZeroSet)].into())),
-        case("[<<<->>>-]", Some([Node::Instruction(SubTo(-3)), Node::Instruction(ZeroSet)].into())),
+        case("[->>>-<<<]", Some([SubTo(3).into(), ZeroSet.into()].into())),
+        case("[>>>-<<<-]", Some([SubTo(3).into(), ZeroSet.into()].into())),
+        case("[-<<<->>>]", Some([SubTo(-3).into(), ZeroSet.into()].into())),
+        case("[<<<->>>-]", Some([SubTo(-3).into(), ZeroSet.into()].into())),
         case("[-<<<-->>>]", None),
     )]
     fn test_sub_opt(input: &str, expected: Option<Nodes>) {
@@ -440,21 +425,21 @@ mod test {
 
     #[rstest(input, expected,
         case("", [].into()),
-        case("+++", [Node::Instruction(AddOffset(0, 3))].into()),
+        case("+++", [AddOffset(0, 3).into()].into()),
         case("+++---", [].into()),
-        case(">+++<-", [Node::Instruction(SubOffset(0, 1)), Node::Instruction(AddOffset(1, 3))].into()),
-        case(">+++", [Node::Instruction(AddOffset(1, 3)), Node::Instruction(PtrIncrement(1))].into()),
+        case(">+++<-", [SubOffset(0, 1).into(), AddOffset(1, 3).into()].into()),
+        case(">+++", [AddOffset(1, 3).into(), PtrIncrement(1).into()].into()),
         case("[[[]]]", [Node::Loop([Node::Loop([Node::Loop([].into())].into())].into())].into()),
-        case("->+<", [Node::Instruction(SubOffset(0, 1)), Node::Instruction(AddOffset(1, 1))].into()),
-        case("[->>>-<<<]", [Node::Instruction(SubTo(3)), Node::Instruction(ZeroSet)].into()),
-        case("+++>-<[->>>-<<<]", [Node::Instruction(AddOffset(0, 3)),Node::Instruction(SubOffset(1, 1)), Node::Instruction(SubTo(3)), Node::Instruction(ZeroSet)].into()),
-        case("[>>>-<<<-]", [Node::Instruction(SubTo(3)), Node::Instruction(ZeroSet)].into()),
-        case("[>>>->+<<<<-]", [Node::Instruction(SubTo(3)), Node::Instruction(AddTo(4)), Node::Instruction(ZeroSet)].into()),
-        case("+++[>>>[-][[->+<]]<<<]", [Node::Instruction(AddOffset(0, 3)), Node::Loop([Node::Instruction(PtrIncrement(3)), Node::Instruction(ZeroSet), Node::Loop([Node::Instruction(AddTo(1)), Node::Instruction(ZeroSet)].into()), Node::Instruction(PtrDecrement(3))].into())].into()),
-        case("[->>>.<<<]", [Node::Loop([Node::Instruction(SubOffset(0, 1)), Node::Instruction(OutputOffset(3))].into())].into()),
+        case("->+<", [SubOffset(0, 1).into(), AddOffset(1, 1).into()].into()),
+        case("[->>>-<<<]", [SubTo(3).into(), ZeroSet.into()].into()),
+        case("+++>-<[->>>-<<<]", [AddOffset(0, 3).into(),SubOffset(1, 1).into(), SubTo(3).into(), ZeroSet.into()].into()),
+        case("[>>>-<<<-]", [SubTo(3).into(), ZeroSet.into()].into()),
+        case("[>>>->+<<<<-]", [SubTo(3).into(), AddTo(4).into(), ZeroSet.into()].into()),
+        case("+++[>>>[-][[->+<]]<<<]", [AddOffset(0, 3).into(), Node::Loop([PtrIncrement(3).into(), ZeroSet.into(), Node::Loop([AddTo(1).into(), ZeroSet.into()].into()), PtrDecrement(3).into()].into())].into()),
+        case("[->>>.<<<]", [Node::Loop([SubOffset(0, 1).into(), OutputOffset(3).into()].into())].into()),
         // TODO: MulSubを実装する
         #[should_panic]
-        case("[-<<<-->>>]", [Node::Loop([Node::Instruction(SubOffset(0, 1)), Node::Instruction(SubOffset(-3, 2))].into())].into()),
+        case("[-<<<-->>>]", [Node::Loop([SubOffset(0, 1).into(), SubOffset(-3, 2).into()].into())].into()),
     )]
     fn test_offset_opt(input: &str, expected: Nodes) {
         let tokens = tokenize(input);

@@ -127,6 +127,12 @@ impl Node {
     }
 }
 
+impl From<Instruction> for Node {
+    fn from(ins: Instruction) -> Self {
+        Self::Instruction(ins)
+    }
+}
+
 #[cfg(test)]
 mod test {
     use crate::parse::Token;
