@@ -110,6 +110,7 @@ impl Instruction {
             (ZeroSet, ZeroSet) => Some(ZeroSet),
             (ZeroSet, AddTo(_) | SubTo(_)) => Some(ZeroSet),
             (Add(_) | Sub(_), ZeroSet) => Some(ZeroSet),
+            (Output(x), Output(y)) => Some(Output(x + y)),
             // (AddOffset(x_offset, x), AddOffset(y_offset, y)) if x_offset == y_offset => {
             //     Some(AddOffset(x_offset, x.wrapping_add(y)))
             // }
