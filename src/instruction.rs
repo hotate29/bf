@@ -20,8 +20,7 @@ pub enum Instruction {
     Input(usize),
     ZeroSet,
     ZeroSetOffset(isize),
-    Copy(usize),
-    CopyRev(usize),
+    Copy(isize),
 }
 
 impl Instruction {
@@ -50,7 +49,6 @@ impl Instruction {
             | Instruction::MulAdd(_, _)
             | Instruction::ZeroSet
             | Instruction::Copy(_)
-            | Instruction::CopyRev(_)
             | Instruction::AddOffset(_, _)
             | Instruction::SubOffset(_, _)
             | Instruction::OutputOffset(_)
@@ -70,7 +68,6 @@ impl Instruction {
             | Instruction::MulAdd(_, _)
             | Instruction::ZeroSet
             | Instruction::Copy(_)
-            | Instruction::CopyRev(_)
             | Instruction::AddOffset(_, _)
             | Instruction::SubOffset(_, _)
             | Instruction::OutputOffset(_)
