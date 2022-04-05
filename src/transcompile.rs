@@ -14,18 +14,18 @@ pub fn to_c2(root_node: &Nodes) -> String {
                     Instruction::PtrIncrement(n) => c_code.push_str(&format!("ptr+={n};")),
                     Instruction::PtrDecrement(n) => c_code.push_str(&format!("ptr-={n};")),
                     Instruction::Add(n) => c_code.push_str(&format!("*ptr+={n};")),
-                    Instruction::AddTo(offset) if *offset < 0 => {
+                    Instruction::AddTo(offset) if *offset >= 0 => {
                         c_code.push_str(&format!("ptr[{offset}]+=ptr[0];"))
                     }
-                    Instruction::AddTo(offset) if *offset > 0 => {
-                        c_code.push_str(&format!("if(ptr[0]!=0){{*(ptr-{offset})+=ptr[0];}}"))
+                    Instruction::AddTo(offset) if *offset < 0 => {
+                        c_code.push_str(&format!("if(ptr[0]!=0){{*(ptr{offset})+=ptr[0];}}"))
                     }
                     Instruction::Sub(n) => c_code.push_str(&format!("*ptr-={n};")),
                     Instruction::SubTo(offset) if *offset >= 0 => {
                         c_code.push_str(&format!("ptr[{offset}]-=ptr[0];"))
                     }
                     Instruction::SubTo(offset) if *offset < 0 => {
-                        c_code.push_str(&format!("if(ptr[0]!=0){{*(ptr-{offset})-=ptr[0];}}"))
+                        c_code.push_str(&format!("if(ptr[0]!=0){{*(ptr{offset})-=ptr[0];}}"))
                     }
                     Instruction::Output(n) => {
                         for _ in 0..*n {
@@ -41,15 +41,33 @@ pub fn to_c2(root_node: &Nodes) -> String {
                         c_code.push_str(&format!("ptr[{offset}]+={value}*ptr[0];"));
                     }
                     Instruction::MulAdd(offset, value) if *offset < 0 => {
-                        c_code
-                            .push_str(&format!("if(*ptr!=0){{*(ptr-{offset})+={value}*ptr[0];}}"));
+                        c_code.push_str(&format!("if(*ptr!=0){{*(ptr{offset})+={value}*ptr[0];}}"));
                     }
                     Instruction::ZeroSet => {
                         c_code.push_str("*ptr=0;");
                     }
-                    Instruction::AddOffset(offset, value) => todo!(),
-                    Instruction::SubOffset(_, _) => todo!(),
-                    Instruction::OutputOffset(_) => todo!(),
+                    Instruction::AddOffset(offset, value) if *offset < 0 => {
+                        c_code.push_str(&format!("if(*ptr!=0){{*(ptr{offset})+={value};}}"))
+                    }
+                    Instruction::AddOffset(offset, value) if *offset >= 0 => {
+                        c_code.push_str(&format!("ptr[{offset}]+={value};"))
+                    }
+                    Instruction::SubOffset(offset, value) if *offset < 0 => {
+                        c_code.push_str(&format!("if(*ptr!=0){{*(ptr{offset})-={value};}}"))
+                    }
+                    Instruction::SubOffset(offset, value) if *offset >= 0 => {
+                        c_code.push_str(&format!("ptr[{offset}]-={value};"))
+                    }
+                    Instruction::OutputOffset(repeat, offset) if *offset < 0 => {
+                        for _ in 0..*repeat {
+                            c_code.push_str(&format!("if(*ptr!=0){{putchar(*(ptr{offset}));}}"))
+                        }
+                    }
+                    Instruction::OutputOffset(repeat, offset) if *offset >= 0 => {
+                        for _ in 0..*repeat {
+                            c_code.push_str(&format!("putchar(ptr[{offset}]);"))
+                        }
+                    }
                     Instruction::ZeroSetOffset(_) => todo!(),
                     ins => panic!("unimplemented instruction. {ins:?}"),
                 },

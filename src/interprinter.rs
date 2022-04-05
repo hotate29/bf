@@ -248,8 +248,10 @@ impl<R: Read, W: Write> InterPrinter<R, W> {
                         }
                         Instruction::AddOffset(offset, value) => self.state.add(offset, value)?,
                         Instruction::SubOffset(offset, value) => self.state.sub(offset, value)?,
-                        Instruction::OutputOffset(offset) => {
-                            self.state.output(offset, &mut self.output)?
+                        Instruction::OutputOffset(repeat, offset) => {
+                            for _ in 0..repeat {
+                                self.state.output(offset, &mut self.output)?
+                            }
                         }
                         ins => panic!("unimplemented instruction. {ins:?}"),
                     };

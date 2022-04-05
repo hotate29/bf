@@ -175,7 +175,7 @@ pub fn offset_opt(nodes: &Nodes) -> Nodes {
                             let instruction = match instruction {
                                 Add(value) => AddOffset(offset, value),
                                 Sub(value) => SubOffset(offset, value),
-                                Output(_) => OutputOffset(offset),
+                                Output(repeat) => OutputOffset(repeat, offset),
                                 Input(_) => todo!(),
                                 ZeroSet => ZeroSetOffset(offset),
                                 _ => panic!(),
@@ -241,7 +241,7 @@ pub fn offset_opt(nodes: &Nodes) -> Nodes {
                         Add(value) => MulAdd(offset, value),
                         Sub(1) if offset == 0 => continue,
                         Sub(1) => SubTo(offset),
-                        Output(_) => OutputOffset(offset),
+                        Output(repeat) => OutputOffset(repeat, offset),
                         // Input(_) => todo!(),
                         // ZeroSet => ZeroSetOffset(offset),
                         _ => panic!(),
@@ -257,7 +257,8 @@ pub fn offset_opt(nodes: &Nodes) -> Nodes {
                     let instruction = match instruction {
                         Add(value) => AddOffset(offset, value),
                         Sub(value) => SubOffset(offset, value),
-                        Output(_) => OutputOffset(offset),
+                        // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+                        Output(repeat) => OutputOffset(repeat, offset),
                         Input(_) => todo!(),
                         ZeroSet => ZeroSetOffset(offset),
                         _ => panic!(),
@@ -436,7 +437,8 @@ mod test {
         case("[>>>-<<<-]", [SubTo(3).into(), ZeroSet.into()].into()),
         case("[>>>->+<<<<-]", [SubTo(3).into(), AddTo(4).into(), ZeroSet.into()].into()),
         case("+++[>>>[-][[->+<]]<<<]", [AddOffset(0, 3).into(), Node::Loop([PtrIncrement(3).into(), ZeroSet.into(), Node::Loop([AddTo(1).into(), ZeroSet.into()].into()), PtrDecrement(3).into()].into())].into()),
-        case("[->>>.<<<]", [Node::Loop([SubOffset(0, 1).into(), OutputOffset(3).into()].into())].into()),
+        case("[->>>.<<<]", [Node::Loop([SubOffset(0, 1).into(), OutputOffset(1,3).into()].into())].into()),
+        case("[->+>+>++>+++<<<<]", [AddTo(1).into(), AddTo(2).into(), MulAdd(3, 2).into(), MulAdd(4, 3).into(), ZeroSet.into()].into()),
         // TODO: MulSubを実装する
         #[should_panic]
         case("[-<<<-->>>]", [Node::Loop([SubOffset(0, 1).into(), SubOffset(-3, 2).into()].into())].into()),
