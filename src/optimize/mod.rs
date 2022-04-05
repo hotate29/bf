@@ -175,7 +175,7 @@ pub fn offset_opt(nodes: &Nodes) -> Nodes {
     fn inner(nodes: &Nodes, is_loop: bool) -> Nod {
         let mut new_nodes = Nodes::new();
 
-        let mut pointer_offset = 0;
+        let mut pointer_offset: isize = 0;
         let mut offset_map: BTreeMap<isize, Instructions> = BTreeMap::new();
 
         let mut has_loop = false;
@@ -201,8 +201,9 @@ pub fn offset_opt(nodes: &Nodes) -> Nodes {
                     }
 
                     match pointer_offset.cmp(&0) {
-                        Ordering::Less => new_nodes
-                            .push_back(Node::Instruction(PtrDecrement(-pointer_offset as usize))),
+                        Ordering::Less => new_nodes.push_back(Node::Instruction(PtrDecrement(
+                            pointer_offset.abs() as usize,
+                        ))),
                         Ordering::Greater => new_nodes
                             .push_back(Node::Instruction(PtrIncrement(pointer_offset as usize))),
                         Ordering::Equal => (),
@@ -280,9 +281,9 @@ pub fn offset_opt(nodes: &Nodes) -> Nodes {
                 }
             }
             match pointer_offset.cmp(&0) {
-                Ordering::Less => {
-                    new_nodes.push_back(Node::Instruction(PtrDecrement(-pointer_offset as usize)))
-                }
+                Ordering::Less => new_nodes.push_back(Node::Instruction(PtrDecrement(
+                    pointer_offset.abs() as usize,
+                ))),
                 Ordering::Greater => {
                     new_nodes.push_back(Node::Instruction(PtrIncrement(pointer_offset as usize)))
                 }
