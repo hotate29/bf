@@ -172,7 +172,7 @@ pub fn offset_opt(nodes: &Nodes) -> Nodes {
         Instructions(Nodes),
     }
 
-    fn inner(nodes: &Nodes, looop: bool) -> Nod {
+    fn inner(nodes: &Nodes, is_loop: bool) -> Nod {
         let mut new_nodes = Nodes::new();
 
         let mut pointer_offset = 0;
@@ -237,7 +237,7 @@ pub fn offset_opt(nodes: &Nodes) -> Nodes {
 
         if pointer_offset == 0
             && !has_loop
-            && looop
+            && is_loop
             // [->>>.<<<]を弾く
             && !has_output
             && offset_map
