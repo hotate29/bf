@@ -47,7 +47,7 @@ impl State {
     }
     #[inline]
     fn at_offset_mut(&mut self, offset: isize) -> Result<&mut u8> {
-        if offset <= 0 {
+        if offset < 0 {
             let p = self.pointer as isize + offset;
             if p < 0 {
                 Err(Error::NegativePointer(p))
