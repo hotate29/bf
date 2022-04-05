@@ -34,7 +34,7 @@ fn bench_optimized_mandelbrot(bencher: &mut test::Bencher) {
     let tokens = tokenize(&source);
     let root_node = Node::from_tokens(tokens).unwrap();
 
-    let optimized_node = optimize(root_node, &all_optimizers());
+    let optimized_node = optimize(&root_node);
 
     bencher.iter(|| {
         InterPrinter::builder()
@@ -70,7 +70,7 @@ fn bench_optimized_hello_world(bencher: &mut test::Bencher) {
     let tokens = tokenize(hello_world);
     let root_node = Node::from_tokens(tokens).unwrap();
 
-    let optimized_node = optimize(root_node, &all_optimizers());
+    let optimized_node = optimize(&root_node);
 
     bencher.iter(|| {
         InterPrinter::builder()

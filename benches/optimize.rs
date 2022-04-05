@@ -3,7 +3,7 @@ extern crate test;
 
 use std::fs;
 
-use bf::optimize::{all_optimizers, optimize};
+use bf::optimize::optimize;
 use bf::parse::{tokenize, Node};
 
 #[bench]
@@ -13,7 +13,5 @@ fn bench_optimizing_mandelbrot(bencher: &mut test::Bencher) {
     let tokens = tokenize(&source);
     let root_node = Node::from_tokens(tokens).unwrap();
 
-    let optimizers = all_optimizers();
-
-    bencher.iter(|| optimize(root_node.clone(), &optimizers))
+    bencher.iter(|| optimize(&root_node))
 }

@@ -342,7 +342,7 @@ mod test {
 
     use crate::{
         interprinter::Memory,
-        optimize::{all_optimizers, optimize},
+        optimize::optimize,
         parse::{tokenize, Node, Nodes},
     };
 
@@ -355,7 +355,7 @@ mod test {
     fn node_from_source_optimized(source: &str) -> Nodes {
         let tokens = tokenize(source);
         let nodes = Node::from_tokens(tokens).unwrap();
-        optimize(nodes, &all_optimizers())
+        optimize(&nodes)
     }
 
     #[test]

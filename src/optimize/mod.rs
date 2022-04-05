@@ -326,42 +326,8 @@ impl Optimizer for ZeroSetOptimizer {
     }
 }
 
-pub fn all_optimizers() -> Vec<Box<dyn Optimizer>> {
-    vec![
-        Box::new(ZeroSetOptimizer),
-        Box::new(AddOptimizer),
-        Box::new(SubOptimizer),
-    ]
-}
-
-pub fn optimize(nodes: Nodes, optimizers: &[Box<dyn Optimizer>]) -> Nodes {
-    // eprintln!("{nodes:?}");
-    fn inner(nodes: Nodes, optimizers: &[Box<dyn Optimizer>]) -> Nodes {
-        let nodes = merge_instruction(nodes);
-        let mut new_nodes = Nodes::new();
-
-        for node in nodes {
-            let node = if let Node::Loop(loop_nodes) = node {
-                let loop_nodes = merge_instruction(loop_nodes);
-                Node::Loop(inner(loop_nodes, optimizers))
-            } else {
-                node
-            };
-
-            let optimized_node = optimizers
-                .iter()
-                .find_map(|optimizer| optimizer.optimize_node(&node));
-
-            if let Some(mut optimized_node) = optimized_node {
-                new_nodes.append(&mut optimized_node);
-            } else {
-                new_nodes.push_back(node);
-            }
-        }
-        new_nodes
-    }
-
-    inner(nodes, optimizers)
+pub fn optimize(nodes: &Nodes) -> Nodes {
+    offset_opt(nodes)
 }
 
 #[cfg(test)]
