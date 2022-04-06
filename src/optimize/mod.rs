@@ -148,7 +148,7 @@ pub fn offset_opt(nodes: &Nodes) -> Nodes {
         let mut state = State::default();
 
         let mut has_loop = false;
-        let mut has_output = false;
+        let mut has_io = false;
 
         for node in nodes {
             match node {
@@ -165,7 +165,7 @@ pub fn offset_opt(nodes: &Nodes) -> Nodes {
                     }
                 }
                 Node::Instruction(instruction) => {
-                    has_output |= matches!(instruction, Output(_));
+                    has_io |= matches!(instruction, Output(_) | Input(_));
 
                     state.push_instruction(*instruction);
                 }
@@ -176,7 +176,7 @@ pub fn offset_opt(nodes: &Nodes) -> Nodes {
             && !has_loop
             && is_loop
             // [->>>.<<<]を弾く
-            && !has_output
+            && !has_io
             && state.offset_map
                 .get(&0)
                 .filter(|ins| ins.inner.len() == 1 && (ins.inner[0].1 == Sub(1) || ins.inner[0].1 == Add(1)))
