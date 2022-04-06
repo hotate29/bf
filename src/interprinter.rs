@@ -232,6 +232,13 @@ impl<R: Read, W: Write> InterPrinter<R, W> {
                                 self.state.add(offset, value)?;
                             }
                         }
+                        Instruction::MulSub(offset, value) => {
+                            let value = self.state.at().wrapping_mul(value);
+                            // 後ろを参照するので、ここはちゃんと確認
+                            if value != 0 {
+                                self.state.sub(offset, value)?;
+                            }
+                        }
                         Instruction::Output(n) => {
                             for _ in 0..n {
                                 self.state.output(0, &mut self.output)?;

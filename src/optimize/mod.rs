@@ -190,6 +190,7 @@ pub fn offset_opt(nodes: &Nodes) -> Nodes {
                         Add(1) => AddTo(offset),
                         Add(value) => MulAdd(offset, *value),
                         Sub(1) => SubTo(offset),
+                        Sub(value) => MulSub(offset, *value),
                         // Output(repeat) => OutputOffset(repeat, offset),
                         // Input(_) => todo!(),
                         // ZeroSet => ZeroSetOffset(offset),
@@ -267,9 +268,7 @@ mod test {
         case("+++[>>>[-][[->+<]]<<<]", [AddOffset(0, 3).into(), Node::Loop([PtrIncrement(3).into(), ZeroSet.into(), Node::Loop([AddTo(1).into(), ZeroSet.into()].into()), PtrDecrement(3).into()].into())].into()),
         case("[->>>.<<<]", [Node::Loop([SubOffset(0, 1).into(), OutputOffset(1, 3).into()].into())].into()),
         case("[->+>+>++>+++<<<<]", [AddTo(1).into(), AddTo(2).into(), MulAdd(3, 2).into(), MulAdd(4, 3).into(), ZeroSet.into()].into()),
-        // TODO: MulSubを実装する
-        #[should_panic]
-        case("[-<<<-->>>]", [Node::Loop([SubOffset(0, 1).into(), SubOffset(-3, 2).into()].into())].into()),
+        case("[-<<<-->>>]", [MulSub(-3, 2).into(), ZeroSet.into()].into()),
     )]
     fn test_optimize(input: &str, expected: Nodes) {
         let tokens = tokenize(input);

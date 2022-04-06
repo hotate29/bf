@@ -43,6 +43,12 @@ pub fn to_c2(root_node: &Nodes) -> String {
                     Instruction::MulAdd(offset, value) if *offset < 0 => {
                         c_code.push_str(&format!("if(*ptr!=0){{*(ptr{offset})+={value}*ptr[0];}}"));
                     }
+                    Instruction::MulSub(offset, value) if *offset >= 0 => {
+                        c_code.push_str(&format!("ptr[{offset}]-={value}*ptr[0];"));
+                    }
+                    Instruction::MulSub(offset, value) if *offset < 0 => {
+                        c_code.push_str(&format!("if(*ptr!=0){{*(ptr{offset})-={value}*ptr[0];}}"));
+                    }
                     Instruction::ZeroSet => {
                         c_code.push_str("*ptr=0;");
                     }
