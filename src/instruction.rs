@@ -10,10 +10,10 @@ pub enum Instruction {
     PtrDecrement(usize),
     Add(u8),
     AddOffset(isize, u8),
-    AddTo(isize),
+    AddTo(isize, isize),
     Sub(u8),
     SubOffset(isize, u8),
-    SubTo(isize),
+    SubTo(isize, isize),
     /// mem[左isize] += mem[右isize] * value
     MulAdd(isize, isize, u8),
     /// mem[左isize] -= mem[右isize] * value
@@ -47,8 +47,8 @@ impl Instruction {
             Instruction::Sub(n) => Some(format!("{}-", n)),
             Instruction::Output(n) => Some(format!("{}.", n)),
             Instruction::Input(n) => Some(format!("{},", n)),
-            Instruction::AddTo(_)
-            | Instruction::SubTo(_)
+            Instruction::AddTo(_, _)
+            | Instruction::SubTo(_, _)
             | Instruction::MulAdd(_, _, _)
             | Instruction::MulSub(_, _, _)
             | Instruction::ZeroSet
@@ -67,8 +67,8 @@ impl Instruction {
             Instruction::Sub(n) => Some("-".repeat(n as usize)),
             Instruction::Output(n) => Some(".".repeat(n)),
             Instruction::Input(n) => Some(",".repeat(n)),
-            Instruction::AddTo(_)
-            | Instruction::SubTo(_)
+            Instruction::AddTo(_, _)
+            | Instruction::SubTo(_, _)
             | Instruction::MulAdd(_, _, _)
             | Instruction::MulSub(_, _, _)
             | Instruction::ZeroSet
@@ -113,7 +113,6 @@ impl Instruction {
             }
             (PtrDecrement(x), PtrDecrement(y)) => Some(PtrDecrement(x + y)),
             (ZeroSet, ZeroSet) => Some(ZeroSet),
-            (ZeroSet, AddTo(_) | SubTo(_)) => Some(ZeroSet),
             (Add(_) | Sub(_), ZeroSet) => Some(ZeroSet),
             (Output(x), Output(y)) => Some(Output(x + y)),
             // (AddOffset(x_offset, x), AddOffset(y_offset, y)) if x_offset == y_offset => {
@@ -159,5 +158,18 @@ impl Instruction {
                 | Instruction::Sub(0)
                 | Instruction::SubOffset(_, 0)
         )
+    }
+}
+#[derive(Debug, Clone, Copy)]
+enum Value {
+    Memory(isize),
+    Const(u8),
+}
+impl Value {
+    fn to_u8(self) -> Option<u8> {
+        match self {
+            Value::Memory(_) => None,
+            Value::Const(value) => Some(value),
+        }
     }
 }

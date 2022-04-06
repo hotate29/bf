@@ -209,20 +209,20 @@ impl<R: Read, W: Write> InterPrinter<R, W> {
                         Instruction::PtrIncrement(n) => self.state.pointer_add(n),
                         Instruction::PtrDecrement(n) => self.state.pointer_sub(n)?,
                         Instruction::Add(n) => self.state.add(0, n)?,
-                        Instruction::AddTo(offset) => {
-                            let value = self.state.at();
+                        Instruction::AddTo(to_offset, offset) => {
+                            let value = self.state.at_offset(offset)?;
                             if value != 0 {
-                                self.state.add(offset, value)?;
+                                self.state.add(to_offset, value)?;
                             }
                         }
                         Instruction::Sub(n) => {
                             self.state.sub(0, n)?;
                         }
-                        Instruction::SubTo(offset) => {
-                            let value = self.state.at();
+                        Instruction::SubTo(to_offset, offset) => {
+                            let value = self.state.at_offset(offset)?;
                             // 後ろを参照するので、ここはちゃんと確認
                             if value != 0 {
-                                self.state.sub(offset, value)?;
+                                self.state.sub(to_offset, value)?;
                             }
                         }
                         Instruction::MulAdd(to_offset, offset, value) => {

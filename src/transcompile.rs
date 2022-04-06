@@ -14,19 +14,19 @@ pub fn to_c2(root_node: &Nodes) -> String {
                     Instruction::PtrIncrement(n) => c_code.push_str(&format!("ptr+={n};")),
                     Instruction::PtrDecrement(n) => c_code.push_str(&format!("ptr-={n};")),
                     Instruction::Add(n) => c_code.push_str(&format!("*ptr+={n};")),
-                    Instruction::AddTo(offset) if *offset >= 0 => {
-                        c_code.push_str(&format!("ptr[{offset}]+=ptr[0];"))
+                    Instruction::AddTo(to_offset, offset) if *offset >= 0 => {
+                        c_code.push_str(&format!("ptr[{to_offset}]+=ptr[{offset}];"))
                     }
-                    Instruction::AddTo(offset) if *offset < 0 => {
-                        c_code.push_str(&format!("if(ptr[0]!=0){{*(ptr{offset})+=ptr[0];}}"))
-                    }
+                    Instruction::AddTo(to_offset, offset) if *offset < 0 => c_code.push_str(
+                        &format!("if(ptr[0]!=0){{*(ptr{to_offset})+=ptr[{offset}];}}"),
+                    ),
                     Instruction::Sub(n) => c_code.push_str(&format!("*ptr-={n};")),
-                    Instruction::SubTo(offset) if *offset >= 0 => {
-                        c_code.push_str(&format!("ptr[{offset}]-=ptr[0];"))
+                    Instruction::SubTo(to_offset, offset) if *offset >= 0 => {
+                        c_code.push_str(&format!("ptr[{to_offset}]-=ptr[{offset}];"))
                     }
-                    Instruction::SubTo(offset) if *offset < 0 => {
-                        c_code.push_str(&format!("if(ptr[0]!=0){{*(ptr{offset})-=ptr[0];}}"))
-                    }
+                    Instruction::SubTo(to_offset, offset) if *offset < 0 => c_code.push_str(
+                        &format!("if(ptr[0]!=0){{*(ptr{to_offset})-=ptr[{offset}];}}"),
+                    ),
                     Instruction::Output(n) => {
                         for _ in 0..*n {
                             c_code.push_str("putchar(ptr[0]);")
