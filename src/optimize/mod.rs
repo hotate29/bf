@@ -58,6 +58,9 @@ impl Instructions {
             }
         }
     }
+    fn instructions(&self) -> impl Iterator<Item = &Instruction> {
+        self.inner.iter().map(|(_, ins)| ins)
+    }
     // fn inner(&self) -> &Vec<Instruction> {
     //     &self.inner
     // }
@@ -181,12 +184,12 @@ pub fn offset_opt(nodes: &Nodes) -> Nodes {
             // 注: ここで出力するのは命令列で、ループではない。これの扱いをどうする？
 
             for (offset, instructions) in state.offset_map {
-                for (num, instruction) in instructions.inner {
+                for instruction in instructions.instructions() {
                     let instruction = match instruction {
                         // 最後にZeroSetにする
                         Sub(1) | Add(1) if offset == 0 => continue,
                         Add(1) => AddTo(offset),
-                        Add(value) => MulAdd(offset, value),
+                        Add(value) => MulAdd(offset, *value),
                         Sub(1) => SubTo(offset),
                         // Output(repeat) => OutputOffset(repeat, offset),
                         // Input(_) => todo!(),
