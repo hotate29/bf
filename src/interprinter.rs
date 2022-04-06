@@ -209,7 +209,7 @@ impl<R: Read, W: Write> InterPrinter<R, W> {
                         Instruction::PtrIncrement(n) => self.state.pointer_add(n),
                         Instruction::PtrDecrement(n) => self.state.pointer_sub(n)?,
                         Instruction::Add(n) => self.state.add(0, n)?,
-                        Instruction::AddTo(offset) | Instruction::Copy(offset) => {
+                        Instruction::AddTo(offset) => {
                             let value = self.state.at();
                             if value != 0 {
                                 self.state.add(offset, value)?;
