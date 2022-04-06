@@ -1,4 +1,4 @@
-use std::{cmp::Ordering, collections::BTreeMap};
+use std::{cmp::Ordering, collections::BTreeMap, mem::swap};
 
 use crate::{
     instruction::Instruction::{self, *},
@@ -135,6 +135,11 @@ pub fn offset_opt(nodes: &Nodes) -> Nodes {
             }
             out_nodes
         }
+        fn take(&mut self) -> Self {
+            let mut a = Self::default();
+            swap(self, &mut a);
+            a
+        }
     }
 
     fn inner(nodes: &Nodes, is_loop: bool) -> Nod {
@@ -150,7 +155,7 @@ pub fn offset_opt(nodes: &Nodes) -> Nodes {
                 Node::Loop(loop_nodes) => {
                     has_loop = true;
 
-                    let mut instructions = state.into_nodes();
+                    let mut instructions = state.take().into_nodes();
 
                     new_nodes.append(&mut instructions);
 
@@ -158,8 +163,6 @@ pub fn offset_opt(nodes: &Nodes) -> Nodes {
                         Nod::Loop(loop_nodes) => new_nodes.push_back(Node::Loop(loop_nodes)),
                         Nod::Instructions(mut instructions) => new_nodes.append(&mut instructions),
                     }
-
-                    state = State::default();
                 }
                 Node::Instruction(instruction) => {
                     has_output |= matches!(instruction, Output(_));
