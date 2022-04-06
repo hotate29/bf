@@ -18,6 +18,7 @@ pub enum Instruction {
     Output(usize),
     OutputOffset(isize, usize),
     Input(usize),
+    InputOffset(isize, usize),
     ZeroSet,
     ZeroSetOffset(isize),
     Copy(isize),
@@ -52,7 +53,8 @@ impl Instruction {
             | Instruction::AddOffset(_, _)
             | Instruction::SubOffset(_, _)
             | Instruction::OutputOffset(_, _)
-            | Instruction::ZeroSetOffset(_) => None,
+            | Instruction::ZeroSetOffset(_)
+            | Instruction::InputOffset(_, _) => None,
         }
     }
     pub fn to_string(self) -> Option<String> {
@@ -71,7 +73,8 @@ impl Instruction {
             | Instruction::AddOffset(_, _)
             | Instruction::SubOffset(_, _)
             | Instruction::OutputOffset(_, _)
-            | Instruction::ZeroSetOffset(_) => None,
+            | Instruction::ZeroSetOffset(_)
+            | Instruction::InputOffset(_, _) => None,
         }
     }
     #[inline]

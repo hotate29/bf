@@ -89,13 +89,12 @@ pub fn offset_opt(nodes: &Nodes) -> Nodes {
             match ins {
                 PtrIncrement(inc) => self.pointer_offset += inc as isize,
                 PtrDecrement(dec) => self.pointer_offset -= dec as isize,
-                ins @ (Add(_) | Sub(_) | Output(_) | ZeroSet) => {
+                ins @ (Add(_) | Sub(_) | Output(_) | Input(_) | ZeroSet) => {
                     self.offset_map
                         .entry(self.pointer_offset)
                         .and_modify(|instructions| instructions.push(self.ins_count, ins))
                         .or_insert_with(|| Instructions::from_ins(self.ins_count, ins));
                 }
-                Input(_) => todo!(),
                 _ => panic!(),
             };
         }
@@ -109,7 +108,7 @@ pub fn offset_opt(nodes: &Nodes) -> Nodes {
                             Add(value) => AddOffset(offset, value),
                             Sub(value) => SubOffset(offset, value),
                             Output(repeat) => OutputOffset(offset, repeat),
-                            Input(_) => todo!(),
+                            Input(repeat) => InputOffset(offset, repeat),
                             ZeroSet => ZeroSetOffset(offset),
                             _ => panic!(),
                         };

@@ -68,8 +68,19 @@ pub fn to_c2(root_node: &Nodes) -> String {
                             c_code.push_str(&format!("putchar(ptr[{offset}]);"))
                         }
                     }
+                    Instruction::InputOffset(offset, repeat) if *offset >= 0 => {
+                        for _ in 0..*repeat {
+                            c_code.push_str(&format!("ptr[{offset}]=getchar();"))
+                        }
+                    }
+                    Instruction::InputOffset(offset, repeat) if *offset < 0 => {
+                        for _ in 0..*repeat {
+                            c_code.push_str(&format!("*(ptr+{offset})=getchar();"))
+                        }
+                    }
                     Instruction::ZeroSetOffset(_) => todo!(),
                     ins => panic!("unimplemented instruction. {ins:?}"),
+                    // Instruction::Copy(_) => todo!(),
                 },
             }
         }

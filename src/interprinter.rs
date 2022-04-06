@@ -91,10 +91,10 @@ impl State {
         Ok(())
     }
     #[inline]
-    fn input(&mut self, reader: &mut impl Read) -> Result<()> {
+    fn input(&mut self, offset: isize, reader: &mut impl Read) -> Result<()> {
         let mut buf = [0];
         reader.read_exact(&mut buf)?;
-        *self.at_offset_mut(0)? = buf[0];
+        *self.at_offset_mut(offset)? = buf[0];
         Ok(())
     }
 }
@@ -239,7 +239,7 @@ impl<R: Read, W: Write> InterPrinter<R, W> {
                         }
                         Instruction::Input(n) => {
                             for _ in 0..n {
-                                self.state.input(&mut self.input)?;
+                                self.state.input(0, &mut self.input)?;
                             }
                         }
                         Instruction::ZeroSet => *self.state.at_offset_mut(0)? = 0,
@@ -251,6 +251,11 @@ impl<R: Read, W: Write> InterPrinter<R, W> {
                         Instruction::OutputOffset(offset, repeat) => {
                             for _ in 0..repeat {
                                 self.state.output(offset, &mut self.output)?
+                            }
+                        }
+                        Instruction::InputOffset(offset, repeat) => {
+                            for _ in 0..repeat {
+                                self.state.input(offset, &mut self.input)?;
                             }
                         }
                         ins => panic!("unimplemented instruction. {ins:?}"),
