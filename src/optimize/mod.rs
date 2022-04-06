@@ -108,7 +108,7 @@ pub fn offset_opt(nodes: &Nodes) -> Nodes {
                         let ins = match ins {
                             Add(value) => AddOffset(offset, value),
                             Sub(value) => SubOffset(offset, value),
-                            Output(repeat) => OutputOffset(repeat, offset),
+                            Output(repeat) => OutputOffset(offset, repeat),
                             Input(_) => todo!(),
                             ZeroSet => ZeroSetOffset(offset),
                             _ => panic!(),

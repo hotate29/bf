@@ -16,7 +16,7 @@ pub enum Instruction {
     SubTo(isize),
     MulAdd(isize, u8),
     Output(usize),
-    OutputOffset(usize, isize),
+    OutputOffset(isize, usize),
     Input(usize),
     ZeroSet,
     ZeroSetOffset(isize),

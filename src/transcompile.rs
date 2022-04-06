@@ -58,12 +58,12 @@ pub fn to_c2(root_node: &Nodes) -> String {
                     Instruction::SubOffset(offset, value) if *offset >= 0 => {
                         c_code.push_str(&format!("ptr[{offset}]-={value};"))
                     }
-                    Instruction::OutputOffset(repeat, offset) if *offset < 0 => {
+                    Instruction::OutputOffset(offset, repeat) if *offset < 0 => {
                         for _ in 0..*repeat {
                             c_code.push_str(&format!("if(*ptr!=0){{putchar(*(ptr{offset}));}}"))
                         }
                     }
-                    Instruction::OutputOffset(repeat, offset) if *offset >= 0 => {
+                    Instruction::OutputOffset(offset, repeat) if *offset >= 0 => {
                         for _ in 0..*repeat {
                             c_code.push_str(&format!("putchar(ptr[{offset}]);"))
                         }
