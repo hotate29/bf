@@ -191,9 +191,9 @@ pub fn offset_opt(nodes: &Nodes) -> Nodes {
                         // 最後にZeroSetにする
                         Sub(1) | Add(1) if offset == 0 => continue,
                         Add(1) => AddTo(offset),
-                        Add(value) => MulAdd(offset, *value),
+                        Add(value) => MulAdd(offset, 0, *value),
                         Sub(1) => SubTo(offset),
-                        Sub(value) => MulSub(offset, *value),
+                        Sub(value) => MulSub(offset, 0, *value),
                         // Output(repeat) => OutputOffset(repeat, offset),
                         // Input(_) => todo!(),
                         // ZeroSet => ZeroSetOffset(offset),
@@ -251,7 +251,7 @@ mod test {
         case("[>>>+<<<-]", [AddTo(3).into(), ZeroSet.into()].into()),
         case("[-<<<+>>>]", [AddTo(-3).into(), ZeroSet.into()].into()),
         case("[<<<+>>>-]", [AddTo(-3).into(), ZeroSet.into()].into()),
-        case("[-<<<++>>>]", [MulAdd(-3, 2).into(), ZeroSet.into()].into()),
+        case("[-<<<++>>>]", [MulAdd(-3, 0, 2).into(), ZeroSet.into()].into()),
         case("[->>>-<<<]", [SubTo(3).into(), ZeroSet.into()].into()),
         case("[>>>-<<<-]", [SubTo(3).into(), ZeroSet.into()].into()),
         case("[-<<<->>>]", [SubTo(-3).into(), ZeroSet.into()].into()),
@@ -270,8 +270,8 @@ mod test {
         case("[>>>->+<<<<-]", [SubTo(3).into(), AddTo(4).into(), ZeroSet.into()].into()),
         case("+++[>>>[-][[->+<]]<<<]", [AddOffset(0, 3).into(), Node::Loop([PtrIncrement(3).into(), ZeroSet.into(), Node::Loop([AddTo(1).into(), ZeroSet.into()].into()), PtrDecrement(3).into()].into())].into()),
         case("[->>>.<<<]", [Node::Loop([SubOffset(0, 1).into(), OutputOffset(3, 1).into()].into())].into()),
-        case("[->+>+>++>+++<<<<]", [AddTo(1).into(), AddTo(2).into(), MulAdd(3, 2).into(), MulAdd(4, 3).into(), ZeroSet.into()].into()),
-        case("[-<<<-->>>]", [MulSub(-3, 2).into(), ZeroSet.into()].into()),
+        case("[->+>+>++>+++<<<<]", [AddTo(1).into(), AddTo(2).into(), MulAdd(3, 0, 2).into(), MulAdd(4, 0, 3).into(), ZeroSet.into()].into()),
+        case("[-<<<-->>>]", [MulSub(-3, 0, 2).into(), ZeroSet.into()].into()),
     )]
     fn test_optimize(input: &str, expected: Nodes) {
         let tokens = tokenize(input);

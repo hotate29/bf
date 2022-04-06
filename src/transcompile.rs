@@ -37,17 +37,22 @@ pub fn to_c2(root_node: &Nodes) -> String {
                             c_code.push_str("ptr[0]=getchar();");
                         }
                     }
-                    Instruction::MulAdd(offset, value) if *offset >= 0 => {
+                    Instruction::MulAdd(to_offset, offset, value) if *offset >= 0 => {
                         c_code.push_str(&format!("ptr[{offset}]+={value}*ptr[0];"));
                     }
-                    Instruction::MulAdd(offset, value) if *offset < 0 => {
-                        c_code.push_str(&format!("if(*ptr!=0){{*(ptr{offset})+={value}*ptr[0];}}"));
+                    Instruction::MulAdd(to_offset, offset, value) if *offset < 0 => {
+                        c_code.push_str(&format!(
+                            "if(*ptr!=0){{*(ptr{to_offset})+={value}*ptr[{offset}];}}"
+                        ));
+                        unimplemented!()
                     }
-                    Instruction::MulSub(offset, value) if *offset >= 0 => {
+                    Instruction::MulSub(to_offset, offset, value) if *offset >= 0 => {
                         c_code.push_str(&format!("ptr[{offset}]-={value}*ptr[0];"));
+                        unimplemented!()
                     }
-                    Instruction::MulSub(offset, value) if *offset < 0 => {
+                    Instruction::MulSub(to_offset, offset, value) if *offset < 0 => {
                         c_code.push_str(&format!("if(*ptr!=0){{*(ptr{offset})-={value}*ptr[0];}}"));
+                        unimplemented!()
                     }
                     Instruction::ZeroSet => {
                         c_code.push_str("*ptr=0;");

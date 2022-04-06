@@ -14,8 +14,10 @@ pub enum Instruction {
     Sub(u8),
     SubOffset(isize, u8),
     SubTo(isize),
-    MulAdd(isize, u8),
-    MulSub(isize, u8),
+    /// mem[左isize] += mem[右isize] * value
+    MulAdd(isize, isize, u8),
+    /// mem[左isize] -= mem[右isize] * value
+    MulSub(isize, isize, u8),
     Output(usize),
     OutputOffset(isize, usize),
     Input(usize),
@@ -48,8 +50,8 @@ impl Instruction {
             Instruction::Input(n) => Some(format!("{},", n)),
             Instruction::AddTo(_)
             | Instruction::SubTo(_)
-            | Instruction::MulAdd(_, _)
-            | Instruction::MulSub(_, _)
+            | Instruction::MulAdd(_, _, _)
+            | Instruction::MulSub(_, _, _)
             | Instruction::ZeroSet
             | Instruction::Copy(_)
             | Instruction::AddOffset(_, _)
@@ -69,8 +71,8 @@ impl Instruction {
             Instruction::Input(n) => Some(",".repeat(n)),
             Instruction::AddTo(_)
             | Instruction::SubTo(_)
-            | Instruction::MulAdd(_, _)
-            | Instruction::MulSub(_, _)
+            | Instruction::MulAdd(_, _, _)
+            | Instruction::MulSub(_, _, _)
             | Instruction::ZeroSet
             | Instruction::Copy(_)
             | Instruction::AddOffset(_, _)
