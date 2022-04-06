@@ -266,7 +266,7 @@ mod test {
         case("[>>>-<<<-]", [SubTo(3).into(), ZeroSet.into()].into()),
         case("[>>>->+<<<<-]", [SubTo(3).into(), AddTo(4).into(), ZeroSet.into()].into()),
         case("+++[>>>[-][[->+<]]<<<]", [AddOffset(0, 3).into(), Node::Loop([PtrIncrement(3).into(), ZeroSet.into(), Node::Loop([AddTo(1).into(), ZeroSet.into()].into()), PtrDecrement(3).into()].into())].into()),
-        case("[->>>.<<<]", [Node::Loop([SubOffset(0, 1).into(), OutputOffset(1, 3).into()].into())].into()),
+        case("[->>>.<<<]", [Node::Loop([SubOffset(0, 1).into(), OutputOffset(3, 1).into()].into())].into()),
         case("[->+>+>++>+++<<<<]", [AddTo(1).into(), AddTo(2).into(), MulAdd(3, 2).into(), MulAdd(4, 3).into(), ZeroSet.into()].into()),
         case("[-<<<-->>>]", [MulSub(-3, 2).into(), ZeroSet.into()].into()),
     )]
