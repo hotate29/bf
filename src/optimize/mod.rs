@@ -96,40 +96,32 @@ pub fn offset_opt(nodes: &Nodes) -> Nodes {
                 _ => panic!(),
             };
         }
-        fn into_nodes(mut self) -> Nodes {
-            let mut out_nodes = Nodes::new();
+        fn into_nodes(self) -> Nodes {
+            let mut insss = self
+                .offset_map
+                .into_iter()
+                .flat_map(|(offset, instructions)| {
+                    instructions.inner.into_iter().map(move |(id, ins)| {
+                        let ins = match ins {
+                            Add(value) => AddOffset(offset, value),
+                            Sub(value) => SubOffset(offset, value),
+                            Output(repeat) => OutputOffset(repeat, offset),
+                            Input(_) => todo!(),
+                            ZeroSet => ZeroSetOffset(offset),
+                            _ => panic!(),
+                        };
+                        (id, ins)
+                    })
+                })
+                .collect::<Vec<_>>();
 
-            // 出力の順番をちゃんと
-            // [->.+>.<.<]が落ちる
-            for order in self.output_order {
-                let instructions = self.offset_map.remove(&order).unwrap();
-                for (num, instruction) in &instructions.inner {
-                    let instruction = match instruction {
-                        Add(value) => AddOffset(order, *value),
-                        Sub(value) => SubOffset(order, *value),
-                        Output(repeat) => OutputOffset(*repeat, order),
-                        Input(_) => todo!(),
-                        ZeroSet => ZeroSetOffset(order),
-                        _ => panic!(),
-                    };
-                    out_nodes.push_back(instruction.into());
-                }
-            }
+            insss.sort_unstable_by_key(|(num, _)| *num);
+            let mut out_nodes = insss
+                .into_iter()
+                .map(|(_, ins)| ins)
+                .map(Into::into)
+                .collect::<Nodes>();
 
-            for (offset, instructions) in self.offset_map {
-                for (num, instruction) in instructions.inner {
-                    let instruction = match instruction {
-                        Add(value) => AddOffset(offset, value),
-                        Sub(value) => SubOffset(offset, value),
-                        // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-                        Output(repeat) => OutputOffset(repeat, offset),
-                        Input(_) => todo!(),
-                        ZeroSet => ZeroSetOffset(offset),
-                        _ => panic!(),
-                    };
-                    out_nodes.push_back(instruction.into());
-                }
-            }
             match self.pointer_offset.cmp(&0) {
                 Ordering::Less => {
                     out_nodes.push_back(PtrDecrement(self.pointer_offset.abs() as usize).into())
@@ -196,7 +188,7 @@ pub fn offset_opt(nodes: &Nodes) -> Nodes {
                         Add(1) => AddTo(offset),
                         Add(value) => MulAdd(offset, value),
                         Sub(1) => SubTo(offset),
-                        Output(repeat) => OutputOffset(repeat, offset),
+                        // Output(repeat) => OutputOffset(repeat, offset),
                         // Input(_) => todo!(),
                         // ZeroSet => ZeroSetOffset(offset),
                         ins => panic!("{ins:?}"),
@@ -262,7 +254,7 @@ mod test {
         case("", [].into()),
         case("+++", [AddOffset(0, 3).into()].into()),
         case("+++---", [].into()),
-        case(">+++<-", [SubOffset(0, 1).into(), AddOffset(1, 3).into()].into()),
+        case(">+++<-", [AddOffset(1, 3).into(), SubOffset(0, 1).into()].into()),
         case(">+++", [AddOffset(1, 3).into(), PtrIncrement(1).into()].into()),
         case("[[[]]]", [Node::Loop([Node::Loop([Node::Loop([].into())].into())].into())].into()),
         case("->+<", [SubOffset(0, 1).into(), AddOffset(1, 1).into()].into()),
@@ -271,7 +263,7 @@ mod test {
         case("[>>>-<<<-]", [SubTo(3).into(), ZeroSet.into()].into()),
         case("[>>>->+<<<<-]", [SubTo(3).into(), AddTo(4).into(), ZeroSet.into()].into()),
         case("+++[>>>[-][[->+<]]<<<]", [AddOffset(0, 3).into(), Node::Loop([PtrIncrement(3).into(), ZeroSet.into(), Node::Loop([AddTo(1).into(), ZeroSet.into()].into()), PtrDecrement(3).into()].into())].into()),
-        case("[->>>.<<<]", [Node::Loop([OutputOffset(1,3).into(), SubOffset(0, 1).into()].into())].into()),
+        case("[->>>.<<<]", [Node::Loop([SubOffset(0, 1).into(), OutputOffset(1, 3).into()].into())].into()),
         case("[->+>+>++>+++<<<<]", [AddTo(1).into(), AddTo(2).into(), MulAdd(3, 2).into(), MulAdd(4, 3).into(), ZeroSet.into()].into()),
         // TODO: MulSubを実装する
         #[should_panic]
