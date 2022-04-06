@@ -203,6 +203,7 @@ pub fn offset_opt(nodes: &Nodes) -> Nodes {
                 }
             }
             new_nodes.push_back(ZeroSet.into());
+
             Nod::Instructions(new_nodes)
         } else {
             let mut instructions = state.into_nodes();
@@ -216,13 +217,122 @@ pub fn offset_opt(nodes: &Nodes) -> Nodes {
     }
 }
 
+fn offset_merge(nodes: Nodes) -> Nodes {
+    let mut simplified_nodes = SimplifiedNodes::new();
+    for node in nodes {
+        match node {
+            Node::Loop(loop_nodes) => {
+                simplified_nodes.push_back(Node::Loop(offset_merge(loop_nodes)))
+            }
+            ins_node @ Node::Instruction(_) => simplified_nodes.push_back(ins_node),
+        };
+    }
+    simplified_nodes.into_nodes()
+}
+
 pub fn optimize(nodes: &Nodes) -> Nodes {
-    offset_opt(nodes)
+    let nodes = offset_opt(nodes);
+    offset_merge(nodes)
+}
+#[derive(Debug, Default)]
+struct SimplifiedNodes {
+    nodes: Nodes,
+    pointer_offset: isize,
+}
+impl SimplifiedNodes {
+    fn new() -> Self {
+        Self {
+            ..Default::default()
+        }
+    }
+    fn push_back(&mut self, node: Node) {
+        match node {
+            loop_node @ Node::Loop(_) => {
+                // ポインターを動かしておく
+                match self.pointer_offset.cmp(&0) {
+                    Ordering::Less => self
+                        .nodes
+                        .push_back(PtrDecrement(self.pointer_offset.abs() as usize).into()),
+                    Ordering::Greater => self
+                        .nodes
+                        .push_back(PtrIncrement(self.pointer_offset as usize).into()),
+                    Ordering::Equal => (),
+                }
+                self.pointer_offset = 0;
+
+                self.nodes.push_back(loop_node);
+            }
+            Node::Instruction(ins) => {
+                // ポインターいじいじ
+                match ins {
+                    PtrIncrement(inc) => {
+                        self.pointer_offset += inc as isize;
+                        return;
+                    }
+                    PtrDecrement(dec) => {
+                        self.pointer_offset -= dec as isize;
+                        return;
+                    }
+                    _ => (),
+                };
+
+                let ins = match ins {
+                    PtrIncrement(_) | PtrDecrement(_) => unreachable!(),
+                    Add(value) => AddOffset(self.pointer_offset, value),
+                    AddOffset(offset, value) => AddOffset(self.pointer_offset + offset, value),
+                    AddTo(to_offset, offset) => AddTo(
+                        self.pointer_offset + to_offset,
+                        self.pointer_offset + offset,
+                    ),
+                    Sub(value) => SubOffset(self.pointer_offset, value),
+                    SubOffset(offset, value) => SubOffset(self.pointer_offset + offset, value),
+                    SubTo(to_offset, offset) => SubTo(
+                        self.pointer_offset + to_offset,
+                        self.pointer_offset + offset,
+                    ),
+                    MulAdd(to_offset, offset, value) => MulAdd(
+                        self.pointer_offset + to_offset,
+                        self.pointer_offset + offset,
+                        value,
+                    ),
+                    MulSub(to_offset, offset, value) => MulSub(
+                        self.pointer_offset + to_offset,
+                        self.pointer_offset + offset,
+                        value,
+                    ),
+                    Output(repeat) => OutputOffset(self.pointer_offset, repeat),
+                    OutputOffset(offset, repeat) => {
+                        OutputOffset(self.pointer_offset + offset, repeat)
+                    }
+                    Input(repeat) => InputOffset(self.pointer_offset, repeat),
+                    InputOffset(offset, repeat) => {
+                        InputOffset(self.pointer_offset + offset, repeat)
+                    }
+                    ZeroSet => ZeroSetOffset(self.pointer_offset),
+                    ZeroSetOffset(offset) => ZeroSetOffset(self.pointer_offset + offset),
+                };
+                self.nodes.push_back(ins.into())
+            }
+        }
+    }
+    fn into_nodes(self) -> Nodes {
+        let mut nodes = self.nodes;
+
+        match self.pointer_offset.cmp(&0) {
+            Ordering::Less => {
+                nodes.push_back(PtrDecrement(self.pointer_offset.abs() as usize).into())
+            }
+            Ordering::Greater => nodes.push_back(PtrIncrement(self.pointer_offset as usize).into()),
+            Ordering::Equal => (),
+        };
+
+        nodes
+    }
 }
 
 #[cfg(test)]
 mod test {
-    use super::{merge_instruction, offset_opt};
+    use super::{merge_instruction, offset_opt, SimplifiedNodes};
     use crate::{
         instruction::Instruction::*,
         parse::{tokenize, Node, Nodes},
@@ -279,5 +389,20 @@ mod test {
 
         let optimized_node = offset_opt(&nodes);
         assert_eq!(optimized_node, expected)
+    }
+
+    #[rstest(input, expected,
+        case([Add(1).into(), PtrIncrement(1).into(), Sub(1).into(), AddOffset(2, 2).into()].into(), [AddOffset(0, 1).into(), SubOffset(1, 1).into(), AddOffset(3, 2).into(), PtrIncrement(1).into()].into())
+    )]
+    fn test_simplified_nodes(input: Nodes, expected: Nodes) {
+        let mut simplified_nodes = SimplifiedNodes::new();
+
+        for node in input {
+            simplified_nodes.push_back(node);
+        }
+
+        let simplified_nodes = simplified_nodes.into_nodes();
+
+        assert_eq!(simplified_nodes, expected)
     }
 }
