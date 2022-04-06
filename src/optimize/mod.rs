@@ -31,32 +31,36 @@ fn merge_instruction(nodes: Nodes) -> Nodes {
 
 #[derive(Debug)]
 struct Instructions {
-    inner: Vec<Instruction>,
+    inner: Vec<(usize, Instruction)>,
 }
 impl Instructions {
-    fn from_ins(ins: Instruction) -> Self {
-        Self { inner: vec![ins] }
+    fn from_ins(num: usize, ins: Instruction) -> Self {
+        Self {
+            inner: vec![(num, ins)],
+        }
     }
-    fn push(&mut self, ins: Instruction) {
-        self.inner.push(ins);
+    fn push(&mut self, num: usize, ins: Instruction) {
+        self.inner.push((num, ins));
 
         while let Some(merged_inst) = self
             .inner
             .iter()
             .nth_back(1)
             .zip(self.inner.last())
-            .and_then(|(back2, back)| back2.merge(*back))
+            .and_then(|((back2_num, back2), (_, back))| {
+                back2.merge(*back).map(|ins| (*back2_num, ins))
+            })
         {
             self.inner.pop().unwrap();
             self.inner.pop().unwrap();
-            if !merged_inst.is_no_action() {
+            if !merged_inst.1.is_no_action() {
                 self.inner.push(merged_inst)
             }
         }
     }
-    fn inner(&self) -> &Vec<Instruction> {
-        &self.inner
-    }
+    // fn inner(&self) -> &Vec<Instruction> {
+    //     &self.inner
+    // }
 }
 
 pub fn offset_opt(nodes: &Nodes) -> Nodes {
@@ -70,10 +74,12 @@ pub fn offset_opt(nodes: &Nodes) -> Nodes {
     struct State {
         pointer_offset: isize,
         offset_map: BTreeMap<isize, Instructions>,
+        ins_count: usize,
         output_order: Vec<isize>,
     }
     impl State {
         fn push_instruction(&mut self, ins: Instruction) {
+            self.ins_count += 1;
             if matches!(ins, Output(_)) && self.output_order.last() != Some(&self.pointer_offset) {
                 self.output_order.push(self.pointer_offset);
             }
@@ -83,8 +89,8 @@ pub fn offset_opt(nodes: &Nodes) -> Nodes {
                 ins @ (Add(_) | Sub(_) | Output(_) | ZeroSet) => {
                     self.offset_map
                         .entry(self.pointer_offset)
-                        .and_modify(|instructions| instructions.push(ins))
-                        .or_insert_with(|| Instructions::from_ins(ins));
+                        .and_modify(|instructions| instructions.push(self.ins_count, ins))
+                        .or_insert_with(|| Instructions::from_ins(self.ins_count, ins));
                 }
                 Input(_) => todo!(),
                 _ => panic!(),
@@ -94,9 +100,10 @@ pub fn offset_opt(nodes: &Nodes) -> Nodes {
             let mut out_nodes = Nodes::new();
 
             // 出力の順番をちゃんと
+            // [->.+>.<.<]が落ちる
             for order in self.output_order {
                 let instructions = self.offset_map.remove(&order).unwrap();
-                for instruction in instructions.inner() {
+                for (num, instruction) in &instructions.inner {
                     let instruction = match instruction {
                         Add(value) => AddOffset(order, *value),
                         Sub(value) => SubOffset(order, *value),
@@ -110,7 +117,7 @@ pub fn offset_opt(nodes: &Nodes) -> Nodes {
             }
 
             for (offset, instructions) in self.offset_map {
-                for instruction in instructions.inner {
+                for (num, instruction) in instructions.inner {
                     let instruction = match instruction {
                         Add(value) => AddOffset(offset, value),
                         Sub(value) => SubOffset(offset, value),
@@ -175,14 +182,14 @@ pub fn offset_opt(nodes: &Nodes) -> Nodes {
             && !has_output
             && state.offset_map
                 .get(&0)
-                .filter(|ins| ins.inner() == &[Sub(1)] || ins.inner() == &[Add(1)])
+                .filter(|ins| ins.inner.len() == 1 && (ins.inner[0].1 == Sub(1) || ins.inner[0].1 == Add(1)))
                 .is_some()
         {
             // 最適化をするぞ！バリバリ！
             // 注: ここで出力するのは命令列で、ループではない。これの扱いをどうする？
 
             for (offset, instructions) in state.offset_map {
-                for instruction in instructions.inner {
+                for (num, instruction) in instructions.inner {
                     let instruction = match instruction {
                         // 最後にZeroSetにする
                         Sub(1) | Add(1) if offset == 0 => continue,
