@@ -10,7 +10,6 @@ pub enum Instruction {
     PtrDecrement(usize),
     AddOffset(isize, u8),
     AddTo(isize, isize),
-    Sub(u8),
     SubOffset(isize, u8),
     SubTo(isize, isize),
     /// mem[左isize] += mem[右isize] * value
@@ -32,7 +31,7 @@ impl Instruction {
             Token::Greater => Some(Self::PtrIncrement(1)),
             Token::Less => Some(Self::PtrDecrement(1)),
             Token::Plus => Some(Self::AddOffset(0, 1)),
-            Token::Minus => Some(Self::Sub(1)),
+            Token::Minus => Some(Self::SubOffset(0, 1)),
             Token::Period => Some(Self::Output(1)),
             Token::Comma => Some(Self::Input(1)),
             Token::LeftBracket | Token::RightBracket => None,
@@ -43,7 +42,7 @@ impl Instruction {
             Instruction::PtrIncrement(n) => Some(format!("{}>", n)),
             Instruction::PtrDecrement(n) => Some(format!("{}<", n)),
             Instruction::AddOffset(0, n) => Some(format!("{}+", n)),
-            Instruction::Sub(n) => Some(format!("{}-", n)),
+            Instruction::SubOffset(0, n) => Some(format!("{}-", n)),
             Instruction::Output(n) => Some(format!("{}.", n)),
             Instruction::Input(n) => Some(format!("{},", n)),
             Instruction::AddTo(_, _)
@@ -63,7 +62,7 @@ impl Instruction {
             Instruction::PtrIncrement(n) => Some(">".repeat(n)),
             Instruction::PtrDecrement(n) => Some("<".repeat(n)),
             Instruction::AddOffset(0, n) => Some("+".repeat(n as usize)),
-            Instruction::Sub(n) => Some("-".repeat(n as usize)),
+            Instruction::SubOffset(0, n) => Some("-".repeat(n as usize)),
             Instruction::Output(n) => Some(".".repeat(n)),
             Instruction::Input(n) => Some(",".repeat(n)),
             Instruction::AddTo(_, _)
@@ -86,19 +85,24 @@ impl Instruction {
             (AddOffset(x_offset, x), AddOffset(y_offset, y)) if x_offset == y_offset => {
                 Some(AddOffset(x_offset, x.wrapping_add(y)))
             }
-            (Sub(y), AddOffset(0, x)) | (AddOffset(0, x), Sub(y)) => {
+            (SubOffset(y_offset, y), AddOffset(x_offset, x))
+            | (AddOffset(x_offset, x), SubOffset(y_offset, y))
+                if x_offset == y_offset =>
+            {
                 let x = x as i32;
                 let y = y as i32;
 
                 let z = x - y;
 
                 match z.cmp(&0) {
-                    Ordering::Less => Some(Sub(z.abs() as u8)),
+                    Ordering::Less => Some(SubOffset(x_offset, z.abs() as u8)),
                     Ordering::Greater => Some(AddOffset(0, z as u8)),
                     Ordering::Equal => Some(AddOffset(0, 0)),
                 }
             }
-            (Sub(x), Sub(y)) => Some(Sub(x.wrapping_add(y) % u8::MAX)),
+            (SubOffset(x_offset, x), SubOffset(y_offset, y)) if x_offset == y_offset => {
+                Some(SubOffset(x_offset, x.wrapping_add(y) % u8::MAX))
+            }
             (PtrIncrement(x), PtrIncrement(y)) => Some(PtrIncrement(x + y)),
             (PtrDecrement(y), PtrIncrement(x)) | (PtrIncrement(x), PtrDecrement(y)) => {
                 let x = x as isize;
@@ -114,7 +118,7 @@ impl Instruction {
             }
             (PtrDecrement(x), PtrDecrement(y)) => Some(PtrDecrement(x + y)),
             (ZeroSet, ZeroSet) => Some(ZeroSet),
-            (AddOffset(0, _) | Sub(_), ZeroSet) => Some(ZeroSet),
+            (AddOffset(0, _) | SubOffset(0, _), ZeroSet) => Some(ZeroSet),
             (Output(x), Output(y)) => Some(Output(x + y)),
             // (AddOffset(x_offset, x), AddOffset(y_offset, y)) if x_offset == y_offset => {
             //     Some(AddOffset(x_offset, x.wrapping_add(y)))
@@ -155,7 +159,6 @@ impl Instruction {
             Instruction::PtrIncrement(0)
                 | Instruction::PtrDecrement(0)
                 | Instruction::AddOffset(_, 0)
-                | Instruction::Sub(0)
                 | Instruction::SubOffset(_, 0)
         )
     }

@@ -215,9 +215,7 @@ impl<R: Read, W: Write> InterPrinter<R, W> {
                                 self.state.add(to_offset, value)?;
                             }
                         }
-                        Instruction::Sub(n) => {
-                            self.state.sub(0, n)?;
-                        }
+                        Instruction::SubOffset(offset, value) => self.state.sub(offset, value)?,
                         Instruction::SubTo(to_offset, offset) => {
                             let value = self.state.at_offset(offset)?;
                             // 後ろを参照するので、ここはちゃんと確認
@@ -253,7 +251,6 @@ impl<R: Read, W: Write> InterPrinter<R, W> {
                         Instruction::ZeroSetOffset(offset) => {
                             *self.state.at_offset_mut(offset)? = 0
                         }
-                        Instruction::SubOffset(offset, value) => self.state.sub(offset, value)?,
                         Instruction::OutputOffset(offset, repeat) => {
                             for _ in 0..repeat {
                                 self.state.output(offset, &mut self.output)?
