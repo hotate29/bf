@@ -160,16 +160,3 @@ impl Instruction {
         )
     }
 }
-#[derive(Debug, Clone, Copy)]
-enum Value {
-    Memory(isize),
-    Const(u8),
-}
-impl Value {
-    fn to_u8(self) -> Option<u8> {
-        match self {
-            Value::Memory(_) => None,
-            Value::Const(value) => Some(value),
-        }
-    }
-}
