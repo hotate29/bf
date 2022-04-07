@@ -13,7 +13,9 @@ pub fn to_c2(root_node: &Nodes) -> String {
                 crate::parse::Node::Instruction(instruction) => match instruction {
                     Instruction::PtrIncrement(n) => c_code.push_str(&format!("ptr+={n};")),
                     Instruction::PtrDecrement(n) => c_code.push_str(&format!("ptr-={n};")),
-                    Instruction::Add(n) => c_code.push_str(&format!("*ptr+={n};")),
+                    Instruction::AddOffset(offset, value) => {
+                        c_code.push_str(&format!("*(ptr+{offset})+={value};"))
+                    }
                     Instruction::AddTo(to_offset, offset) if *offset >= 0 => {
                         c_code.push_str(&format!("*(ptr+{to_offset})+=ptr[{offset}];"))
                     }
@@ -55,9 +57,6 @@ pub fn to_c2(root_node: &Nodes) -> String {
                     }
                     Instruction::ZeroSet => {
                         c_code.push_str("*ptr=0;");
-                    }
-                    Instruction::AddOffset(offset, value) => {
-                        c_code.push_str(&format!("*(ptr+{offset})+={value};"))
                     }
                     Instruction::SubOffset(offset, value) => {
                         c_code.push_str(&format!("*(ptr+{offset})-={value};"))

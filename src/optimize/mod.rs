@@ -89,7 +89,7 @@ pub fn offset_opt(nodes: &Nodes) -> Nodes {
             match ins {
                 PtrIncrement(inc) => self.pointer_offset += inc as isize,
                 PtrDecrement(dec) => self.pointer_offset -= dec as isize,
-                ins @ (Add(_) | Sub(_) | Output(_) | Input(_) | ZeroSet) => {
+                ins @ (AddOffset(0, _) | Sub(_) | Output(_) | Input(_) | ZeroSet) => {
                     self.offset_map
                         .entry(self.pointer_offset)
                         .and_modify(|instructions| instructions.push(self.ins_count, ins))
@@ -105,7 +105,7 @@ pub fn offset_opt(nodes: &Nodes) -> Nodes {
                 .flat_map(|(offset, instructions)| {
                     instructions.inner.into_iter().map(move |(id, ins)| {
                         let ins = match ins {
-                            Add(value) => AddOffset(offset, value),
+                            AddOffset(0, value) => AddOffset(offset, value),
                             Sub(value) => SubOffset(offset, value),
                             Output(repeat) => OutputOffset(offset, repeat),
                             Input(repeat) => InputOffset(offset, repeat),
@@ -179,7 +179,7 @@ pub fn offset_opt(nodes: &Nodes) -> Nodes {
             && !has_io
             && state.offset_map
                 .get(&0)
-                .filter(|ins| ins.inner.len() == 1 && (ins.inner[0].1 == Sub(1) || ins.inner[0].1 == Add(1)))
+                .filter(|ins| ins.inner.len() == 1 && (ins.inner[0].1 == Sub(1) || ins.inner[0].1 == AddOffset(0,1)))
                 .is_some()
         {
             // 最適化をするぞ！バリバリ！
@@ -189,9 +189,9 @@ pub fn offset_opt(nodes: &Nodes) -> Nodes {
                 for instruction in instructions.instructions() {
                     let instruction = match instruction {
                         // 最後にZeroSetにする
-                        Sub(1) | Add(1) if offset == 0 => continue,
-                        Add(1) => AddTo(offset, 0),
-                        Add(value) => MulAdd(offset, 0, *value),
+                        Sub(1) | AddOffset(0, 1) if offset == 0 => continue,
+                        AddOffset(0, 1) => AddTo(offset, 0),
+                        AddOffset(0, value) => MulAdd(offset, 0, *value),
                         Sub(1) => SubTo(offset, 0),
                         Sub(value) => MulSub(offset, 0, *value),
                         // Output(repeat) => OutputOffset(repeat, offset),
@@ -278,7 +278,7 @@ impl SimplifiedNodes {
 
                 let ins = match ins {
                     PtrIncrement(_) | PtrDecrement(_) => unreachable!(),
-                    Add(value) => AddOffset(self.pointer_offset, value),
+                    AddOffset(0, value) => AddOffset(self.pointer_offset, value),
                     AddOffset(offset, value) => AddOffset(self.pointer_offset + offset, value),
                     AddTo(to_offset, offset) => AddTo(
                         self.pointer_offset + to_offset,
@@ -343,14 +343,14 @@ mod test {
     #[test]
     fn test_merge_instruction() {
         let nodes = [
-            Add(1).into(),
+            AddOffset(0, 1).into(),
             Sub(1).into(),
             PtrIncrement(1).into(),
             PtrDecrement(1).into(),
-            Add(1).into(),
+            AddOffset(0, 1).into(),
         ]
         .into();
-        assert_eq!(merge_instruction(nodes), [Add(1).into()].into());
+        assert_eq!(merge_instruction(nodes), [AddOffset(0, 1).into()].into());
     }
 
     #[rstest(input, expected,
@@ -392,7 +392,7 @@ mod test {
     }
 
     #[rstest(input, expected,
-        case([Add(1).into(), PtrIncrement(1).into(), Sub(1).into(), AddOffset(2, 2).into()].into(), [AddOffset(0, 1).into(), SubOffset(1, 1).into(), AddOffset(3, 2).into(), PtrIncrement(1).into()].into())
+        case([AddOffset(0,1).into(), PtrIncrement(1).into(), Sub(1).into(), AddOffset(2, 2).into()].into(), [AddOffset(0, 1).into(), SubOffset(1, 1).into(), AddOffset(3, 2).into(), PtrIncrement(1).into()].into())
     )]
     fn test_simplified_nodes(input: Nodes, expected: Nodes) {
         let mut simplified_nodes = SimplifiedNodes::new();

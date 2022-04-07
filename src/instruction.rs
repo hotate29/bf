@@ -8,7 +8,6 @@ use crate::parse::Token;
 pub enum Instruction {
     PtrIncrement(usize),
     PtrDecrement(usize),
-    Add(u8),
     AddOffset(isize, u8),
     AddTo(isize, isize),
     Sub(u8),
@@ -32,7 +31,7 @@ impl Instruction {
         match token {
             Token::Greater => Some(Self::PtrIncrement(1)),
             Token::Less => Some(Self::PtrDecrement(1)),
-            Token::Plus => Some(Self::Add(1)),
+            Token::Plus => Some(Self::AddOffset(0, 1)),
             Token::Minus => Some(Self::Sub(1)),
             Token::Period => Some(Self::Output(1)),
             Token::Comma => Some(Self::Input(1)),
@@ -43,7 +42,7 @@ impl Instruction {
         match self {
             Instruction::PtrIncrement(n) => Some(format!("{}>", n)),
             Instruction::PtrDecrement(n) => Some(format!("{}<", n)),
-            Instruction::Add(n) => Some(format!("{}+", n)),
+            Instruction::AddOffset(0, n) => Some(format!("{}+", n)),
             Instruction::Sub(n) => Some(format!("{}-", n)),
             Instruction::Output(n) => Some(format!("{}.", n)),
             Instruction::Input(n) => Some(format!("{},", n)),
@@ -63,7 +62,7 @@ impl Instruction {
         match self {
             Instruction::PtrIncrement(n) => Some(">".repeat(n)),
             Instruction::PtrDecrement(n) => Some("<".repeat(n)),
-            Instruction::Add(n) => Some("+".repeat(n as usize)),
+            Instruction::AddOffset(0, n) => Some("+".repeat(n as usize)),
             Instruction::Sub(n) => Some("-".repeat(n as usize)),
             Instruction::Output(n) => Some(".".repeat(n)),
             Instruction::Input(n) => Some(",".repeat(n)),
@@ -84,8 +83,10 @@ impl Instruction {
         use Instruction::*;
 
         match (self, instruction) {
-            (Add(x), Add(y)) => Some(Add(x.wrapping_add(y))),
-            (Sub(y), Add(x)) | (Add(x), Sub(y)) => {
+            (AddOffset(x_offset, x), AddOffset(y_offset, y)) if x_offset == y_offset => {
+                Some(AddOffset(x_offset, x.wrapping_add(y)))
+            }
+            (Sub(y), AddOffset(0, x)) | (AddOffset(0, x), Sub(y)) => {
                 let x = x as i32;
                 let y = y as i32;
 
@@ -93,8 +94,8 @@ impl Instruction {
 
                 match z.cmp(&0) {
                     Ordering::Less => Some(Sub(z.abs() as u8)),
-                    Ordering::Greater => Some(Add(z as u8)),
-                    Ordering::Equal => Some(Add(0)),
+                    Ordering::Greater => Some(AddOffset(0, z as u8)),
+                    Ordering::Equal => Some(AddOffset(0, 0)),
                 }
             }
             (Sub(x), Sub(y)) => Some(Sub(x.wrapping_add(y) % u8::MAX)),
@@ -108,12 +109,12 @@ impl Instruction {
                 match z.cmp(&0) {
                     Ordering::Less => Some(PtrDecrement(z.abs() as usize)),
                     Ordering::Greater => Some(PtrIncrement(z as usize)),
-                    Ordering::Equal => Some(Add(0)),
+                    Ordering::Equal => Some(AddOffset(0, 0)),
                 }
             }
             (PtrDecrement(x), PtrDecrement(y)) => Some(PtrDecrement(x + y)),
             (ZeroSet, ZeroSet) => Some(ZeroSet),
-            (Add(_) | Sub(_), ZeroSet) => Some(ZeroSet),
+            (AddOffset(0, _) | Sub(_), ZeroSet) => Some(ZeroSet),
             (Output(x), Output(y)) => Some(Output(x + y)),
             // (AddOffset(x_offset, x), AddOffset(y_offset, y)) if x_offset == y_offset => {
             //     Some(AddOffset(x_offset, x.wrapping_add(y)))
@@ -153,7 +154,6 @@ impl Instruction {
             self,
             Instruction::PtrIncrement(0)
                 | Instruction::PtrDecrement(0)
-                | Instruction::Add(0)
                 | Instruction::AddOffset(_, 0)
                 | Instruction::Sub(0)
                 | Instruction::SubOffset(_, 0)
