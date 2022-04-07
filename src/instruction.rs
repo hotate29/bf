@@ -16,7 +16,6 @@ pub enum Instruction {
     MulAdd(isize, isize, u8),
     /// mem[左isize] -= mem[右isize] * value
     MulSub(isize, isize, u8),
-    Output(usize),
     OutputOffset(isize, usize),
     Input(usize),
     InputOffset(isize, usize),
@@ -32,7 +31,7 @@ impl Instruction {
             Token::Less => Some(Self::PtrDecrement(1)),
             Token::Plus => Some(Self::AddOffset(0, 1)),
             Token::Minus => Some(Self::SubOffset(0, 1)),
-            Token::Period => Some(Self::Output(1)),
+            Token::Period => Some(Self::OutputOffset(0, 1)),
             Token::Comma => Some(Self::Input(1)),
             Token::LeftBracket | Token::RightBracket => None,
         }
@@ -43,7 +42,7 @@ impl Instruction {
             Instruction::PtrDecrement(n) => Some(format!("{}<", n)),
             Instruction::AddOffset(0, n) => Some(format!("{}+", n)),
             Instruction::SubOffset(0, n) => Some(format!("{}-", n)),
-            Instruction::Output(n) => Some(format!("{}.", n)),
+            Instruction::OutputOffset(0, n) => Some(format!("{}.", n)),
             Instruction::Input(n) => Some(format!("{},", n)),
             Instruction::AddTo(_, _)
             | Instruction::SubTo(_, _)
@@ -63,7 +62,7 @@ impl Instruction {
             Instruction::PtrDecrement(n) => Some("<".repeat(n)),
             Instruction::AddOffset(0, n) => Some("+".repeat(n as usize)),
             Instruction::SubOffset(0, n) => Some("-".repeat(n as usize)),
-            Instruction::Output(n) => Some(".".repeat(n)),
+            Instruction::OutputOffset(0, n) => Some(".".repeat(n)),
             Instruction::Input(n) => Some(",".repeat(n)),
             Instruction::AddTo(_, _)
             | Instruction::SubTo(_, _)
@@ -119,7 +118,9 @@ impl Instruction {
             (PtrDecrement(x), PtrDecrement(y)) => Some(PtrDecrement(x + y)),
             (ZeroSet, ZeroSet) => Some(ZeroSet),
             (AddOffset(0, _) | SubOffset(0, _), ZeroSet) => Some(ZeroSet),
-            (Output(x), Output(y)) => Some(Output(x + y)),
+            (OutputOffset(x_offset, x), OutputOffset(y_offset, y)) if x_offset == y_offset => {
+                Some(OutputOffset(x_offset, x + y))
+            }
             // (AddOffset(x_offset, x), AddOffset(y_offset, y)) if x_offset == y_offset => {
             //     Some(AddOffset(x_offset, x.wrapping_add(y)))
             // }

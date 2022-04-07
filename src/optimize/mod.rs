@@ -83,13 +83,19 @@ pub fn offset_opt(nodes: &Nodes) -> Nodes {
     impl State {
         fn push_instruction(&mut self, ins: Instruction) {
             self.ins_count += 1;
-            if matches!(ins, Output(_)) && self.output_order.last() != Some(&self.pointer_offset) {
+            if matches!(ins, OutputOffset(0, _))
+                && self.output_order.last() != Some(&self.pointer_offset)
+            {
                 self.output_order.push(self.pointer_offset);
             }
             match ins {
                 PtrIncrement(inc) => self.pointer_offset += inc as isize,
                 PtrDecrement(dec) => self.pointer_offset -= dec as isize,
-                ins @ (AddOffset(0, _) | SubOffset(0, _) | Output(_) | Input(_) | ZeroSet) => {
+                ins @ (AddOffset(0, _)
+                | SubOffset(0, _)
+                | OutputOffset(0, _)
+                | Input(_)
+                | ZeroSet) => {
                     self.offset_map
                         .entry(self.pointer_offset)
                         .and_modify(|instructions| instructions.push(self.ins_count, ins))
@@ -107,7 +113,7 @@ pub fn offset_opt(nodes: &Nodes) -> Nodes {
                         let ins = match ins {
                             AddOffset(0, value) => AddOffset(offset, value),
                             SubOffset(0, value) => SubOffset(offset, value),
-                            Output(repeat) => OutputOffset(offset, repeat),
+                            OutputOffset(0, repeat) => OutputOffset(offset, repeat),
                             Input(repeat) => InputOffset(offset, repeat),
                             ZeroSet => ZeroSetOffset(offset),
                             _ => panic!(),
@@ -165,7 +171,7 @@ pub fn offset_opt(nodes: &Nodes) -> Nodes {
                     }
                 }
                 Node::Instruction(instruction) => {
-                    has_io |= matches!(instruction, Output(_) | Input(_));
+                    has_io |= matches!(instruction, OutputOffset(0, _) | Input(_));
 
                     state.push_instruction(*instruction);
                 }
@@ -300,7 +306,6 @@ impl SimplifiedNodes {
                         self.pointer_offset + offset,
                         value,
                     ),
-                    Output(repeat) => OutputOffset(self.pointer_offset, repeat),
                     OutputOffset(offset, repeat) => {
                         OutputOffset(self.pointer_offset + offset, repeat)
                     }

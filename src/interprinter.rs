@@ -237,9 +237,9 @@ impl<R: Read, W: Write> InterPrinter<R, W> {
                                 self.state.sub(to_offset, n.wrapping_mul(value))?;
                             }
                         }
-                        Instruction::Output(n) => {
-                            for _ in 0..n {
-                                self.state.output(0, &mut self.output)?;
+                        Instruction::OutputOffset(offset, repeat) => {
+                            for _ in 0..repeat {
+                                self.state.output(offset, &mut self.output)?
                             }
                         }
                         Instruction::Input(n) => {
@@ -250,11 +250,6 @@ impl<R: Read, W: Write> InterPrinter<R, W> {
                         Instruction::ZeroSet => *self.state.at_offset_mut(0)? = 0,
                         Instruction::ZeroSetOffset(offset) => {
                             *self.state.at_offset_mut(offset)? = 0
-                        }
-                        Instruction::OutputOffset(offset, repeat) => {
-                            for _ in 0..repeat {
-                                self.state.output(offset, &mut self.output)?
-                            }
                         }
                         Instruction::InputOffset(offset, repeat) => {
                             for _ in 0..repeat {
