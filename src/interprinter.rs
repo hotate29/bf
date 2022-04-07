@@ -22,8 +22,7 @@ impl Memory {
     }
     #[inline]
     fn get(&mut self, index: usize) -> u8 {
-        self.extend(index);
-        self.0[index]
+        *self.get_mut(index)
     }
     #[inline]
     fn get_mut(&mut self, index: usize) -> &mut u8 {
