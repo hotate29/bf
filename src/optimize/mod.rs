@@ -94,7 +94,7 @@ pub fn offset_opt(nodes: &Nodes) -> Nodes {
                 ins @ (AddOffset(0, _)
                 | SubOffset(0, _)
                 | OutputOffset(0, _)
-                | Input(_)
+                | InputOffset(0, _)
                 | ZeroSet) => {
                     self.offset_map
                         .entry(self.pointer_offset)
@@ -114,7 +114,7 @@ pub fn offset_opt(nodes: &Nodes) -> Nodes {
                             AddOffset(0, value) => AddOffset(offset, value),
                             SubOffset(0, value) => SubOffset(offset, value),
                             OutputOffset(0, repeat) => OutputOffset(offset, repeat),
-                            Input(repeat) => InputOffset(offset, repeat),
+                            InputOffset(0, repeat) => InputOffset(offset, repeat),
                             ZeroSet => ZeroSetOffset(offset),
                             _ => panic!(),
                         };
@@ -171,7 +171,7 @@ pub fn offset_opt(nodes: &Nodes) -> Nodes {
                     }
                 }
                 Node::Instruction(instruction) => {
-                    has_io |= matches!(instruction, OutputOffset(0, _) | Input(_));
+                    has_io |= matches!(instruction, OutputOffset(0, _) | InputOffset(0, _));
 
                     state.push_instruction(*instruction);
                 }
@@ -309,7 +309,6 @@ impl SimplifiedNodes {
                     OutputOffset(offset, repeat) => {
                         OutputOffset(self.pointer_offset + offset, repeat)
                     }
-                    Input(repeat) => InputOffset(self.pointer_offset, repeat),
                     InputOffset(offset, repeat) => {
                         InputOffset(self.pointer_offset + offset, repeat)
                     }

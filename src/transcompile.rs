@@ -36,9 +36,9 @@ pub fn to_c2(root_node: &Nodes) -> String {
                             c_code.push_str(&format!("putchar(*(ptr+{offset}));"))
                         }
                     }
-                    Instruction::Input(n) => {
-                        for _ in 0..*n {
-                            c_code.push_str("ptr[0]=getchar();");
+                    Instruction::InputOffset(offset, repeat) => {
+                        for _ in 0..*repeat {
+                            c_code.push_str(&format!("*(ptr+{offset})=getchar();"))
                         }
                     }
                     Instruction::MulAdd(to_offset, offset, value) if *offset >= 0 => {
@@ -59,11 +59,6 @@ pub fn to_c2(root_node: &Nodes) -> String {
                     }
                     Instruction::ZeroSet => {
                         c_code.push_str("*ptr=0;");
-                    }
-                    Instruction::InputOffset(offset, repeat) => {
-                        for _ in 0..*repeat {
-                            c_code.push_str(&format!("*(ptr+{offset})=getchar();"))
-                        }
                     }
                     Instruction::ZeroSetOffset(offset) => {
                         c_code.push_str(&format!("*(ptr+{offset})=0;"))

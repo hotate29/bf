@@ -17,7 +17,6 @@ pub enum Instruction {
     /// mem[左isize] -= mem[右isize] * value
     MulSub(isize, isize, u8),
     OutputOffset(isize, usize),
-    Input(usize),
     InputOffset(isize, usize),
     ZeroSet,
     ZeroSetOffset(isize),
@@ -32,7 +31,7 @@ impl Instruction {
             Token::Plus => Some(Self::AddOffset(0, 1)),
             Token::Minus => Some(Self::SubOffset(0, 1)),
             Token::Period => Some(Self::OutputOffset(0, 1)),
-            Token::Comma => Some(Self::Input(1)),
+            Token::Comma => Some(Self::InputOffset(0, 1)),
             Token::LeftBracket | Token::RightBracket => None,
         }
     }
@@ -43,7 +42,7 @@ impl Instruction {
             Instruction::AddOffset(0, n) => Some(format!("{}+", n)),
             Instruction::SubOffset(0, n) => Some(format!("{}-", n)),
             Instruction::OutputOffset(0, n) => Some(format!("{}.", n)),
-            Instruction::Input(n) => Some(format!("{},", n)),
+            Instruction::InputOffset(0, n) => Some(format!("{},", n)),
             Instruction::AddTo(_, _)
             | Instruction::SubTo(_, _)
             | Instruction::MulAdd(_, _, _)
@@ -63,7 +62,7 @@ impl Instruction {
             Instruction::AddOffset(0, n) => Some("+".repeat(n as usize)),
             Instruction::SubOffset(0, n) => Some("-".repeat(n as usize)),
             Instruction::OutputOffset(0, n) => Some(".".repeat(n)),
-            Instruction::Input(n) => Some(",".repeat(n)),
+            Instruction::InputOffset(0, n) => Some(",".repeat(n)),
             Instruction::AddTo(_, _)
             | Instruction::SubTo(_, _)
             | Instruction::MulAdd(_, _, _)
