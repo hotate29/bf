@@ -208,14 +208,14 @@ impl<R: Read, W: Write> InterPrinter<R, W> {
                     match instruction {
                         Instruction::PtrIncrement(n) => self.state.pointer_add(n),
                         Instruction::PtrDecrement(n) => self.state.pointer_sub(n)?,
-                        Instruction::AddOffset(offset, value) => self.state.add(offset, value)?,
+                        Instruction::Add(offset, value) => self.state.add(offset, value)?,
                         Instruction::AddTo(to_offset, offset) => {
                             let value = self.state.at_offset(offset)?;
                             if value != 0 {
                                 self.state.add(to_offset, value)?;
                             }
                         }
-                        Instruction::SubOffset(offset, value) => self.state.sub(offset, value)?,
+                        Instruction::Sub(offset, value) => self.state.sub(offset, value)?,
                         Instruction::SubTo(to_offset, offset) => {
                             let value = self.state.at_offset(offset)?;
                             // 後ろを参照するので、ここはちゃんと確認
@@ -237,17 +237,17 @@ impl<R: Read, W: Write> InterPrinter<R, W> {
                                 self.state.sub(to_offset, n.wrapping_mul(value))?;
                             }
                         }
-                        Instruction::OutputOffset(offset, repeat) => {
+                        Instruction::Output(offset, repeat) => {
                             for _ in 0..repeat {
                                 self.state.output(offset, &mut self.output)?
                             }
                         }
-                        Instruction::InputOffset(offset, repeat) => {
+                        Instruction::Input(offset, repeat) => {
                             for _ in 0..repeat {
                                 self.state.input(offset, &mut self.input)?;
                             }
                         }
-                        Instruction::ZeroSetOffset(offset) => {
+                        Instruction::ZeroSet(offset) => {
                             *self.state.at_offset_mut(offset)? = 0
                         }
                         ins => panic!("unimplemented instruction. {ins:?}"),

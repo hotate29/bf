@@ -83,7 +83,7 @@ pub fn offset_opt(nodes: &Nodes) -> Nodes {
     impl State {
         fn push_instruction(&mut self, ins: Instruction) {
             self.ins_count += 1;
-            if matches!(ins, OutputOffset(0, _))
+            if matches!(ins, Output(0, _))
                 && self.output_order.last() != Some(&self.pointer_offset)
             {
                 self.output_order.push(self.pointer_offset);
@@ -91,11 +91,11 @@ pub fn offset_opt(nodes: &Nodes) -> Nodes {
             match ins {
                 PtrIncrement(inc) => self.pointer_offset += inc as isize,
                 PtrDecrement(dec) => self.pointer_offset -= dec as isize,
-                ins @ (AddOffset(0, _)
-                | SubOffset(0, _)
-                | OutputOffset(0, _)
-                | InputOffset(0, _)
-                | ZeroSetOffset(0)) => {
+                ins @ (Add(0, _)
+                | Sub(0, _)
+                | Output(0, _)
+                | Input(0, _)
+                | ZeroSet(0)) => {
                     self.offset_map
                         .entry(self.pointer_offset)
                         .and_modify(|instructions| instructions.push(self.ins_count, ins))
@@ -111,11 +111,11 @@ pub fn offset_opt(nodes: &Nodes) -> Nodes {
                 .flat_map(|(offset, instructions)| {
                     instructions.inner.into_iter().map(move |(id, ins)| {
                         let ins = match ins {
-                            AddOffset(0, value) => AddOffset(offset, value),
-                            SubOffset(0, value) => SubOffset(offset, value),
-                            OutputOffset(0, repeat) => OutputOffset(offset, repeat),
-                            InputOffset(0, repeat) => InputOffset(offset, repeat),
-                            ZeroSetOffset(0) => ZeroSetOffset(offset),
+                            Add(0, value) => Add(offset, value),
+                            Sub(0, value) => Sub(offset, value),
+                            Output(0, repeat) => Output(offset, repeat),
+                            Input(0, repeat) => Input(offset, repeat),
+                            ZeroSet(0) => ZeroSet(offset),
                             _ => panic!(),
                         };
                         (id, ins)
@@ -171,7 +171,7 @@ pub fn offset_opt(nodes: &Nodes) -> Nodes {
                     }
                 }
                 Node::Instruction(instruction) => {
-                    has_io |= matches!(instruction, OutputOffset(0, _) | InputOffset(0, _));
+                    has_io |= matches!(instruction, Output(0, _) | Input(0, _));
 
                     state.push_instruction(*instruction);
                 }
@@ -185,7 +185,7 @@ pub fn offset_opt(nodes: &Nodes) -> Nodes {
             && !has_io
             && state.offset_map
                 .get(&0)
-                .filter(|ins| ins.inner.len() == 1 && (ins.inner[0].1 == SubOffset(0,1) || ins.inner[0].1 == AddOffset(0,1)))
+                .filter(|ins| ins.inner.len() == 1 && (ins.inner[0].1 == Sub(0,1) || ins.inner[0].1 == Add(0,1)))
                 .is_some()
         {
             // 最適化をするぞ！バリバリ！
@@ -195,11 +195,11 @@ pub fn offset_opt(nodes: &Nodes) -> Nodes {
                 for instruction in instructions.instructions() {
                     let instruction = match instruction {
                         // 最後にZeroSetにする
-                        SubOffset(0, 1) | AddOffset(0, 1) if offset == 0 => continue,
-                        AddOffset(0, 1) => AddTo(offset, 0),
-                        AddOffset(0, value) => MulAdd(offset, 0, *value),
-                        SubOffset(0, 1) => SubTo(offset, 0),
-                        SubOffset(0, value) => MulSub(offset, 0, *value),
+                        Sub(0, 1) | Add(0, 1) if offset == 0 => continue,
+                        Add(0, 1) => AddTo(offset, 0),
+                        Add(0, value) => MulAdd(offset, 0, *value),
+                        Sub(0, 1) => SubTo(offset, 0),
+                        Sub(0, value) => MulSub(offset, 0, *value),
                         // Output(repeat) => OutputOffset(repeat, offset),
                         // Input(_) => todo!(),
                         // ZeroSet => ZeroSetOffset(offset),
@@ -208,7 +208,7 @@ pub fn offset_opt(nodes: &Nodes) -> Nodes {
                     new_nodes.push_back(instruction.into());
                 }
             }
-            new_nodes.push_back(ZeroSetOffset(0).into());
+            new_nodes.push_back(ZeroSet(0).into());
 
             Nod::Instructions(new_nodes)
         } else {
@@ -284,14 +284,14 @@ impl SimplifiedNodes {
 
                 let ins = match ins {
                     PtrIncrement(_) | PtrDecrement(_) => unreachable!(),
-                    AddOffset(0, value) => AddOffset(self.pointer_offset, value),
-                    AddOffset(offset, value) => AddOffset(self.pointer_offset + offset, value),
+                    Add(0, value) => Add(self.pointer_offset, value),
+                    Add(offset, value) => Add(self.pointer_offset + offset, value),
                     AddTo(to_offset, offset) => AddTo(
                         self.pointer_offset + to_offset,
                         self.pointer_offset + offset,
                     ),
-                    SubOffset(0, value) => SubOffset(self.pointer_offset, value),
-                    SubOffset(offset, value) => SubOffset(self.pointer_offset + offset, value),
+                    Sub(0, value) => Sub(self.pointer_offset, value),
+                    Sub(offset, value) => Sub(self.pointer_offset + offset, value),
                     SubTo(to_offset, offset) => SubTo(
                         self.pointer_offset + to_offset,
                         self.pointer_offset + offset,
@@ -306,13 +306,13 @@ impl SimplifiedNodes {
                         self.pointer_offset + offset,
                         value,
                     ),
-                    OutputOffset(offset, repeat) => {
-                        OutputOffset(self.pointer_offset + offset, repeat)
+                    Output(offset, repeat) => {
+                        Output(self.pointer_offset + offset, repeat)
                     }
-                    InputOffset(offset, repeat) => {
-                        InputOffset(self.pointer_offset + offset, repeat)
+                    Input(offset, repeat) => {
+                        Input(self.pointer_offset + offset, repeat)
                     }
-                    ZeroSetOffset(offset) => ZeroSetOffset(self.pointer_offset + offset),
+                    ZeroSet(offset) => ZeroSet(self.pointer_offset + offset),
                 };
                 self.nodes.push_back(ins.into())
             }
@@ -346,45 +346,45 @@ mod test {
     #[test]
     fn test_merge_instruction() {
         let nodes = [
-            AddOffset(0, 1).into(),
-            SubOffset(0, 1).into(),
+            Add(0, 1).into(),
+            Sub(0, 1).into(),
             PtrIncrement(1).into(),
             PtrDecrement(1).into(),
-            AddOffset(0, 1).into(),
+            Add(0, 1).into(),
         ]
         .into();
-        assert_eq!(merge_instruction(nodes), [AddOffset(0, 1).into()].into());
+        assert_eq!(merge_instruction(nodes), [Add(0, 1).into()].into());
     }
 
     #[rstest(input, expected,
-        case("[-]", [ZeroSetOffset(0).into()].into()),
-        case("[+]", [ZeroSetOffset(0).into()].into()),
-        case("[++]", [Node::Loop([AddOffset(0, 2).into()].into())].into()),
-        case("[->>>+<<<]", [AddTo(3, 0).into(), ZeroSetOffset(0).into()].into()),
-        case("[>>>+<<<-]", [AddTo(3, 0).into(), ZeroSetOffset(0).into()].into()),
-        case("[-<<<+>>>]", [AddTo(-3, 0).into(), ZeroSetOffset(0).into()].into()),
-        case("[<<<+>>>-]", [AddTo(-3, 0).into(), ZeroSetOffset(0).into()].into()),
-        case("[-<<<++>>>]", [MulAdd(-3, 0, 2).into(), ZeroSetOffset(0).into()].into()),
-        case("[->>>-<<<]", [SubTo(3, 0).into(), ZeroSetOffset(0).into()].into()),
-        case("[>>>-<<<-]", [SubTo(3, 0).into(), ZeroSetOffset(0).into()].into()),
-        case("[-<<<->>>]", [SubTo(-3, 0).into(), ZeroSetOffset(0).into()].into()),
-        case("[<<<->>>-]", [SubTo(-3, 0).into(), ZeroSetOffset(0).into()].into()),
+        case("[-]", [ZeroSet(0).into()].into()),
+        case("[+]", [ZeroSet(0).into()].into()),
+        case("[++]", [Node::Loop([Add(0, 2).into()].into())].into()),
+        case("[->>>+<<<]", [AddTo(3, 0).into(), ZeroSet(0).into()].into()),
+        case("[>>>+<<<-]", [AddTo(3, 0).into(), ZeroSet(0).into()].into()),
+        case("[-<<<+>>>]", [AddTo(-3, 0).into(), ZeroSet(0).into()].into()),
+        case("[<<<+>>>-]", [AddTo(-3, 0).into(), ZeroSet(0).into()].into()),
+        case("[-<<<++>>>]", [MulAdd(-3, 0, 2).into(), ZeroSet(0).into()].into()),
+        case("[->>>-<<<]", [SubTo(3, 0).into(), ZeroSet(0).into()].into()),
+        case("[>>>-<<<-]", [SubTo(3, 0).into(), ZeroSet(0).into()].into()),
+        case("[-<<<->>>]", [SubTo(-3, 0).into(), ZeroSet(0).into()].into()),
+        case("[<<<->>>-]", [SubTo(-3, 0).into(), ZeroSet(0).into()].into()),
         // case("[-<<<-->>>]", [SubOffset(0, 1).into(), SubOffset(-3, 2).into()].into()),
         case("", [].into()),
-        case("+++", [AddOffset(0, 3).into()].into()),
+        case("+++", [Add(0, 3).into()].into()),
         case("+++---", [].into()),
-        case(">+++<-", [AddOffset(1, 3).into(), SubOffset(0, 1).into()].into()),
-        case(">+++", [AddOffset(1, 3).into(), PtrIncrement(1).into()].into()),
+        case(">+++<-", [Add(1, 3).into(), Sub(0, 1).into()].into()),
+        case(">+++", [Add(1, 3).into(), PtrIncrement(1).into()].into()),
         case("[[[]]]", [Node::Loop([Node::Loop([Node::Loop([].into())].into())].into())].into()),
-        case("->+<", [SubOffset(0, 1).into(), AddOffset(1, 1).into()].into()),
-        case("[->>>-<<<]", [SubTo(3, 0).into(), ZeroSetOffset(0).into()].into()),
-        case("+++>-<[->>>-<<<]", [AddOffset(0, 3).into(),SubOffset(1, 1).into(), SubTo(3, 0).into(), ZeroSetOffset(0).into()].into()),
-        case("[>>>-<<<-]", [SubTo(3, 0).into(), ZeroSetOffset(0).into()].into()),
-        case("[>>>->+<<<<-]", [SubTo(3, 0).into(), AddTo(4, 0).into(), ZeroSetOffset(0).into()].into()),
-        case("+++[>>>[-][[->+<]]<<<]", [AddOffset(0, 3).into(), Node::Loop([PtrIncrement(3).into(), ZeroSetOffset(0).into(), Node::Loop([AddTo(1, 0).into(), ZeroSetOffset(0).into()].into()), PtrDecrement(3).into()].into())].into()),
-        case("[->>>.<<<]", [Node::Loop([SubOffset(0, 1).into(), OutputOffset(3, 1).into()].into())].into()),
-        case("[->+>+>++>+++<<<<]", [AddTo(1, 0).into(), AddTo(2, 0).into(), MulAdd(3, 0, 2).into(), MulAdd(4, 0, 3).into(), ZeroSetOffset(0).into()].into()),
-        case("[-<<<-->>>]", [MulSub(-3, 0, 2).into(), ZeroSetOffset(0).into()].into()),
+        case("->+<", [Sub(0, 1).into(), Add(1, 1).into()].into()),
+        case("[->>>-<<<]", [SubTo(3, 0).into(), ZeroSet(0).into()].into()),
+        case("+++>-<[->>>-<<<]", [Add(0, 3).into(),Sub(1, 1).into(), SubTo(3, 0).into(), ZeroSet(0).into()].into()),
+        case("[>>>-<<<-]", [SubTo(3, 0).into(), ZeroSet(0).into()].into()),
+        case("[>>>->+<<<<-]", [SubTo(3, 0).into(), AddTo(4, 0).into(), ZeroSet(0).into()].into()),
+        case("+++[>>>[-][[->+<]]<<<]", [Add(0, 3).into(), Node::Loop([PtrIncrement(3).into(), ZeroSet(0).into(), Node::Loop([AddTo(1, 0).into(), ZeroSet(0).into()].into()), PtrDecrement(3).into()].into())].into()),
+        case("[->>>.<<<]", [Node::Loop([Sub(0, 1).into(), Output(3, 1).into()].into())].into()),
+        case("[->+>+>++>+++<<<<]", [AddTo(1, 0).into(), AddTo(2, 0).into(), MulAdd(3, 0, 2).into(), MulAdd(4, 0, 3).into(), ZeroSet(0).into()].into()),
+        case("[-<<<-->>>]", [MulSub(-3, 0, 2).into(), ZeroSet(0).into()].into()),
     )]
     fn test_optimize(input: &str, expected: Nodes) {
         let tokens = tokenize(input);
@@ -395,7 +395,7 @@ mod test {
     }
 
     #[rstest(input, expected,
-        case([AddOffset(0,1).into(), PtrIncrement(1).into(), SubOffset(0, 1).into(), AddOffset(2, 2).into()].into(), [AddOffset(0, 1).into(), SubOffset(1, 1).into(), AddOffset(3, 2).into(), PtrIncrement(1).into()].into())
+        case([Add(0,1).into(), PtrIncrement(1).into(), Sub(0, 1).into(), Add(2, 2).into()].into(), [Add(0, 1).into(), Sub(1, 1).into(), Add(3, 2).into(), PtrIncrement(1).into()].into())
     )]
     fn test_simplified_nodes(input: Nodes, expected: Nodes) {
         let mut simplified_nodes = SimplifiedNodes::new();

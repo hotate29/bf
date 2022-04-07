@@ -13,7 +13,7 @@ pub fn to_c2(root_node: &Nodes) -> String {
                 crate::parse::Node::Instruction(instruction) => match instruction {
                     Instruction::PtrIncrement(n) => c_code.push_str(&format!("ptr+={n};")),
                     Instruction::PtrDecrement(n) => c_code.push_str(&format!("ptr-={n};")),
-                    Instruction::AddOffset(offset, value) => {
+                    Instruction::Add(offset, value) => {
                         c_code.push_str(&format!("*(ptr+{offset})+={value};"))
                     }
                     Instruction::AddTo(to_offset, offset) if *offset >= 0 => {
@@ -22,7 +22,7 @@ pub fn to_c2(root_node: &Nodes) -> String {
                     Instruction::AddTo(to_offset, offset) if *offset < 0 => c_code.push_str(
                         &format!("if(*(ptr+{offset})!=0){{*(ptr+{to_offset})+=*(ptr+{offset});}}"),
                     ),
-                    Instruction::SubOffset(offset, value) => {
+                    Instruction::Sub(offset, value) => {
                         c_code.push_str(&format!("*(ptr+{offset})-={value};"))
                     }
                     Instruction::SubTo(to_offset, offset) if *offset >= 0 => {
@@ -31,12 +31,12 @@ pub fn to_c2(root_node: &Nodes) -> String {
                     Instruction::SubTo(to_offset, offset) if *offset < 0 => c_code.push_str(
                         &format!("if(*(ptr+{offset})!=0){{*(ptr+{to_offset})-=*(ptr+{offset});}}"),
                     ),
-                    Instruction::OutputOffset(offset, repeat) => {
+                    Instruction::Output(offset, repeat) => {
                         for _ in 0..*repeat {
                             c_code.push_str(&format!("putchar(*(ptr+{offset}));"))
                         }
                     }
-                    Instruction::InputOffset(offset, repeat) => {
+                    Instruction::Input(offset, repeat) => {
                         for _ in 0..*repeat {
                             c_code.push_str(&format!("*(ptr+{offset})=getchar();"))
                         }
@@ -57,7 +57,7 @@ pub fn to_c2(root_node: &Nodes) -> String {
                             "if(*(ptr+{offset})!=0){{*(ptr+{to_offset})-={value}**(ptr+{offset});}}"
                         ));
                     }
-                    Instruction::ZeroSetOffset(offset) => {
+                    Instruction::ZeroSet(offset) => {
                         c_code.push_str(&format!("*(ptr+{offset})=0;"))
                     }
                     ins => panic!("unimplemented instruction. {ins:?}"),
