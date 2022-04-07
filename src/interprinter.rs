@@ -47,15 +47,11 @@ impl State {
     }
     #[inline]
     fn at_offset_mut(&mut self, offset: isize) -> Result<&mut u8> {
-        if offset < 0 {
-            let p = self.pointer as isize + offset;
-            if p < 0 {
-                Err(Error::NegativePointer(p))
-            } else {
-                Ok(self.memory.get_mut(p as usize))
-            }
+        let p = self.pointer as isize + offset;
+        if p >= 0 {
+            Ok(self.memory.get_mut(p as usize))
         } else {
-            Ok(self.memory.get_mut(self.pointer + offset as usize))
+            Err(Error::NegativePointer(p))
         }
     }
     #[inline]
@@ -247,9 +243,7 @@ impl<R: Read, W: Write> InterPrinter<R, W> {
                                 self.state.input(offset, &mut self.input)?;
                             }
                         }
-                        Instruction::ZeroSet(offset) => {
-                            *self.state.at_offset_mut(offset)? = 0
-                        }
+                        Instruction::ZeroSet(offset) => *self.state.at_offset_mut(offset)? = 0,
                         ins => panic!("unimplemented instruction. {ins:?}"),
                     };
                     self.now += 1
