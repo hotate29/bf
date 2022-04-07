@@ -78,16 +78,10 @@ pub fn offset_opt(nodes: &Nodes) -> Nodes {
         pointer_offset: isize,
         offset_map: BTreeMap<isize, Instructions>,
         ins_count: usize,
-        output_order: Vec<isize>,
     }
     impl State {
         fn push_instruction(&mut self, ins: Instruction) {
             self.ins_count += 1;
-            if matches!(ins, Output(0, _))
-                && self.output_order.last() != Some(&self.pointer_offset)
-            {
-                self.output_order.push(self.pointer_offset);
-            }
             match ins {
                 PtrIncrement(inc) => self.pointer_offset += inc as isize,
                 PtrDecrement(dec) => self.pointer_offset -= dec as isize,
