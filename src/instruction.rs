@@ -90,8 +90,8 @@ impl Instruction {
 
                 match z.cmp(&0) {
                     Ordering::Less => Some(Sub(x_offset, z.abs() as u8)),
-                    Ordering::Greater => Some(Add(0, z as u8)),
-                    Ordering::Equal => Some(Add(0, 0)),
+                    Ordering::Greater => Some(Add(x_offset, z as u8)),
+                    Ordering::Equal => Some(Add(x_offset, 0)),
                 }
             }
             (Sub(x_offset, x), Sub(y_offset, y)) if x_offset == y_offset => {
