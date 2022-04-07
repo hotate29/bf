@@ -57,9 +57,6 @@ pub fn to_c2(root_node: &Nodes) -> String {
                             "if(*(ptr+{offset})!=0){{*(ptr+{to_offset})-={value}**(ptr+{offset});}}"
                         ));
                     }
-                    Instruction::ZeroSet => {
-                        c_code.push_str("*ptr=0;");
-                    }
                     Instruction::ZeroSetOffset(offset) => {
                         c_code.push_str(&format!("*(ptr+{offset})=0;"))
                     }

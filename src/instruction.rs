@@ -18,7 +18,6 @@ pub enum Instruction {
     MulSub(isize, isize, u8),
     OutputOffset(isize, usize),
     InputOffset(isize, usize),
-    ZeroSet,
     ZeroSetOffset(isize),
 }
 
@@ -47,7 +46,6 @@ impl Instruction {
             | Instruction::SubTo(_, _)
             | Instruction::MulAdd(_, _, _)
             | Instruction::MulSub(_, _, _)
-            | Instruction::ZeroSet
             | Instruction::AddOffset(_, _)
             | Instruction::SubOffset(_, _)
             | Instruction::OutputOffset(_, _)
@@ -67,7 +65,6 @@ impl Instruction {
             | Instruction::SubTo(_, _)
             | Instruction::MulAdd(_, _, _)
             | Instruction::MulSub(_, _, _)
-            | Instruction::ZeroSet
             | Instruction::AddOffset(_, _)
             | Instruction::SubOffset(_, _)
             | Instruction::OutputOffset(_, _)
@@ -115,8 +112,14 @@ impl Instruction {
                 }
             }
             (PtrDecrement(x), PtrDecrement(y)) => Some(PtrDecrement(x + y)),
-            (ZeroSet, ZeroSet) => Some(ZeroSet),
-            (AddOffset(0, _) | SubOffset(0, _), ZeroSet) => Some(ZeroSet),
+            (ZeroSetOffset(offset_x), ZeroSetOffset(offset_y)) if offset_x == offset_y => {
+                Some(ZeroSetOffset(offset_x))
+            }
+            (AddOffset(x_offset, _) | SubOffset(x_offset, _), ZeroSetOffset(y_offset))
+                if x_offset == y_offset =>
+            {
+                Some(ZeroSetOffset(y_offset))
+            }
             (OutputOffset(x_offset, x), OutputOffset(y_offset, y)) if x_offset == y_offset => {
                 Some(OutputOffset(x_offset, x + y))
             }

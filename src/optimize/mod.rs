@@ -95,7 +95,7 @@ pub fn offset_opt(nodes: &Nodes) -> Nodes {
                 | SubOffset(0, _)
                 | OutputOffset(0, _)
                 | InputOffset(0, _)
-                | ZeroSet) => {
+                | ZeroSetOffset(0)) => {
                     self.offset_map
                         .entry(self.pointer_offset)
                         .and_modify(|instructions| instructions.push(self.ins_count, ins))
@@ -115,7 +115,7 @@ pub fn offset_opt(nodes: &Nodes) -> Nodes {
                             SubOffset(0, value) => SubOffset(offset, value),
                             OutputOffset(0, repeat) => OutputOffset(offset, repeat),
                             InputOffset(0, repeat) => InputOffset(offset, repeat),
-                            ZeroSet => ZeroSetOffset(offset),
+                            ZeroSetOffset(0) => ZeroSetOffset(offset),
                             _ => panic!(),
                         };
                         (id, ins)
@@ -208,7 +208,7 @@ pub fn offset_opt(nodes: &Nodes) -> Nodes {
                     new_nodes.push_back(instruction.into());
                 }
             }
-            new_nodes.push_back(ZeroSet.into());
+            new_nodes.push_back(ZeroSetOffset(0).into());
 
             Nod::Instructions(new_nodes)
         } else {
@@ -312,7 +312,6 @@ impl SimplifiedNodes {
                     InputOffset(offset, repeat) => {
                         InputOffset(self.pointer_offset + offset, repeat)
                     }
-                    ZeroSet => ZeroSetOffset(self.pointer_offset),
                     ZeroSetOffset(offset) => ZeroSetOffset(self.pointer_offset + offset),
                 };
                 self.nodes.push_back(ins.into())
@@ -358,18 +357,18 @@ mod test {
     }
 
     #[rstest(input, expected,
-        case("[-]", [ZeroSet.into()].into()),
-        case("[+]", [ZeroSet.into()].into()),
+        case("[-]", [ZeroSetOffset(0).into()].into()),
+        case("[+]", [ZeroSetOffset(0).into()].into()),
         case("[++]", [Node::Loop([AddOffset(0, 2).into()].into())].into()),
-        case("[->>>+<<<]", [AddTo(3, 0).into(), ZeroSet.into()].into()),
-        case("[>>>+<<<-]", [AddTo(3, 0).into(), ZeroSet.into()].into()),
-        case("[-<<<+>>>]", [AddTo(-3, 0).into(), ZeroSet.into()].into()),
-        case("[<<<+>>>-]", [AddTo(-3, 0).into(), ZeroSet.into()].into()),
-        case("[-<<<++>>>]", [MulAdd(-3, 0, 2).into(), ZeroSet.into()].into()),
-        case("[->>>-<<<]", [SubTo(3, 0).into(), ZeroSet.into()].into()),
-        case("[>>>-<<<-]", [SubTo(3, 0).into(), ZeroSet.into()].into()),
-        case("[-<<<->>>]", [SubTo(-3, 0).into(), ZeroSet.into()].into()),
-        case("[<<<->>>-]", [SubTo(-3, 0).into(), ZeroSet.into()].into()),
+        case("[->>>+<<<]", [AddTo(3, 0).into(), ZeroSetOffset(0).into()].into()),
+        case("[>>>+<<<-]", [AddTo(3, 0).into(), ZeroSetOffset(0).into()].into()),
+        case("[-<<<+>>>]", [AddTo(-3, 0).into(), ZeroSetOffset(0).into()].into()),
+        case("[<<<+>>>-]", [AddTo(-3, 0).into(), ZeroSetOffset(0).into()].into()),
+        case("[-<<<++>>>]", [MulAdd(-3, 0, 2).into(), ZeroSetOffset(0).into()].into()),
+        case("[->>>-<<<]", [SubTo(3, 0).into(), ZeroSetOffset(0).into()].into()),
+        case("[>>>-<<<-]", [SubTo(3, 0).into(), ZeroSetOffset(0).into()].into()),
+        case("[-<<<->>>]", [SubTo(-3, 0).into(), ZeroSetOffset(0).into()].into()),
+        case("[<<<->>>-]", [SubTo(-3, 0).into(), ZeroSetOffset(0).into()].into()),
         // case("[-<<<-->>>]", [SubOffset(0, 1).into(), SubOffset(-3, 2).into()].into()),
         case("", [].into()),
         case("+++", [AddOffset(0, 3).into()].into()),
@@ -378,14 +377,14 @@ mod test {
         case(">+++", [AddOffset(1, 3).into(), PtrIncrement(1).into()].into()),
         case("[[[]]]", [Node::Loop([Node::Loop([Node::Loop([].into())].into())].into())].into()),
         case("->+<", [SubOffset(0, 1).into(), AddOffset(1, 1).into()].into()),
-        case("[->>>-<<<]", [SubTo(3, 0).into(), ZeroSet.into()].into()),
-        case("+++>-<[->>>-<<<]", [AddOffset(0, 3).into(),SubOffset(1, 1).into(), SubTo(3, 0).into(), ZeroSet.into()].into()),
-        case("[>>>-<<<-]", [SubTo(3, 0).into(), ZeroSet.into()].into()),
-        case("[>>>->+<<<<-]", [SubTo(3, 0).into(), AddTo(4, 0).into(), ZeroSet.into()].into()),
-        case("+++[>>>[-][[->+<]]<<<]", [AddOffset(0, 3).into(), Node::Loop([PtrIncrement(3).into(), ZeroSet.into(), Node::Loop([AddTo(1, 0).into(), ZeroSet.into()].into()), PtrDecrement(3).into()].into())].into()),
+        case("[->>>-<<<]", [SubTo(3, 0).into(), ZeroSetOffset(0).into()].into()),
+        case("+++>-<[->>>-<<<]", [AddOffset(0, 3).into(),SubOffset(1, 1).into(), SubTo(3, 0).into(), ZeroSetOffset(0).into()].into()),
+        case("[>>>-<<<-]", [SubTo(3, 0).into(), ZeroSetOffset(0).into()].into()),
+        case("[>>>->+<<<<-]", [SubTo(3, 0).into(), AddTo(4, 0).into(), ZeroSetOffset(0).into()].into()),
+        case("+++[>>>[-][[->+<]]<<<]", [AddOffset(0, 3).into(), Node::Loop([PtrIncrement(3).into(), ZeroSetOffset(0).into(), Node::Loop([AddTo(1, 0).into(), ZeroSetOffset(0).into()].into()), PtrDecrement(3).into()].into())].into()),
         case("[->>>.<<<]", [Node::Loop([SubOffset(0, 1).into(), OutputOffset(3, 1).into()].into())].into()),
-        case("[->+>+>++>+++<<<<]", [AddTo(1, 0).into(), AddTo(2, 0).into(), MulAdd(3, 0, 2).into(), MulAdd(4, 0, 3).into(), ZeroSet.into()].into()),
-        case("[-<<<-->>>]", [MulSub(-3, 0, 2).into(), ZeroSet.into()].into()),
+        case("[->+>+>++>+++<<<<]", [AddTo(1, 0).into(), AddTo(2, 0).into(), MulAdd(3, 0, 2).into(), MulAdd(4, 0, 3).into(), ZeroSetOffset(0).into()].into()),
+        case("[-<<<-->>>]", [MulSub(-3, 0, 2).into(), ZeroSetOffset(0).into()].into()),
     )]
     fn test_optimize(input: &str, expected: Nodes) {
         let tokens = tokenize(input);

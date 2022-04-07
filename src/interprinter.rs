@@ -247,7 +247,6 @@ impl<R: Read, W: Write> InterPrinter<R, W> {
                                 self.state.input(offset, &mut self.input)?;
                             }
                         }
-                        Instruction::ZeroSet => *self.state.at_offset_mut(0)? = 0,
                         Instruction::ZeroSetOffset(offset) => {
                             *self.state.at_offset_mut(offset)? = 0
                         }
