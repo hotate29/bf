@@ -91,11 +91,7 @@ pub fn offset_opt(nodes: &Nodes) -> Nodes {
             match ins {
                 PtrIncrement(inc) => self.pointer_offset += inc as isize,
                 PtrDecrement(dec) => self.pointer_offset -= dec as isize,
-                ins @ (Add(0, _)
-                | Sub(0, _)
-                | Output(0, _)
-                | Input(0, _)
-                | ZeroSet(0)) => {
+                ins @ (Add(0, _) | Sub(0, _) | Output(0, _) | Input(0, _) | ZeroSet(0)) => {
                     self.offset_map
                         .entry(self.pointer_offset)
                         .and_modify(|instructions| instructions.push(self.ins_count, ins))
@@ -306,12 +302,8 @@ impl SimplifiedNodes {
                         self.pointer_offset + offset,
                         value,
                     ),
-                    Output(offset, repeat) => {
-                        Output(self.pointer_offset + offset, repeat)
-                    }
-                    Input(offset, repeat) => {
-                        Input(self.pointer_offset + offset, repeat)
-                    }
+                    Output(offset, repeat) => Output(self.pointer_offset + offset, repeat),
+                    Input(offset, repeat) => Input(self.pointer_offset + offset, repeat),
                     ZeroSet(offset) => ZeroSet(self.pointer_offset + offset),
                 };
                 self.nodes.push_back(ins.into())
