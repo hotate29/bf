@@ -112,8 +112,14 @@ impl Instruction {
                 }
             }
             (PtrDecrement(x), PtrDecrement(y)) => Some(PtrDecrement(x + y)),
-            (SetValue(offset_x, 0), SetValue(offset_y, 0)) if offset_x == offset_y => {
-                Some(SetValue(offset_x, 0))
+            (SetValue(offset_x, _), rhs @ SetValue(offset_y, _)) if offset_x == offset_y => {
+                Some(rhs)
+            }
+            (SetValue(offset_x, value), Add(offset_y, add_value)) if offset_x == offset_y => {
+                Some(SetValue(offset_x, value.wrapping_add(add_value)))
+            }
+            (SetValue(offset_x, value), Sub(offset_y, sub_value)) if offset_x == offset_y => {
+                Some(SetValue(offset_x, value.wrapping_sub(sub_value)))
             }
             (Add(x_offset, _) | Sub(x_offset, _), SetValue(y_offset, 0))
                 if x_offset == y_offset =>
