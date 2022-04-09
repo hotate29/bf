@@ -201,6 +201,18 @@ pub fn offset_opt(nodes: &Nodes) -> Nodes {
             new_nodes.push_back(SetValue(0, 0).into());
 
             Nod::Instructions(new_nodes)
+        } else if state.pointer_offset == 0
+            && !has_loop
+            && is_loop
+            // [->>>.<<<]を弾く
+            && !has_io
+            &&state.offset_map.len()==1
+            && state.offset_map
+                .get(&0)
+                .filter(|ins| ins.inner.len() == 1 && ins.inner[0].1 == Add(0,1))
+                .is_some()
+        {
+            Nod::Instructions([SetValue(0, 0).into()].into())
         } else {
             let mut instructions = state.into_nodes();
             new_nodes.append(&mut instructions);
