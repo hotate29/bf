@@ -175,7 +175,7 @@ pub fn offset_opt(nodes: &Nodes) -> Nodes {
             && !has_io
             && state.offset_map
                 .get(&0)
-                .filter(|ins| ins.inner.len() == 1 && (ins.inner[0].1 == Sub(0,1) || ins.inner[0].1 == Add(0,1)))
+                .filter(|ins| ins.inner.len() == 1 && ins.inner[0].1 == Sub(0,1))
                 .is_some()
         {
             // 最適化をするぞ！バリバリ！
@@ -185,7 +185,7 @@ pub fn offset_opt(nodes: &Nodes) -> Nodes {
                 for instruction in instructions.instructions() {
                     let instruction = match instruction {
                         // 最後にZeroSetにする
-                        Sub(0, 1) | Add(0, 1) if offset == 0 => continue,
+                        Sub(0, 1) if offset == 0 => continue,
                         Add(0, 1) => AddTo(offset, 0),
                         Add(0, value) => MulAdd(offset, 0, *value),
                         Sub(0, 1) => SubTo(offset, 0),
@@ -300,7 +300,24 @@ impl SimplifiedNodes {
                     Input(offset, repeat) => Input(self.pointer_offset + offset, repeat),
                     ZeroSet(offset) => ZeroSet(self.pointer_offset + offset),
                 };
-                self.nodes.push_back(ins.into())
+                self.nodes.push_back(ins.into());
+
+                // 本当は関数にしたい
+                // TODO: 単一の最適化にする
+                while let Some(merged_inst) = self
+                    .nodes
+                    .iter()
+                    .nth_back(1)
+                    .zip(self.nodes.back())
+                    .and_then(|(back2, back)| back2.as_instruction().zip(back.as_instruction()))
+                    .and_then(|(back2, back)| back2.merge(back))
+                {
+                    self.nodes.pop_back().unwrap();
+                    self.nodes.pop_back().unwrap();
+                    if !merged_inst.is_no_action() {
+                        self.nodes.push_back(merged_inst.into())
+                    }
+                }
             }
         }
     }
