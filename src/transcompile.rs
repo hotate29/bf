@@ -57,8 +57,8 @@ pub fn to_c2(root_node: &Nodes) -> String {
                             "if(*(ptr+{offset})!=0){{*(ptr+{to_offset})-={value}**(ptr+{offset});}}"
                         ));
                     }
-                    Instruction::ZeroSet(offset) => {
-                        c_code.push_str(&format!("*(ptr+{offset})=0;"))
+                    Instruction::SetValue(offset, value) => {
+                        c_code.push_str(&format!("*(ptr+{offset})={value};"))
                     }
                     ins => panic!("unimplemented instruction. {ins:?}"),
                     // Instruction::Copy(_) => todo!(),

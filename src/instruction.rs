@@ -18,7 +18,8 @@ pub enum Instruction {
     MulSub(isize, isize, u8),
     Output(isize, usize),
     Input(isize, usize),
-    ZeroSet(isize),
+    // これでZeroSetを置き換える
+    SetValue(isize, u8),
 }
 
 impl Instruction {
@@ -49,8 +50,8 @@ impl Instruction {
             | Instruction::Add(_, _)
             | Instruction::Sub(_, _)
             | Instruction::Output(_, _)
-            | Instruction::ZeroSet(_)
-            | Instruction::Input(_, _) => None,
+            | Instruction::Input(_, _)
+            | Instruction::SetValue(_, _) => None,
         }
     }
     pub fn to_string(self) -> Option<String> {
@@ -68,8 +69,8 @@ impl Instruction {
             | Instruction::Add(_, _)
             | Instruction::Sub(_, _)
             | Instruction::Output(_, _)
-            | Instruction::ZeroSet(_)
-            | Instruction::Input(_, _) => None,
+            | Instruction::Input(_, _)
+            | Instruction::SetValue(_, _) => None,
         }
     }
     #[inline]
@@ -111,11 +112,13 @@ impl Instruction {
                 }
             }
             (PtrDecrement(x), PtrDecrement(y)) => Some(PtrDecrement(x + y)),
-            (ZeroSet(offset_x), ZeroSet(offset_y)) if offset_x == offset_y => {
-                Some(ZeroSet(offset_x))
+            (SetValue(offset_x, 0), SetValue(offset_y, 0)) if offset_x == offset_y => {
+                Some(SetValue(offset_x, 0))
             }
-            (Add(x_offset, _) | Sub(x_offset, _), ZeroSet(y_offset)) if x_offset == y_offset => {
-                Some(ZeroSet(y_offset))
+            (Add(x_offset, _) | Sub(x_offset, _), SetValue(y_offset, 0))
+                if x_offset == y_offset =>
+            {
+                Some(SetValue(y_offset, 0))
             }
             (Output(x_offset, x), Output(y_offset, y)) if x_offset == y_offset => {
                 Some(Output(x_offset, x + y))

@@ -242,7 +242,9 @@ impl<R: Read, W: Write> InterPrinter<R, W> {
                                 self.state.input(offset, &mut self.input)?;
                             }
                         }
-                        Instruction::ZeroSet(offset) => *self.state.at_offset_mut(offset)? = 0,
+                        Instruction::SetValue(offset, value) => {
+                            *self.state.at_offset_mut(offset)? = value
+                        }
                         ins => panic!("unimplemented instruction. {ins:?}"),
                     };
                     self.now += 1
