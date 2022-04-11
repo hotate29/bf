@@ -13,7 +13,8 @@ pub fn to_c2(root_node: &Nodes) -> String {
                 crate::parse::Node::Instruction(instruction) => match instruction {
                     Instruction::PtrIncrement(n) => c_code.push_str(&format!("ptr+={n};")),
                     Instruction::PtrDecrement(n) => c_code.push_str(&format!("ptr-={n};")),
-                    Instruction::Add(offset, Value::Const(value)) => {
+                    Instruction::Add(offset, value @ Value::Const(_)) => {
+                        let value = value_to_string("ptr", *value);
                         c_code.push_str(&format!("*(ptr+{offset})+={value};"))
                     }
                     Instruction::Add(to_offset, Value::Memory(offset)) if *offset >= 0 => {
@@ -43,36 +44,35 @@ pub fn to_c2(root_node: &Nodes) -> String {
                             c_code.push_str(&format!("*(ptr+{offset})=getchar();"))
                         }
                     }
-                    Instruction::MulAdd(to_offset, offset, value) if *offset >= 0 => {
+                    Instruction::MulAdd(to_offset, Value::Memory(offset), value)
+                        if *offset >= 0 =>
+                    {
                         let value = value_to_string("ptr", *value);
                         c_code.push_str(&format!("*(ptr+{to_offset})+={value}*ptr[{offset}];"));
                     }
-                    Instruction::MulAdd(to_offset, offset, value) if *offset < 0 => {
+                    Instruction::MulAdd(to_offset, Value::Memory(offset), value) if *offset < 0 => {
                         let value = value_to_string("ptr", *value);
                         c_code.push_str(&format!(
                         "if(*(ptr+{offset})!=0){{*(ptr+{to_offset})+={value}**(ptr+{offset});}}"
                         ));
                     }
-                    Instruction::MulSub(to_offset, offset, value) if *offset >= 0 => {
+                    Instruction::MulSub(to_offset, Value::Memory(offset), value)
+                        if *offset >= 0 =>
+                    {
                         let value = value_to_string("ptr", *value);
                         c_code.push_str(&format!("*(ptr+{to_offset})-={value}*ptr[{offset}];"));
                     }
-                    Instruction::MulSub(to_offset, offset, value) if *offset < 0 => {
+                    Instruction::MulSub(to_offset, Value::Memory(offset), value) if *offset < 0 => {
                         let value = value_to_string("ptr", *value);
                         c_code.push_str(&format!(
                         "if(*(ptr+{offset})!=0){{*(ptr+{to_offset})-={value}**(ptr+{offset});}}"
                         ));
                     }
-                    Instruction::SetValue(offset, Value::Const(value)) => {
-                        c_code.push_str(&format!("*(ptr+{offset})={value};"))
-                    }
-                    Instruction::SetValue(offset, Value::Memory(value_offset)) => {
-                        c_code.push_str(&format!("*(ptr+{offset})=*(ptr+{value_offset});"))
+                    Instruction::SetValue(offset, value) => {
+                        let value = value_to_string("ptr", *value);
+                        c_code.push_str(&format!("*(ptr+{offset})=*(ptr+{value});"))
                     }
                     ins => panic!("unimplemented instruction. {ins:?}"),
-                    /*
-                    Instruction::Copy(_) => todo!(),
-                    */
                 },
             }
         }
