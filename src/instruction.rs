@@ -122,11 +122,13 @@ impl Instruction {
                     value.map_const(|v| v.wrapping_add(add_value)),
                 ))
             }
-            (SetValue(offset_x, Value::Const(value)), Sub(offset_y, Value::Const(sub_value)))
-                if offset_x == offset_y =>
-            {
-                Some(SetValue(offset_x, value.wrapping_sub(sub_value).into()))
-            }
+            (
+                SetValue(offset_x, value @ Value::Const(_)),
+                Sub(offset_y, Value::Const(sub_value)),
+            ) if offset_x == offset_y => Some(SetValue(
+                offset_x,
+                value.map_const(|v| v.wrapping_sub(sub_value)),
+            )),
             (SetValue(offset_x, Value::Const(0)), Add(to_offset, Value::Memory(from_offset)))
                 if offset_x == to_offset =>
             {
@@ -140,7 +142,7 @@ impl Instruction {
             (Output(x_offset, x), Output(y_offset, y)) if x_offset == y_offset => {
                 Some(Output(x_offset, x + y))
             }
-            (ins, instruction) if ins.is_no_action() => Some(instruction),
+            (ins, instruction) | (instruction, ins) if ins.is_no_action() => Some(instruction),
             (_, _) => None,
         }
     }
