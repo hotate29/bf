@@ -1,7 +1,10 @@
 use std::{cmp::Ordering, collections::BTreeMap, mem::swap};
 
 use crate::{
-    instruction::Instruction::{self, *},
+    instruction::{
+        Instruction::{self, *},
+        Value,
+    },
     parse::{Node, Nodes},
 };
 
@@ -85,7 +88,11 @@ pub fn offset_opt(nodes: &Nodes) -> Nodes {
             match ins {
                 PtrIncrement(inc) => self.pointer_offset += inc as isize,
                 PtrDecrement(dec) => self.pointer_offset -= dec as isize,
-                ins @ (Add(0, _) | Sub(0, _) | Output(0, _) | Input(0, _) | SetValue(0, 0)) => {
+                ins @ (Add(0, _)
+                | Sub(0, _)
+                | Output(0, _)
+                | Input(0, _)
+                | SetValue(0, Value::Const(0))) => {
                     self.offset_map
                         .entry(self.pointer_offset)
                         .and_modify(|instructions| instructions.push(self.ins_count, ins))
@@ -105,7 +112,7 @@ pub fn offset_opt(nodes: &Nodes) -> Nodes {
                             Sub(0, value) => Sub(offset, value),
                             Output(0, repeat) => Output(offset, repeat),
                             Input(0, repeat) => Input(offset, repeat),
-                            SetValue(0, 0) => SetValue(offset, 0),
+                            SetValue(0, Value::Const(0)) => SetValue(offset, Value::Const(0)),
                             _ => panic!(),
                         };
                         (id, ins)
@@ -198,7 +205,7 @@ pub fn offset_opt(nodes: &Nodes) -> Nodes {
                     new_nodes.push_back(instruction.into());
                 }
             }
-            new_nodes.push_back(SetValue(0, 0).into());
+            new_nodes.push_back(SetValue(0, 0.into()).into());
 
             Nod::Instructions(new_nodes)
         } else if state.pointer_offset == 0
@@ -212,7 +219,7 @@ pub fn offset_opt(nodes: &Nodes) -> Nodes {
                 .filter(|ins| ins.inner.len() == 1 && ins.inner[0].1 == Add(0,1))
                 .is_some()
         {
-            Nod::Instructions([SetValue(0, 0).into()].into())
+            Nod::Instructions([SetValue(0, 0.into()).into()].into())
         } else {
             let mut instructions = state.into_nodes();
             new_nodes.append(&mut instructions);
@@ -329,8 +336,10 @@ impl SimplifiedNodes {
                     ),
                     Output(offset, repeat) => Output(self.pointer_offset + offset, repeat),
                     Input(offset, repeat) => Input(self.pointer_offset + offset, repeat),
-                    SetValue(offset, value) => SetValue(self.pointer_offset + offset, value),
-                    SetVValue(offset, value) => SetVValue(self.pointer_offset + offset, value),
+                    SetValue(offset, value) => SetValue(
+                        self.pointer_offset + offset,
+                        value.map_offset(|offset| self.pointer_offset + offset),
+                    ),
                 };
                 self.nodes.push_back(ins.into());
 
@@ -392,18 +401,18 @@ mod test {
     }
 
     #[rstest(input, expected,
-        case("[-]", [SetValue(0, 0).into()].into()),
-        case("[+]", [SetValue(0, 0).into()].into()),
+        case("[-]", [SetValue(0, 0.into()).into()].into()),
+        case("[+]", [SetValue(0, 0.into()).into()].into()),
         case("[++]", [Node::Loop([Add(0, 2).into()].into())].into()),
-        case("[->>>+<<<]", [AddTo(3, 0).into(), SetValue(0, 0).into()].into()),
-        case("[>>>+<<<-]", [AddTo(3, 0).into(), SetValue(0, 0).into()].into()),
-        case("[-<<<+>>>]", [AddTo(-3, 0).into(), SetValue(0, 0).into()].into()),
-        case("[<<<+>>>-]", [AddTo(-3, 0).into(), SetValue(0, 0).into()].into()),
-        case("[-<<<++>>>]", [MulAdd(-3, 0, 2).into(), SetValue(0, 0).into()].into()),
-        case("[->>>-<<<]", [SubTo(3, 0).into(), SetValue(0, 0).into()].into()),
-        case("[>>>-<<<-]", [SubTo(3, 0).into(), SetValue(0, 0).into()].into()),
-        case("[-<<<->>>]", [SubTo(-3, 0).into(), SetValue(0, 0).into()].into()),
-        case("[<<<->>>-]", [SubTo(-3, 0).into(), SetValue(0, 0).into()].into()),
+        case("[->>>+<<<]", [AddTo(3, 0).into(), SetValue(0, 0.into()).into()].into()),
+        case("[>>>+<<<-]", [AddTo(3, 0).into(), SetValue(0, 0.into()).into()].into()),
+        case("[-<<<+>>>]", [AddTo(-3, 0).into(), SetValue(0, 0.into()).into()].into()),
+        case("[<<<+>>>-]", [AddTo(-3, 0).into(), SetValue(0, 0.into()).into()].into()),
+        case("[-<<<++>>>]", [MulAdd(-3, 0, 2).into(), SetValue(0, 0.into()).into()].into()),
+        case("[->>>-<<<]", [SubTo(3, 0).into(), SetValue(0, 0.into()).into()].into()),
+        case("[>>>-<<<-]", [SubTo(3, 0).into(), SetValue(0, 0.into()).into()].into()),
+        case("[-<<<->>>]", [SubTo(-3, 0).into(), SetValue(0, 0.into()).into()].into()),
+        case("[<<<->>>-]", [SubTo(-3, 0).into(), SetValue(0, 0.into()).into()].into()),
         // case("[-<<<-->>>]", [SubOffset(0, 1).into(), SubOffset(-3, 2).into()].into()),
         case("", [].into()),
         case("+++", [Add(0, 3).into()].into()),
@@ -412,14 +421,14 @@ mod test {
         case(">+++", [Add(1, 3).into(), PtrIncrement(1).into()].into()),
         case("[[[]]]", [Node::Loop([Node::Loop([Node::Loop([].into())].into())].into())].into()),
         case("->+<", [Sub(0, 1).into(), Add(1, 1).into()].into()),
-        case("[->>>-<<<]", [SubTo(3, 0).into(), SetValue(0, 0).into()].into()),
-        case("+++>-<[->>>-<<<]", [Add(0, 3).into(),Sub(1, 1).into(), SubTo(3, 0).into(), SetValue(0, 0).into()].into()),
-        case("[>>>-<<<-]", [SubTo(3, 0).into(), SetValue(0, 0).into()].into()),
-        case("[>>>->+<<<<-]", [SubTo(3, 0).into(), AddTo(4, 0).into(), SetValue(0, 0).into()].into()),
-        case("+++[>>>[-][[->+<]]<<<]", [Add(0, 3).into(), Node::Loop([PtrIncrement(3).into(), SetValue(0, 0).into(), Node::Loop([AddTo(1, 0).into(), SetValue(0, 0).into()].into()), PtrDecrement(3).into()].into())].into()),
+        case("[->>>-<<<]", [SubTo(3, 0).into(), SetValue(0, 0.into()).into()].into()),
+        case("+++>-<[->>>-<<<]", [Add(0, 3).into(),Sub(1, 1).into(), SubTo(3, 0).into(), SetValue(0, 0.into()).into()].into()),
+        case("[>>>-<<<-]", [SubTo(3, 0).into(), SetValue(0, 0.into()).into()].into()),
+        case("[>>>->+<<<<-]", [SubTo(3, 0).into(), AddTo(4, 0).into(), SetValue(0, 0.into()).into()].into()),
+        case("+++[>>>[-][[->+<]]<<<]", [Add(0, 3).into(), Node::Loop([PtrIncrement(3).into(), SetValue(0, 0.into()).into(), Node::Loop([AddTo(1, 0).into(), SetValue(0, 0.into()).into()].into()), PtrDecrement(3).into()].into())].into()),
         case("[->>>.<<<]", [Node::Loop([Sub(0, 1).into(), Output(3, 1).into()].into())].into()),
-        case("[->+>+>++>+++<<<<]", [AddTo(1, 0).into(), AddTo(2, 0).into(), MulAdd(3, 0, 2).into(), MulAdd(4, 0, 3).into(), SetValue(0, 0).into()].into()),
-        case("[-<<<-->>>]", [MulSub(-3, 0, 2).into(), SetValue(0, 0).into()].into()),
+        case("[->+>+>++>+++<<<<]", [AddTo(1, 0).into(), AddTo(2, 0).into(), MulAdd(3, 0, 2).into(), MulAdd(4, 0, 3).into(), SetValue(0, 0.into()).into()].into()),
+        case("[-<<<-->>>]", [MulSub(-3, 0, 2).into(), SetValue(0, 0.into()).into()].into()),
     )]
     fn test_optimize(input: &str, expected: Nodes) {
         let tokens = tokenize(input);

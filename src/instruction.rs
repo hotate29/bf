@@ -20,8 +20,8 @@ pub enum Instruction {
     MulSub(isize, isize, u8),
     Output(isize, usize),
     Input(isize, usize),
-    SetValue(isize, u8),
-    SetVValue(isize, Value),
+    // SetValue(isize, u8),
+    SetValue(isize, Value),
 }
 
 impl Instruction {
@@ -55,7 +55,6 @@ impl Instruction {
             | Instruction::Output(_, _)
             | Instruction::Input(_, _)
             | Instruction::AddValue(_, _)
-            | Instruction::SetVValue(_, _)
             | Instruction::SetValue(_, _) => None,
         }
     }
@@ -77,7 +76,6 @@ impl Instruction {
             | Instruction::Output(_, _)
             | Instruction::Input(_, _)
             | Instruction::AddValue(_, _)
-            | Instruction::SetVValue(_, _)
             | Instruction::SetValue(_, _) => None,
         }
     }
@@ -123,19 +121,21 @@ impl Instruction {
             (SetValue(offset_x, _), rhs @ SetValue(offset_y, _)) if offset_x == offset_y => {
                 Some(rhs)
             }
-            (SetValue(offset_x, value), Add(offset_y, add_value)) if offset_x == offset_y => {
-                Some(SetValue(offset_x, value.wrapping_add(add_value)))
+            (SetValue(offset_x, value), Add(offset_y, add_value)) if offset_x == offset_y => Some(
+                SetValue(offset_x, value.map_const(|v| v.wrapping_add(add_value))),
+            ),
+            (SetValue(offset_x, value), Sub(offset_y, sub_value)) if offset_x == offset_y => Some(
+                SetValue(offset_x, value.map_const(|v| v.wrapping_sub(sub_value))),
+            ),
+            (SetValue(offset_x, Value::Const(0)), AddTo(to_offset, from_offset))
+                if offset_x == to_offset =>
+            {
+                Some(SetValue(offset_x, Value::Memory(from_offset)))
             }
-            (SetValue(offset_x, value), Sub(offset_y, sub_value)) if offset_x == offset_y => {
-                Some(SetValue(offset_x, value.wrapping_sub(sub_value)))
-            }
-            (SetValue(offset_x, 0), AddTo(to_offset, from_offset)) if offset_x == to_offset => {
-                Some(SetVValue(offset_x, Value::Memory(from_offset)))
-            }
-            (Add(x_offset, _) | Sub(x_offset, _), SetValue(y_offset, 0))
+            (Add(x_offset, _) | Sub(x_offset, _), SetValue(y_offset, Value::Const(0)))
                 if x_offset == y_offset =>
             {
-                Some(SetValue(y_offset, 0))
+                Some(instruction)
             }
             (Output(x_offset, x), Output(y_offset, y)) if x_offset == y_offset => {
                 Some(Output(x_offset, x + y))
@@ -187,5 +187,10 @@ impl Value {
         } else {
             self
         }
+    }
+}
+impl From<u8> for Value {
+    fn from(value: u8) -> Self {
+        Self::Const(value)
     }
 }

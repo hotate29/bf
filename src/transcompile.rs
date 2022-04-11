@@ -77,11 +77,10 @@ pub fn to_c2(root_node: &Nodes) -> String {
                             "if(*(ptr+{offset})!=0){{*(ptr+{to_offset})-={value}**(ptr+{offset});}}"
                         ));
                     }
-                    Instruction::SetValue(offset, value)
-                    | Instruction::SetVValue(offset, Value::Const(value)) => {
+                    Instruction::SetValue(offset, Value::Const(value)) => {
                         c_code.push_str(&format!("*(ptr+{offset})={value};"))
                     }
-                    Instruction::SetVValue(offset, Value::Memory(value_offset)) => {
+                    Instruction::SetValue(offset, Value::Memory(value_offset)) => {
                         c_code.push_str(&format!("*(ptr+{offset})=*(ptr+{value_offset});"))
                     }
                     ins => panic!("unimplemented instruction. {ins:?}"),

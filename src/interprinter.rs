@@ -257,9 +257,6 @@ impl<R: Read, W: Write> InterPrinter<R, W> {
                             }
                         }
                         Instruction::SetValue(offset, value) => {
-                            *self.state.at_offset_mut(offset)? = value
-                        }
-                        Instruction::SetVValue(offset, value) => {
                             let value =
                                 value.get_or(|offset| self.state.at_offset(offset).unwrap());
                             *self.state.at_offset_mut(offset)? = value;
