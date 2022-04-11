@@ -217,15 +217,7 @@ impl<R: Read, W: Write> InterPrinter<R, W> {
                                 self.state.add(to_offset, value)?;
                             }
                         }
-                        Instruction::Sub(offset, value) => self.state.sub(offset, value)?,
-                        Instruction::SubTo(to_offset, offset) => {
-                            let value = self.state.at_offset(offset)?;
-                            // 後ろを参照するので、ここはちゃんと確認
-                            if value != 0 {
-                                self.state.sub(to_offset, value)?;
-                            }
-                        }
-                        Instruction::SubValue(to_offset, value) => {
+                        Instruction::Sub(to_offset, value) => {
                             let value =
                                 value.get_or(|offset| self.state.at_offset(offset).unwrap());
                             if value != 0 {

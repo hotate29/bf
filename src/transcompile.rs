@@ -33,24 +33,16 @@ pub fn to_c2(root_node: &Nodes) -> String {
                             "if(*(ptr+{offset})!=0){{*(ptr+{to_offset})+=*(ptr+{offset});}}"
                         ))
                     }
-                    Instruction::Sub(offset, value)
-                    | Instruction::SubValue(offset, Value::Const(value)) => {
+                    Instruction::Sub(offset, Value::Const(value)) => {
                         c_code.push_str(&format!("*(ptr+{offset})-={value};"))
                     }
-                    Instruction::SubTo(to_offset, offset)
-                    | Instruction::SubValue(to_offset, Value::Memory(offset))
-                        if *offset >= 0 =>
-                    {
+                    Instruction::Sub(to_offset, Value::Memory(offset)) if *offset >= 0 => {
                         c_code.push_str(&format!("*(ptr+{to_offset})-=ptr[{offset}];"))
                     }
-                    Instruction::SubTo(to_offset, offset)
-                    | Instruction::SubValue(to_offset, Value::Memory(offset))
-                        if *offset < 0 =>
-                    {
-                        c_code.push_str(&format!(
+                    Instruction::Sub(to_offset, Value::Memory(offset)) if *offset < 0 => c_code
+                        .push_str(&format!(
                             "if(*(ptr+{offset})!=0){{*(ptr+{to_offset})-=*(ptr+{offset});}}"
-                        ))
-                    }
+                        )),
                     Instruction::Output(offset, repeat) => {
                         for _ in 0..*repeat {
                             c_code.push_str(&format!("putchar(*(ptr+{offset}));"))

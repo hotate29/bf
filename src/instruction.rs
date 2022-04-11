@@ -11,9 +11,7 @@ pub enum Instruction {
     Add(isize, u8),
     AddTo(isize, isize),
     AddValue(isize, Value),
-    Sub(isize, u8),
-    SubTo(isize, isize),
-    SubValue(isize, Value),
+    Sub(isize, Value),
     /// mem[左isize] += mem[右isize] * value
     MulAdd(isize, isize, u8),
     /// mem[左isize] -= mem[右isize] * value
@@ -31,7 +29,7 @@ impl Instruction {
             Token::Greater => Some(Self::PtrIncrement(1)),
             Token::Less => Some(Self::PtrDecrement(1)),
             Token::Plus => Some(Self::Add(0, 1)),
-            Token::Minus => Some(Self::Sub(0, 1)),
+            Token::Minus => Some(Self::Sub(0, 1.into())),
             Token::Period => Some(Self::Output(0, 1)),
             Token::Comma => Some(Self::Input(0, 1)),
             Token::LeftBracket | Token::RightBracket => None,
@@ -42,12 +40,10 @@ impl Instruction {
             Instruction::PtrIncrement(n) => Some(format!("{}>", n)),
             Instruction::PtrDecrement(n) => Some(format!("{}<", n)),
             Instruction::Add(0, n) => Some(format!("{}+", n)),
-            Instruction::Sub(0, n) => Some(format!("{}-", n)),
+            Instruction::Sub(0, Value::Const(n)) => Some(format!("{}-", n)),
             Instruction::Output(0, n) => Some(format!("{}.", n)),
             Instruction::Input(0, n) => Some(format!("{},", n)),
             Instruction::AddTo(_, _)
-            | Instruction::SubTo(_, _)
-            | Instruction::SubValue(_, _)
             | Instruction::MulAdd(_, _, _)
             | Instruction::MulSub(_, _, _)
             | Instruction::Add(_, _)
@@ -63,12 +59,10 @@ impl Instruction {
             Instruction::PtrIncrement(n) => Some(">".repeat(n)),
             Instruction::PtrDecrement(n) => Some("<".repeat(n)),
             Instruction::Add(0, n) => Some("+".repeat(n as usize)),
-            Instruction::Sub(0, n) => Some("-".repeat(n as usize)),
+            Instruction::Sub(0, Value::Const(n)) => Some("-".repeat(n as usize)),
             Instruction::Output(0, n) => Some(".".repeat(n)),
             Instruction::Input(0, n) => Some(",".repeat(n)),
             Instruction::AddTo(_, _)
-            | Instruction::SubTo(_, _)
-            | Instruction::SubValue(_, _)
             | Instruction::MulAdd(_, _, _)
             | Instruction::MulSub(_, _, _)
             | Instruction::Add(_, _)
@@ -87,7 +81,8 @@ impl Instruction {
             (Add(x_offset, x), Add(y_offset, y)) if x_offset == y_offset => {
                 Some(Add(x_offset, x.wrapping_add(y)))
             }
-            (Sub(y_offset, y), Add(x_offset, x)) | (Add(x_offset, x), Sub(y_offset, y))
+            (Sub(y_offset, Value::Const(y)), Add(x_offset, x))
+            | (Add(x_offset, x), Sub(y_offset, Value::Const(y)))
                 if x_offset == y_offset =>
             {
                 let x = x as i32;
@@ -96,13 +91,15 @@ impl Instruction {
                 let z = x - y;
 
                 match z.cmp(&0) {
-                    Ordering::Less => Some(Sub(x_offset, z.abs() as u8)),
+                    Ordering::Less => Some(Sub(x_offset, (z.abs() as u8).into())),
                     Ordering::Greater => Some(Add(x_offset, z as u8)),
                     Ordering::Equal => Some(Add(x_offset, 0)),
                 }
             }
-            (Sub(x_offset, x), Sub(y_offset, y)) if x_offset == y_offset => {
-                Some(Sub(x_offset, x.wrapping_add(y) % u8::MAX))
+            (Sub(x_offset, Value::Const(x)), Sub(y_offset, Value::Const(y)))
+                if x_offset == y_offset =>
+            {
+                Some(Sub(x_offset, x.wrapping_add(y).into()))
             }
             (PtrIncrement(x), PtrIncrement(y)) => Some(PtrIncrement(x + y)),
             (PtrDecrement(y), PtrIncrement(x)) | (PtrIncrement(x), PtrDecrement(y)) => {
@@ -124,9 +121,11 @@ impl Instruction {
             (SetValue(offset_x, value), Add(offset_y, add_value)) if offset_x == offset_y => Some(
                 SetValue(offset_x, value.map_const(|v| v.wrapping_add(add_value))),
             ),
-            (SetValue(offset_x, value), Sub(offset_y, sub_value)) if offset_x == offset_y => Some(
-                SetValue(offset_x, value.map_const(|v| v.wrapping_sub(sub_value))),
-            ),
+            (SetValue(offset_x, Value::Const(value)), Sub(offset_y, Value::Const(sub_value)))
+                if offset_x == offset_y =>
+            {
+                Some(SetValue(offset_x, value.wrapping_sub(sub_value).into()))
+            }
             (SetValue(offset_x, Value::Const(0)), AddTo(to_offset, from_offset))
                 if offset_x == to_offset =>
             {
@@ -151,7 +150,7 @@ impl Instruction {
             Instruction::PtrIncrement(0)
                 | Instruction::PtrDecrement(0)
                 | Instruction::Add(_, 0)
-                | Instruction::Sub(_, 0)
+                | Instruction::Sub(_, Value::Const(0))
         )
     }
 }

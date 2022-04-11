@@ -182,7 +182,7 @@ pub fn offset_opt(nodes: &Nodes) -> Nodes {
             && !has_io
             && state.offset_map
                 .get(&0)
-                .filter(|ins| ins.inner.len() == 1 && ins.inner[0].1 == Sub(0,1))
+                .filter(|ins| ins.inner.len() == 1 && ins.inner[0].1 == Sub(0, 1.into()))
                 .is_some()
         {
             // 最適化をするぞ！バリバリ！
@@ -192,11 +192,11 @@ pub fn offset_opt(nodes: &Nodes) -> Nodes {
                 for instruction in instructions.instructions() {
                     let instruction = match instruction {
                         // 最後にZeroSetにする
-                        Sub(0, 1) if offset == 0 => continue,
+                        Sub(0, Value::Const(1)) if offset == 0 => continue,
                         Add(0, 1) => AddTo(offset, 0),
                         Add(0, value) => MulAdd(offset, 0, *value),
-                        Sub(0, 1) => SubTo(offset, 0),
-                        Sub(0, value) => MulSub(offset, 0, *value),
+                        Sub(0, Value::Const(1)) => Sub(offset, Value::Memory(0)),
+                        Sub(0, Value::Const(value)) => MulSub(offset, 0, *value),
                         // Output(repeat) => OutputOffset(repeat, offset),
                         // Input(_) => todo!(),
                         // ZeroSet => ZeroSetOffset(offset),
@@ -314,13 +314,7 @@ impl SimplifiedNodes {
                         self.pointer_offset + to_offset,
                         self.pointer_offset + offset,
                     ),
-                    Sub(0, value) => Sub(self.pointer_offset, value),
-                    Sub(offset, value) => Sub(self.pointer_offset + offset, value),
-                    SubTo(to_offset, offset) => SubTo(
-                        self.pointer_offset + to_offset,
-                        self.pointer_offset + offset,
-                    ),
-                    SubValue(offset, value) => SubValue(
+                    Sub(offset, value) => Sub(
                         self.pointer_offset + offset,
                         value.map_offset(|offset| self.pointer_offset + offset),
                     ),
@@ -381,7 +375,7 @@ impl SimplifiedNodes {
 mod test {
     use super::{merge_instruction, offset_opt, SimplifiedNodes};
     use crate::{
-        instruction::Instruction::*,
+        instruction::{Instruction::*, Value},
         parse::{tokenize, Node, Nodes},
     };
 
@@ -391,7 +385,7 @@ mod test {
     fn test_merge_instruction() {
         let nodes = [
             Add(0, 1).into(),
-            Sub(0, 1).into(),
+            Sub(0, 1.into()).into(),
             PtrIncrement(1).into(),
             PtrDecrement(1).into(),
             Add(0, 1).into(),
@@ -409,24 +403,24 @@ mod test {
         case("[-<<<+>>>]", [AddTo(-3, 0).into(), SetValue(0, 0.into()).into()].into()),
         case("[<<<+>>>-]", [AddTo(-3, 0).into(), SetValue(0, 0.into()).into()].into()),
         case("[-<<<++>>>]", [MulAdd(-3, 0, 2).into(), SetValue(0, 0.into()).into()].into()),
-        case("[->>>-<<<]", [SubTo(3, 0).into(), SetValue(0, 0.into()).into()].into()),
-        case("[>>>-<<<-]", [SubTo(3, 0).into(), SetValue(0, 0.into()).into()].into()),
-        case("[-<<<->>>]", [SubTo(-3, 0).into(), SetValue(0, 0.into()).into()].into()),
-        case("[<<<->>>-]", [SubTo(-3, 0).into(), SetValue(0, 0.into()).into()].into()),
+        case("[->>>-<<<]", [Sub(3, Value::Memory(0)).into(), SetValue(0, 0.into()).into()].into()),
+        case("[>>>-<<<-]", [Sub(3, Value::Memory(0)).into(), SetValue(0, 0.into()).into()].into()),
+        case("[-<<<->>>]", [Sub(-3, Value::Memory(0)).into(), SetValue(0, 0.into()).into()].into()),
+        case("[<<<->>>-]", [Sub(-3, Value::Memory(0)).into(), SetValue(0, 0.into()).into()].into()),
         // case("[-<<<-->>>]", [SubOffset(0, 1).into(), SubOffset(-3, 2).into()].into()),
         case("", [].into()),
         case("+++", [Add(0, 3).into()].into()),
         case("+++---", [].into()),
-        case(">+++<-", [Add(1, 3).into(), Sub(0, 1).into()].into()),
+        case(">+++<-", [Add(1, 3).into(), Sub(0, Value::Const(1)).into()].into()),
         case(">+++", [Add(1, 3).into(), PtrIncrement(1).into()].into()),
         case("[[[]]]", [Node::Loop([Node::Loop([Node::Loop([].into())].into())].into())].into()),
-        case("->+<", [Sub(0, 1).into(), Add(1, 1).into()].into()),
-        case("[->>>-<<<]", [SubTo(3, 0).into(), SetValue(0, 0.into()).into()].into()),
-        case("+++>-<[->>>-<<<]", [Add(0, 3).into(),Sub(1, 1).into(), SubTo(3, 0).into(), SetValue(0, 0.into()).into()].into()),
-        case("[>>>-<<<-]", [SubTo(3, 0).into(), SetValue(0, 0.into()).into()].into()),
-        case("[>>>->+<<<<-]", [SubTo(3, 0).into(), AddTo(4, 0).into(), SetValue(0, 0.into()).into()].into()),
+        case("->+<", [Sub(0, Value::Const(1)).into(), Add(1, 1).into()].into()),
+        case("[->>>-<<<]", [Sub(3, Value::Memory(0)).into(), SetValue(0, 0.into()).into()].into()),
+        case("+++>-<[->>>-<<<]", [Add(0, 3).into(),Sub(1, Value::Const(1)).into(), Sub(3, Value::Memory(0)).into(), SetValue(0, 0.into()).into()].into()),
+        case("[>>>-<<<-]", [Sub(3, Value::Memory(0)).into(), SetValue(0, 0.into()).into()].into()),
+        case("[>>>->+<<<<-]", [Sub(3, Value::Memory(0)).into(), AddTo(4, 0).into(), SetValue(0, 0.into()).into()].into()),
         case("+++[>>>[-][[->+<]]<<<]", [Add(0, 3).into(), Node::Loop([PtrIncrement(3).into(), SetValue(0, 0.into()).into(), Node::Loop([AddTo(1, 0).into(), SetValue(0, 0.into()).into()].into()), PtrDecrement(3).into()].into())].into()),
-        case("[->>>.<<<]", [Node::Loop([Sub(0, 1).into(), Output(3, 1).into()].into())].into()),
+        case("[->>>.<<<]", [Node::Loop([Sub(0, Value::Const(1)).into(), Output(3, 1).into()].into())].into()),
         case("[->+>+>++>+++<<<<]", [AddTo(1, 0).into(), AddTo(2, 0).into(), MulAdd(3, 0, 2).into(), MulAdd(4, 0, 3).into(), SetValue(0, 0.into()).into()].into()),
         case("[-<<<-->>>]", [MulSub(-3, 0, 2).into(), SetValue(0, 0.into()).into()].into()),
     )]
@@ -439,7 +433,7 @@ mod test {
     }
 
     #[rstest(input, expected,
-        case([Add(0,1).into(), PtrIncrement(1).into(), Sub(0, 1).into(), Add(2, 2).into()].into(), [Add(0, 1).into(), Sub(1, 1).into(), Add(3, 2).into(), PtrIncrement(1).into()].into())
+        case([Add(0,1).into(), PtrIncrement(1).into(), Sub(0, Value::Const(1)).into(), Add(2, 2).into()].into(), [Add(0, 1).into(), Sub(1, Value::Const(1)).into(), Add(3, 2).into(), PtrIncrement(1).into()].into())
     )]
     fn test_simplified_nodes(input: Nodes, expected: Nodes) {
         let mut simplified_nodes = SimplifiedNodes::new();
