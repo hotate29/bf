@@ -203,16 +203,9 @@ impl<R: Read, W: Write> InterPrinter<R, W> {
                     match instruction {
                         Instruction::PtrIncrement(n) => self.state.pointer_add(n),
                         Instruction::PtrDecrement(n) => self.state.pointer_sub(n)?,
-                        Instruction::Add(offset, value) => self.state.add(offset, value)?,
-                        Instruction::AddValue(to_offset, value) => {
+                        Instruction::Add(to_offset, value) => {
                             let value =
                                 value.get_or(|offset| self.state.at_offset(offset).unwrap());
-                            if value != 0 {
-                                self.state.add(to_offset, value)?;
-                            }
-                        }
-                        Instruction::AddTo(to_offset, offset) => {
-                            let value = self.state.at_offset(offset)?;
                             if value != 0 {
                                 self.state.add(to_offset, value)?;
                             }

@@ -8,9 +8,7 @@ use crate::parse::Token;
 pub enum Instruction {
     PtrIncrement(usize),
     PtrDecrement(usize),
-    Add(isize, u8),
-    AddTo(isize, isize),
-    AddValue(isize, Value),
+    Add(isize, Value),
     Sub(isize, Value),
     /// mem[左isize] += mem[右isize] * value
     MulAdd(isize, isize, u8),
@@ -28,7 +26,7 @@ impl Instruction {
         match token {
             Token::Greater => Some(Self::PtrIncrement(1)),
             Token::Less => Some(Self::PtrDecrement(1)),
-            Token::Plus => Some(Self::Add(0, 1)),
+            Token::Plus => Some(Self::Add(0, 1.into())),
             Token::Minus => Some(Self::Sub(0, 1.into())),
             Token::Period => Some(Self::Output(0, 1)),
             Token::Comma => Some(Self::Input(0, 1)),
@@ -39,18 +37,16 @@ impl Instruction {
         match self {
             Instruction::PtrIncrement(n) => Some(format!("{}>", n)),
             Instruction::PtrDecrement(n) => Some(format!("{}<", n)),
-            Instruction::Add(0, n) => Some(format!("{}+", n)),
+            Instruction::Add(0, Value::Const(n)) => Some(format!("{}+", n)),
             Instruction::Sub(0, Value::Const(n)) => Some(format!("{}-", n)),
             Instruction::Output(0, n) => Some(format!("{}.", n)),
             Instruction::Input(0, n) => Some(format!("{},", n)),
-            Instruction::AddTo(_, _)
-            | Instruction::MulAdd(_, _, _)
+            Instruction::MulAdd(_, _, _)
             | Instruction::MulSub(_, _, _)
             | Instruction::Add(_, _)
             | Instruction::Sub(_, _)
             | Instruction::Output(_, _)
             | Instruction::Input(_, _)
-            | Instruction::AddValue(_, _)
             | Instruction::SetValue(_, _) => None,
         }
     }
@@ -58,18 +54,16 @@ impl Instruction {
         match self {
             Instruction::PtrIncrement(n) => Some(">".repeat(n)),
             Instruction::PtrDecrement(n) => Some("<".repeat(n)),
-            Instruction::Add(0, n) => Some("+".repeat(n as usize)),
+            Instruction::Add(0, Value::Const(n)) => Some("+".repeat(n as usize)),
             Instruction::Sub(0, Value::Const(n)) => Some("-".repeat(n as usize)),
             Instruction::Output(0, n) => Some(".".repeat(n)),
             Instruction::Input(0, n) => Some(",".repeat(n)),
-            Instruction::AddTo(_, _)
-            | Instruction::MulAdd(_, _, _)
+            Instruction::MulAdd(_, _, _)
             | Instruction::MulSub(_, _, _)
             | Instruction::Add(_, _)
             | Instruction::Sub(_, _)
             | Instruction::Output(_, _)
             | Instruction::Input(_, _)
-            | Instruction::AddValue(_, _)
             | Instruction::SetValue(_, _) => None,
         }
     }
@@ -78,11 +72,13 @@ impl Instruction {
         use Instruction::*;
 
         match (self, instruction) {
-            (Add(x_offset, x), Add(y_offset, y)) if x_offset == y_offset => {
-                Some(Add(x_offset, x.wrapping_add(y)))
+            (Add(x_offset, Value::Const(x)), Add(y_offset, Value::Const(y)))
+                if x_offset == y_offset =>
+            {
+                Some(Add(x_offset, Value::Const(x.wrapping_add(y))))
             }
-            (Sub(y_offset, Value::Const(y)), Add(x_offset, x))
-            | (Add(x_offset, x), Sub(y_offset, Value::Const(y)))
+            (Sub(y_offset, Value::Const(y)), Add(x_offset, Value::Const(x)))
+            | (Add(x_offset, Value::Const(x)), Sub(y_offset, Value::Const(y)))
                 if x_offset == y_offset =>
             {
                 let x = x as i32;
@@ -92,8 +88,8 @@ impl Instruction {
 
                 match z.cmp(&0) {
                     Ordering::Less => Some(Sub(x_offset, (z.abs() as u8).into())),
-                    Ordering::Greater => Some(Add(x_offset, z as u8)),
-                    Ordering::Equal => Some(Add(x_offset, 0)),
+                    Ordering::Greater => Some(Add(x_offset, (z as u8).into())),
+                    Ordering::Equal => Some(Add(x_offset, 0.into())),
                 }
             }
             (Sub(x_offset, Value::Const(x)), Sub(y_offset, Value::Const(y)))
@@ -111,22 +107,27 @@ impl Instruction {
                 match z.cmp(&0) {
                     Ordering::Less => Some(PtrDecrement(z.abs() as usize)),
                     Ordering::Greater => Some(PtrIncrement(z as usize)),
-                    Ordering::Equal => Some(Add(0, 0)),
+                    Ordering::Equal => Some(PtrIncrement(0)),
                 }
             }
             (PtrDecrement(x), PtrDecrement(y)) => Some(PtrDecrement(x + y)),
             (SetValue(offset_x, _), rhs @ SetValue(offset_y, _)) if offset_x == offset_y => {
                 Some(rhs)
             }
-            (SetValue(offset_x, value), Add(offset_y, add_value)) if offset_x == offset_y => Some(
-                SetValue(offset_x, value.map_const(|v| v.wrapping_add(add_value))),
-            ),
+            (SetValue(offset_x, value), Add(offset_y, Value::Const(add_value)))
+                if offset_x == offset_y =>
+            {
+                Some(SetValue(
+                    offset_x,
+                    value.map_const(|v| v.wrapping_add(add_value)),
+                ))
+            }
             (SetValue(offset_x, Value::Const(value)), Sub(offset_y, Value::Const(sub_value)))
                 if offset_x == offset_y =>
             {
                 Some(SetValue(offset_x, value.wrapping_sub(sub_value).into()))
             }
-            (SetValue(offset_x, Value::Const(0)), AddTo(to_offset, from_offset))
+            (SetValue(offset_x, Value::Const(0)), Add(to_offset, Value::Memory(from_offset)))
                 if offset_x == to_offset =>
             {
                 Some(SetValue(offset_x, Value::Memory(from_offset)))
@@ -149,7 +150,7 @@ impl Instruction {
             self,
             Instruction::PtrIncrement(0)
                 | Instruction::PtrDecrement(0)
-                | Instruction::Add(_, 0)
+                | Instruction::Add(_, Value::Const(0))
                 | Instruction::Sub(_, Value::Const(0))
         )
     }
