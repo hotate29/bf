@@ -144,3 +144,37 @@ impl Instruction {
         )
     }
 }
+
+#[derive(Debug, Clone, Copy, Eq, Hash, PartialEq, Serialize)]
+pub enum Value {
+    Const(u8),
+    Memory(isize),
+}
+impl Value {
+    pub fn get_const(self) -> Option<u8> {
+        match self {
+            Value::Const(value) => Some(value),
+            Value::Memory(_) => None,
+        }
+    }
+    pub fn get_or(self, f: impl FnOnce(isize) -> u8) -> u8 {
+        match self {
+            Value::Const(value) => value,
+            Value::Memory(offset) => f(offset),
+        }
+    }
+    pub fn map_const(self, f: impl FnOnce(u8) -> u8) -> Self {
+        if let Self::Const(value) = self {
+            Self::Const(f(value))
+        } else {
+            self
+        }
+    }
+    pub fn map_offset(self, f: impl FnOnce(isize) -> isize) -> Self {
+        if let Self::Memory(offset) = self {
+            Self::Memory(f(offset))
+        } else {
+            self
+        }
+    }
+}
