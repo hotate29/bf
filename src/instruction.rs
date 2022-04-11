@@ -164,18 +164,21 @@ pub enum Value {
     Memory(isize),
 }
 impl Value {
+    #[inline]
     pub fn get_const(self) -> Option<u8> {
         match self {
             Value::Const(value) => Some(value),
             Value::Memory(_) => None,
         }
     }
+    #[inline]
     pub fn get_or(self, f: impl FnOnce(isize) -> u8) -> u8 {
         match self {
             Value::Const(value) => value,
             Value::Memory(offset) => f(offset),
         }
     }
+    #[inline]
     pub fn map_const(self, f: impl FnOnce(u8) -> u8) -> Self {
         if let Self::Const(value) = self {
             Self::Const(f(value))
@@ -183,6 +186,7 @@ impl Value {
             self
         }
     }
+    #[inline]
     pub fn map_offset(self, f: impl FnOnce(isize) -> isize) -> Self {
         if let Self::Memory(offset) = self {
             Self::Memory(f(offset))
