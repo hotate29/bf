@@ -332,28 +332,11 @@ impl SimplifiedNodes {
                     ),
                 };
                 self.nodes.push_back(ins.into());
-
-                // 本当は関数にしたい
-                // TODO: 単一の最適化にする
-                while let Some(merged_inst) = self
-                    .nodes
-                    .iter()
-                    .nth_back(1)
-                    .zip(self.nodes.back())
-                    .and_then(|(back2, back)| back2.as_instruction().zip(back.as_instruction()))
-                    .and_then(|(back2, back)| back2.merge(back))
-                {
-                    self.nodes.pop_back().unwrap();
-                    self.nodes.pop_back().unwrap();
-                    if !merged_inst.is_no_action() {
-                        self.nodes.push_back(merged_inst.into())
-                    }
-                }
             }
         }
     }
     fn into_nodes(self) -> Nodes {
-        let mut nodes = self.nodes;
+        let mut nodes = merge_instruction(self.nodes);
 
         match self.pointer_offset.cmp(&0) {
             Ordering::Less => {
