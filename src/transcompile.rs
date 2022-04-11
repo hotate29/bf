@@ -1,4 +1,4 @@
-use crate::instruction::Instruction;
+use crate::instruction::{Instruction, Value};
 use crate::parse::Nodes;
 
 pub fn to_c2(root_node: &Nodes) -> String {
@@ -13,15 +13,26 @@ pub fn to_c2(root_node: &Nodes) -> String {
                 crate::parse::Node::Instruction(instruction) => match instruction {
                     Instruction::PtrIncrement(n) => c_code.push_str(&format!("ptr+={n};")),
                     Instruction::PtrDecrement(n) => c_code.push_str(&format!("ptr-={n};")),
-                    Instruction::Add(offset, value) => {
+                    Instruction::Add(offset, value)
+                    | Instruction::AddValue(offset, Value::Const(value)) => {
                         c_code.push_str(&format!("*(ptr+{offset})+={value};"))
                     }
-                    Instruction::AddTo(to_offset, offset) if *offset >= 0 => {
+
+                    Instruction::AddTo(to_offset, offset)
+                    | Instruction::AddValue(to_offset, Value::Memory(offset))
+                        if *offset >= 0 =>
+                    {
                         c_code.push_str(&format!("*(ptr+{to_offset})+=ptr[{offset}];"))
                     }
-                    Instruction::AddTo(to_offset, offset) if *offset < 0 => c_code.push_str(
-                        &format!("if(*(ptr+{offset})!=0){{*(ptr+{to_offset})+=*(ptr+{offset});}}"),
-                    ),
+
+                    Instruction::AddTo(to_offset, offset)
+                    | Instruction::AddValue(to_offset, Value::Memory(offset))
+                        if *offset < 0 =>
+                    {
+                        c_code.push_str(&format!(
+                            "if(*(ptr+{offset})!=0){{*(ptr+{to_offset})+=*(ptr+{offset});}}"
+                        ))
+                    }
                     Instruction::Sub(offset, value) => {
                         c_code.push_str(&format!("*(ptr+{offset})-={value};"))
                     }
@@ -57,11 +68,17 @@ pub fn to_c2(root_node: &Nodes) -> String {
                             "if(*(ptr+{offset})!=0){{*(ptr+{to_offset})-={value}**(ptr+{offset});}}"
                         ));
                     }
-                    Instruction::SetValue(offset, value) => {
+                    Instruction::SetValue(offset, value)
+                    | Instruction::SetVValue(offset, Value::Const(value)) => {
                         c_code.push_str(&format!("*(ptr+{offset})={value};"))
                     }
+                    Instruction::SetVValue(offset, Value::Memory(value_offset)) => {
+                        c_code.push_str(&format!("*(ptr+{offset})=*(ptr+{value_offset});"))
+                    }
                     ins => panic!("unimplemented instruction. {ins:?}"),
-                    // Instruction::Copy(_) => todo!(),
+                    /*
+                    Instruction::Copy(_) => todo!(),
+                    */
                 },
             }
         }

@@ -204,6 +204,13 @@ impl<R: Read, W: Write> InterPrinter<R, W> {
                         Instruction::PtrIncrement(n) => self.state.pointer_add(n),
                         Instruction::PtrDecrement(n) => self.state.pointer_sub(n)?,
                         Instruction::Add(offset, value) => self.state.add(offset, value)?,
+                        Instruction::AddValue(to_offset, value) => {
+                            let value =
+                                value.get_or(|offset| self.state.at_offset(offset).unwrap());
+                            if value != 0 {
+                                self.state.add(to_offset, value)?;
+                            }
+                        }
                         Instruction::AddTo(to_offset, offset) => {
                             let value = self.state.at_offset(offset)?;
                             if value != 0 {
@@ -244,6 +251,11 @@ impl<R: Read, W: Write> InterPrinter<R, W> {
                         }
                         Instruction::SetValue(offset, value) => {
                             *self.state.at_offset_mut(offset)? = value
+                        }
+                        Instruction::SetVValue(offset, value) => {
+                            let value =
+                                value.get_or(|offset| self.state.at_offset(offset).unwrap());
+                            *self.state.at_offset_mut(offset)? = value;
                         }
                         ins => panic!("unimplemented instruction. {ins:?}"),
                     };

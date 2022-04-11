@@ -10,6 +10,7 @@ pub enum Instruction {
     PtrDecrement(usize),
     Add(isize, u8),
     AddTo(isize, isize),
+    AddValue(isize, Value),
     Sub(isize, u8),
     SubTo(isize, isize),
     /// mem[左isize] += mem[右isize] * value
@@ -18,8 +19,8 @@ pub enum Instruction {
     MulSub(isize, isize, u8),
     Output(isize, usize),
     Input(isize, usize),
-    // これでZeroSetを置き換える
     SetValue(isize, u8),
+    SetVValue(isize, Value),
 }
 
 impl Instruction {
@@ -51,6 +52,8 @@ impl Instruction {
             | Instruction::Sub(_, _)
             | Instruction::Output(_, _)
             | Instruction::Input(_, _)
+            | Instruction::AddValue(_, _)
+            | Instruction::SetVValue(_, _)
             | Instruction::SetValue(_, _) => None,
         }
     }
@@ -70,6 +73,8 @@ impl Instruction {
             | Instruction::Sub(_, _)
             | Instruction::Output(_, _)
             | Instruction::Input(_, _)
+            | Instruction::AddValue(_, _)
+            | Instruction::SetVValue(_, _)
             | Instruction::SetValue(_, _) => None,
         }
     }
@@ -120,6 +125,9 @@ impl Instruction {
             }
             (SetValue(offset_x, value), Sub(offset_y, sub_value)) if offset_x == offset_y => {
                 Some(SetValue(offset_x, value.wrapping_sub(sub_value)))
+            }
+            (SetValue(offset_x, 0), AddTo(to_offset, from_offset)) if offset_x == to_offset => {
+                Some(SetVValue(offset_x, Value::Memory(from_offset)))
             }
             (Add(x_offset, _) | Sub(x_offset, _), SetValue(y_offset, 0))
                 if x_offset == y_offset =>

@@ -299,6 +299,10 @@ impl SimplifiedNodes {
                     PtrIncrement(_) | PtrDecrement(_) => unreachable!(),
                     Add(0, value) => Add(self.pointer_offset, value),
                     Add(offset, value) => Add(self.pointer_offset + offset, value),
+                    AddValue(offset, value) => AddValue(
+                        self.pointer_offset + offset,
+                        value.map_offset(|offset| self.pointer_offset + offset),
+                    ),
                     AddTo(to_offset, offset) => AddTo(
                         self.pointer_offset + to_offset,
                         self.pointer_offset + offset,
@@ -322,6 +326,7 @@ impl SimplifiedNodes {
                     Output(offset, repeat) => Output(self.pointer_offset + offset, repeat),
                     Input(offset, repeat) => Input(self.pointer_offset + offset, repeat),
                     SetValue(offset, value) => SetValue(self.pointer_offset + offset, value),
+                    SetVValue(offset, value) => SetVValue(self.pointer_offset + offset, value),
                 };
                 self.nodes.push_back(ins.into());
 
