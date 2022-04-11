@@ -10,10 +10,10 @@ pub enum Instruction {
     PtrDecrement(usize),
     Add(isize, Value),
     Sub(isize, Value),
-    /// mem[左isize] += mem[右isize] * value
-    MulAdd(isize, isize, Value),
-    /// mem[左isize] -= mem[右isize] * value
-    MulSub(isize, isize, Value),
+    /// mem[左isize] += value1 * value2
+    MulAdd(isize, Value, Value),
+    /// mem[左isize] -= value1 * value2
+    MulSub(isize, Value, Value),
     Output(isize, usize),
     Input(isize, usize),
     // SetValue(isize, u8),

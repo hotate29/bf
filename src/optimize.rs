@@ -194,9 +194,9 @@ pub fn offset_opt(nodes: &Nodes) -> Nodes {
                         // 最後にZeroSetにする
                         Sub(0, Value::Const(1)) if offset == 0 => continue,
                         Add(0, Value::Const(1)) => Add(offset, Value::Memory(0)),
-                        Add(0, value @ Value::Const(_)) => MulAdd(offset, 0, *value),
+                        Add(0, value @ Value::Const(_)) => MulAdd(offset, Value::Memory(0), *value),
                         Sub(0, Value::Const(1)) => Sub(offset, Value::Memory(0)),
-                        Sub(0, value @ Value::Const(_)) => MulSub(offset, 0, *value),
+                        Sub(0, value @ Value::Const(_)) => MulSub(offset, Value::Memory(0), *value),
                         // Output(repeat) => OutputOffset(repeat, offset),
                         // Input(_) => todo!(),
                         // ZeroSet => ZeroSetOffset(offset),
@@ -313,15 +313,15 @@ impl SimplifiedNodes {
                         self.pointer_offset + offset,
                         value.map_offset(|offset| self.pointer_offset + offset),
                     ),
-                    MulAdd(to_offset, offset, value) => MulAdd(
+                    MulAdd(to_offset, lhs, rhs) => MulAdd(
                         self.pointer_offset + to_offset,
-                        self.pointer_offset + offset,
-                        value,
+                        lhs.map_offset(|offset| self.pointer_offset + offset),
+                        rhs.map_offset(|offset| self.pointer_offset + offset),
                     ),
-                    MulSub(to_offset, offset, value) => MulSub(
+                    MulSub(to_offset, lhs, rhs) => MulSub(
                         self.pointer_offset + to_offset,
-                        self.pointer_offset + offset,
-                        value,
+                        lhs.map_offset(|offset| self.pointer_offset + offset),
+                        rhs.map_offset(|offset| self.pointer_offset + offset),
                     ),
                     Output(offset, repeat) => Output(self.pointer_offset + offset, repeat),
                     Input(offset, repeat) => Input(self.pointer_offset + offset, repeat),
@@ -380,7 +380,7 @@ mod test {
         case("[>>>+<<<-]", [Add(3, Value::Memory(0)).into(), SetValue(0, 0.into()).into()].into()),
         case("[-<<<+>>>]", [Add(-3, Value::Memory(0)).into(), SetValue(0, 0.into()).into()].into()),
         case("[<<<+>>>-]", [Add(-3, Value::Memory(0)).into(), SetValue(0, 0.into()).into()].into()),
-        case("[-<<<++>>>]", [MulAdd(-3, 0, 2.into()).into(), SetValue(0, 0.into()).into()].into()),
+        case("[-<<<++>>>]", [MulAdd(-3, Value::Memory(0), 2.into()).into(), SetValue(0, 0.into()).into()].into()),
         case("[->>>-<<<]", [Sub(3, Value::Memory(0)).into(), SetValue(0, 0.into()).into()].into()),
         case("[>>>-<<<-]", [Sub(3, Value::Memory(0)).into(), SetValue(0, 0.into()).into()].into()),
         case("[-<<<->>>]", [Sub(-3, Value::Memory(0)).into(), SetValue(0, 0.into()).into()].into()),
@@ -399,8 +399,8 @@ mod test {
         case("[>>>->+<<<<-]", [Sub(3, Value::Memory(0)).into(), Add(4, Value::Memory(0)).into(), SetValue(0, 0.into()).into()].into()),
         case("+++[>>>[-][[->+<]]<<<]", [Add(0, 3.into()).into(), Node::Loop([PtrIncrement(3).into(), SetValue(0, 0.into()).into(), Node::Loop([Add(1, Value::Memory(0)).into(), SetValue(0, 0.into()).into()].into()), PtrDecrement(3).into()].into())].into()),
         case("[->>>.<<<]", [Node::Loop([Sub(0, 1.into()).into(), Output(3, 1).into()].into())].into()),
-        case("[->+>+>++>+++<<<<]", [Add(1, Value::Memory(0)).into(), Add(2, Value::Memory(0)).into(), MulAdd(3, 0, 2.into()).into(), MulAdd(4, 0, 3.into()).into(), SetValue(0, 0.into()).into()].into()),
-        case("[-<<<-->>>]", [MulSub(-3, 0, 2.into()).into(), SetValue(0, 0.into()).into()].into()),
+        case("[->+>+>++>+++<<<<]", [Add(1, Value::Memory(0)).into(), Add(2, Value::Memory(0)).into(), MulAdd(3, Value::Memory(0), 2.into()).into(), MulAdd(4, Value::Memory(0), 3.into()).into(), SetValue(0, 0.into()).into()].into()),
+        case("[-<<<-->>>]", [MulSub(-3, Value::Memory(0), 2.into()).into(), SetValue(0, 0.into()).into()].into()),
     )]
     fn test_optimize(input: &str, expected: Nodes) {
         let tokens = tokenize(input);

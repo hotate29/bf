@@ -217,21 +217,21 @@ impl<R: Read, W: Write> InterPrinter<R, W> {
                                 self.state.sub(to_offset, value)?;
                             }
                         }
-                        Instruction::MulAdd(to_offset, offset, value) => {
-                            let n = self.state.at_offset(offset)?;
+                        Instruction::MulAdd(to_offset, lhs, rhs) => {
+                            let n = lhs.get_or(|offset| self.state.at_offset(offset).unwrap());
                             // 後ろを参照するので、ここはちゃんと確認
                             if n != 0 {
                                 let value =
-                                    value.get_or(|offset| self.state.at_offset(offset).unwrap());
+                                    rhs.get_or(|offset| self.state.at_offset(offset).unwrap());
                                 self.state.add(to_offset, n.wrapping_mul(value))?;
                             }
                         }
-                        Instruction::MulSub(to_offset, offset, value) => {
-                            let n = self.state.at_offset(offset)?;
+                        Instruction::MulSub(to_offset, lhs, rhs) => {
+                            let n = lhs.get_or(|offset| self.state.at_offset(offset).unwrap());
                             // 後ろを参照するので、ここはちゃんと確認
                             if n != 0 {
                                 let value =
-                                    value.get_or(|offset| self.state.at_offset(offset).unwrap());
+                                    rhs.get_or(|offset| self.state.at_offset(offset).unwrap());
                                 self.state.sub(to_offset, n.wrapping_mul(value))?;
                             }
                         }
