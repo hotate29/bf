@@ -44,19 +44,23 @@ pub fn to_c2(root_node: &Nodes) -> String {
                         }
                     }
                     Instruction::MulAdd(to_offset, offset, value) if *offset >= 0 => {
+                        let value = value_to_string("ptr", *value);
                         c_code.push_str(&format!("*(ptr+{to_offset})+={value}*ptr[{offset}];"));
                     }
                     Instruction::MulAdd(to_offset, offset, value) if *offset < 0 => {
+                        let value = value_to_string("ptr", *value);
                         c_code.push_str(&format!(
-                            "if(*(ptr+{offset})!=0){{*(ptr+{to_offset})+={value}**(ptr+{offset});}}"
+                        "if(*(ptr+{offset})!=0){{*(ptr+{to_offset})+={value}**(ptr+{offset});}}"
                         ));
                     }
                     Instruction::MulSub(to_offset, offset, value) if *offset >= 0 => {
+                        let value = value_to_string("ptr", *value);
                         c_code.push_str(&format!("*(ptr+{to_offset})-={value}*ptr[{offset}];"));
                     }
                     Instruction::MulSub(to_offset, offset, value) if *offset < 0 => {
+                        let value = value_to_string("ptr", *value);
                         c_code.push_str(&format!(
-                            "if(*(ptr+{offset})!=0){{*(ptr+{to_offset})-={value}**(ptr+{offset});}}"
+                        "if(*(ptr+{offset})!=0){{*(ptr+{to_offset})-={value}**(ptr+{offset});}}"
                         ));
                     }
                     Instruction::SetValue(offset, Value::Const(value)) => {
@@ -82,4 +86,11 @@ pub fn to_c2(root_node: &Nodes) -> String {
     c_code += "}";
 
     c_code
+}
+
+fn value_to_string(ptr_name: &str, value: Value) -> String {
+    match value {
+        Value::Const(value) => value.to_string(),
+        Value::Memory(offset) => format!("*({ptr_name}+{offset})"),
+    }
 }

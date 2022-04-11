@@ -11,9 +11,9 @@ pub enum Instruction {
     Add(isize, Value),
     Sub(isize, Value),
     /// mem[左isize] += mem[右isize] * value
-    MulAdd(isize, isize, u8),
+    MulAdd(isize, isize, Value),
     /// mem[左isize] -= mem[右isize] * value
-    MulSub(isize, isize, u8),
+    MulSub(isize, isize, Value),
     Output(isize, usize),
     Input(isize, usize),
     // SetValue(isize, u8),

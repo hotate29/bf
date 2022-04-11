@@ -221,6 +221,8 @@ impl<R: Read, W: Write> InterPrinter<R, W> {
                             let n = self.state.at_offset(offset)?;
                             // 後ろを参照するので、ここはちゃんと確認
                             if n != 0 {
+                                let value =
+                                    value.get_or(|offset| self.state.at_offset(offset).unwrap());
                                 self.state.add(to_offset, n.wrapping_mul(value))?;
                             }
                         }
@@ -228,6 +230,8 @@ impl<R: Read, W: Write> InterPrinter<R, W> {
                             let n = self.state.at_offset(offset)?;
                             // 後ろを参照するので、ここはちゃんと確認
                             if n != 0 {
+                                let value =
+                                    value.get_or(|offset| self.state.at_offset(offset).unwrap());
                                 self.state.sub(to_offset, n.wrapping_mul(value))?;
                             }
                         }
