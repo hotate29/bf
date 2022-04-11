@@ -313,6 +313,10 @@ impl SimplifiedNodes {
                         self.pointer_offset + to_offset,
                         self.pointer_offset + offset,
                     ),
+                    SubValue(offset, value) => SubValue(
+                        self.pointer_offset + offset,
+                        value.map_offset(|offset| self.pointer_offset + offset),
+                    ),
                     MulAdd(to_offset, offset, value) => MulAdd(
                         self.pointer_offset + to_offset,
                         self.pointer_offset + offset,

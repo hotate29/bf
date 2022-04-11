@@ -225,6 +225,13 @@ impl<R: Read, W: Write> InterPrinter<R, W> {
                                 self.state.sub(to_offset, value)?;
                             }
                         }
+                        Instruction::SubValue(to_offset, value) => {
+                            let value =
+                                value.get_or(|offset| self.state.at_offset(offset).unwrap());
+                            if value != 0 {
+                                self.state.sub(to_offset, value)?;
+                            }
+                        }
                         Instruction::MulAdd(to_offset, offset, value) => {
                             let n = self.state.at_offset(offset)?;
                             // 後ろを参照するので、ここはちゃんと確認

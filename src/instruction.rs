@@ -13,6 +13,7 @@ pub enum Instruction {
     AddValue(isize, Value),
     Sub(isize, u8),
     SubTo(isize, isize),
+    SubValue(isize, Value),
     /// mem[左isize] += mem[右isize] * value
     MulAdd(isize, isize, u8),
     /// mem[左isize] -= mem[右isize] * value
@@ -46,6 +47,7 @@ impl Instruction {
             Instruction::Input(0, n) => Some(format!("{},", n)),
             Instruction::AddTo(_, _)
             | Instruction::SubTo(_, _)
+            | Instruction::SubValue(_, _)
             | Instruction::MulAdd(_, _, _)
             | Instruction::MulSub(_, _, _)
             | Instruction::Add(_, _)
@@ -67,6 +69,7 @@ impl Instruction {
             Instruction::Input(0, n) => Some(",".repeat(n)),
             Instruction::AddTo(_, _)
             | Instruction::SubTo(_, _)
+            | Instruction::SubValue(_, _)
             | Instruction::MulAdd(_, _, _)
             | Instruction::MulSub(_, _, _)
             | Instruction::Add(_, _)
