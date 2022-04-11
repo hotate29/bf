@@ -70,7 +70,7 @@ pub fn to_c2(root_node: &Nodes) -> String {
                     }
                     Instruction::SetValue(offset, value) => {
                         let value = value_to_string("ptr", *value);
-                        c_code.push_str(&format!("*(ptr+{offset})=*(ptr+{value});"))
+                        c_code.push_str(&format!("*(ptr+{offset})={value};"))
                     }
                     ins => panic!("unimplemented instruction. {ins:?}"),
                 },
