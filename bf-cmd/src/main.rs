@@ -1,4 +1,8 @@
-use std::{fs, io, path::PathBuf};
+use std::{
+    fs,
+    io::{self, Read},
+    path::PathBuf,
+};
 
 use bf::{
     interprinter::InterPrinter,
@@ -30,7 +34,7 @@ struct RunArg {
 
 #[derive(Debug, clap::Parser)]
 struct TransArg {
-    file: PathBuf,
+    file: Option<PathBuf>,
     #[clap(short, long)]
     optimize: bool,
     out: Option<PathBuf>,
@@ -74,7 +78,14 @@ fn main() -> anyhow::Result<()> {
             info!("step: {step_count}");
         }
         SubCommand::Trans(arg) => {
-            let code = fs::read_to_string(&arg.file)?;
+            let code = match arg.file {
+                Some(path) => fs::read_to_string(path)?,
+                None => {
+                    let mut code = String::new();
+                    io::stdin().read_to_string(&mut code)?;
+                    code
+                }
+            };
 
             let tokens = tokenize(&code);
 
@@ -86,9 +97,10 @@ fn main() -> anyhow::Result<()> {
 
             let code = transcompile::to_c2(&root_node);
 
-            let filename = arg.out.unwrap_or_else(|| PathBuf::from("a.c"));
-
-            fs::write(filename, code)?;
+            match arg.out {
+                Some(path) => fs::write(path, code)?,
+                None => println!("{code}"),
+            }
         }
     }
     Ok(())
