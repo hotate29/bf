@@ -5,11 +5,6 @@ version = "0.1.0"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
-[[bin]]
-# 仮
-path = "src/main.rs"
-name = "bf_t"
-
 [dependencies]
 log = "0.4.16"
 serde = {version = "1.0.134", features = ["derive"]}
