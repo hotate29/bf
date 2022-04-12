@@ -401,6 +401,7 @@ mod test {
         case("[->>>.<<<]", [Node::Loop([Sub(0, 1.into()).into(), Output(3, 1).into()].into())].into()),
         case("[->+>+>++>+++<<<<]", [Add(1, Value::Memory(0)).into(), Add(2, Value::Memory(0)).into(), MulAdd(3, Value::Memory(0), 2.into()).into(), MulAdd(4, Value::Memory(0), 3.into()).into(), SetValue(0, 0.into()).into()].into()),
         case("[-<<<-->>>]", [MulSub(-3, Value::Memory(0), 2.into()).into(), SetValue(0, 0.into()).into()].into()),
+        case(".>.<.", [Output(0, 1).into(), Output(1, 1).into(), Output(0, 1).into()].into()),
     )]
     fn test_optimize(input: &str, expected: Nodes) {
         let tokens = tokenize(input);
