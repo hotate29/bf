@@ -1,6 +1,7 @@
 use std::{
     fs,
     io::{self, Read},
+    num::NonZeroUsize,
     path::PathBuf,
 };
 
@@ -30,6 +31,8 @@ struct RunArg {
     file: PathBuf,
     #[clap(short, long)]
     optimize: bool,
+    #[clap(long, default_value_t = NonZeroUsize::try_from(30000).unwrap())]
+    initial_memory_len: NonZeroUsize,
 }
 
 #[derive(Debug, clap::Parser)]
@@ -71,7 +74,7 @@ fn main() -> anyhow::Result<()> {
                 .input(io::stdin())
                 .output(io::stdout())
                 .root_node(&root_node)
-                .memory_len(30000)
+                .memory_len(arg.initial_memory_len.get())
                 .build();
 
             let step_count = time!(interpreter.count());
