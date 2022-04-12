@@ -3,7 +3,7 @@ use crate::parse::Nodes;
 
 const PTR_NAME: &str = "ptr";
 
-pub fn to_c2(root_node: &Nodes) -> String {
+pub fn to_c(root_node: &Nodes) -> String {
     fn inner(nodes: &Nodes, c_code: &mut String) {
         for node in nodes {
             match node {
