@@ -417,9 +417,10 @@ mod test {
     }
     #[test]
     fn test_hello_world_interprinter() {
-        let hello_world = ">+++++++++[<++++++++>-]<.>+++++++[<++++>-]<+.+++++++..+++.[-]>++++++++[<++++>-]<.>+++++++++++[<+++++>-]<.>++++++++[<+++>-]<.+++.------.--------.[-]>++++++++[<++++>-]<+.[-]++++++++++.";
+        let hello_world_code = include_str!("../../bf_codes/hello_world.bf");
+        let hello_world = include_str!("../../bf_codes/hello_world.out");
 
-        let root_node = node_from_source(hello_world);
+        let root_node = node_from_source(hello_world_code);
 
         let mut output_buffer = vec![];
 
@@ -431,13 +432,14 @@ mod test {
             .count();
 
         let output = String::from_utf8(output_buffer).unwrap();
-        assert_eq!(output, "Hello World!\n");
+        assert_eq!(output, hello_world);
     }
     #[test]
     fn test_optimized_hello_world_interprinter() {
-        let hello_world = ">+++++++++[<++++++++>-]<.>+++++++[<++++>-]<+.+++++++..+++.[-]>++++++++[<++++>-]<.>+++++++++++[<+++++>-]<.>++++++++[<+++>-]<.+++.------.--------.[-]>++++++++[<++++>-]<+.[-]++++++++++.";
+        let hello_world_code = include_str!("../../bf_codes/hello_world.bf");
+        let hello_world = include_str!("../../bf_codes/hello_world.out");
 
-        let root_node = node_from_source_optimized(hello_world);
+        let root_node = node_from_source_optimized(hello_world_code);
 
         let mut output_buffer = vec![];
 
@@ -449,6 +451,6 @@ mod test {
             .count();
 
         let output = String::from_utf8(output_buffer).unwrap();
-        assert_eq!(output, "Hello World!\n");
+        assert_eq!(output, hello_world);
     }
 }
