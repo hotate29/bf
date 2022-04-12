@@ -46,7 +46,7 @@ fn bench_optimized_mandelbrot(bencher: &mut test::Bencher) {
 
 #[bench]
 fn bench_hello_world(bencher: &mut test::Bencher) {
-    let hello_world = ">+++++++++[<++++++++>-]<.>+++++++[<++++>-]<+.+++++++..+++.[-]>++++++++[<++++>-]<.>+++++++++++[<+++++>-]<.>++++++++[<+++>-]<.+++.------.--------.[-]>++++++++[<++++>-]<+.[-]++++++++++.";
+    let hello_world = include_str!("../../bf_codes/hello_world.bf");
 
     let tokens = tokenize(hello_world);
     let root_node = Node::from_tokens(tokens).unwrap();
@@ -63,7 +63,7 @@ fn bench_hello_world(bencher: &mut test::Bencher) {
 
 #[bench]
 fn bench_optimized_hello_world(bencher: &mut test::Bencher) {
-    let hello_world = ">+++++++++[<++++++++>-]<.>+++++++[<++++>-]<+.+++++++..+++.[-]>++++++++[<++++>-]<.>+++++++++++[<+++++>-]<.>++++++++[<+++>-]<.+++.------.--------.[-]>++++++++[<++++>-]<+.[-]++++++++++.";
+    let hello_world = include_str!("../../bf_codes/hello_world.bf");
 
     let tokens = tokenize(hello_world);
     let root_node = Node::from_tokens(tokens).unwrap();
