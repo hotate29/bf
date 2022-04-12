@@ -7,6 +7,7 @@ use bf::{
     transcompile,
 };
 use clap::StructOpt;
+use log::info;
 
 #[derive(Debug, clap::Parser)]
 struct Command {
@@ -69,7 +70,8 @@ fn main() -> anyhow::Result<()> {
                 .memory_len(30000)
                 .build();
 
-            time!(interpreter.count());
+            let step_count = time!(interpreter.count());
+            info!("step: {step_count}");
         }
         SubCommand::Trans(arg) => {
             let code = fs::read_to_string(&arg.file)?;
