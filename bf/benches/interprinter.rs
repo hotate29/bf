@@ -10,7 +10,7 @@ use bf::parse::Node;
 
 #[bench]
 fn bench_not_optimize_mandelbrot(bencher: &mut test::Bencher) {
-    let source = include_str!("mandelbrot.bf");
+    let source = include_str!("../../bf_codes/mandelbrot.bf");
 
     let tokens = tokenize(source);
     let root_node = Node::from_tokens(tokens).unwrap();
@@ -27,7 +27,7 @@ fn bench_not_optimize_mandelbrot(bencher: &mut test::Bencher) {
 
 #[bench]
 fn bench_optimized_mandelbrot(bencher: &mut test::Bencher) {
-    let source = include_str!("mandelbrot.bf");
+    let source = include_str!("../../bf_codes/mandelbrot.bf");
 
     let tokens = tokenize(source);
     let root_node = Node::from_tokens(tokens).unwrap();
