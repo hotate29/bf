@@ -41,6 +41,8 @@ struct TransArg {
     #[clap(short, long)]
     optimize: bool,
     out: Option<PathBuf>,
+    #[clap(short, long, default_value_t = 30000)]
+    memory_len: usize,
 }
 
 macro_rules! time {
@@ -98,7 +100,7 @@ fn main() -> anyhow::Result<()> {
                 root_node = time!(optimize(&root_node))
             }
 
-            let code = transcompile::to_c(&root_node);
+            let code = transcompile::to_c(&root_node, arg.memory_len);
 
             match arg.out {
                 Some(path) => fs::write(path, code)?,

@@ -3,7 +3,7 @@ use crate::parse::Nodes;
 
 const PTR_NAME: &str = "ptr";
 
-pub fn to_c(root_node: &Nodes) -> String {
+pub fn to_c(root_node: &Nodes, memory_len: usize) -> String {
     fn inner(nodes: &Nodes, c_code: &mut String) {
         for node in nodes {
             match node {
@@ -91,7 +91,7 @@ pub fn to_c(root_node: &Nodes) -> String {
     let mut a = String::new();
     inner(root_node, &mut a);
 
-    let mut c_code = format!("#include <stdio.h>\n#include <stdint.h>\nint main(void){{uint8_t mem[30000]={{0}};uint8_t* {PTR_NAME} = mem;");
+    let mut c_code = format!("#include <stdio.h>\n#include <stdint.h>\nint main(void){{uint8_t mem[{memory_len}]={{0}};uint8_t* {PTR_NAME} = mem;");
     c_code += &a;
     c_code += "}";
 
