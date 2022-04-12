@@ -335,7 +335,7 @@ impl<'a, R: Read, W: Write> InterPrinterBuilder<'a, R, W> {
 
 #[cfg(test)]
 mod test {
-    use std::{fs, io};
+    use std::io;
 
     use crate::{
         interprinter::Memory,
@@ -377,10 +377,10 @@ mod test {
     #[test]
     #[ignore]
     fn test_interprinter_mandelbrot() {
-        let mandelbrot_source = fs::read_to_string("mandelbrot.bf").unwrap();
-        let assert_mandelbrot = fs::read_to_string("mandelbrot").unwrap();
+        let mandelbrot_source = include_str!("../../bf_codes/mandelbrot.bf");
+        let assert_mandelbrot = include_str!("../../bf_codes/mandelbrot.out");
 
-        let root_node = node_from_source(&mandelbrot_source);
+        let root_node = node_from_source(mandelbrot_source);
 
         let mut output_buffer = Vec::new();
 
@@ -398,10 +398,10 @@ mod test {
     #[test]
     #[ignore]
     fn test_optimized_interprinter_mandelbrot() {
-        let mandelbrot_source = fs::read_to_string("mandelbrot.bf").unwrap();
-        let assert_mandelbrot = fs::read_to_string("mandelbrot").unwrap();
+        let mandelbrot_source = include_str!("../../bf_codes/mandelbrot.bf");
+        let assert_mandelbrot = include_str!("../../bf_codes/mandelbrot.out");
 
-        let root_node = node_from_source_optimized(&mandelbrot_source);
+        let root_node = node_from_source_optimized(mandelbrot_source);
 
         let mut output_buffer = Vec::new();
 
