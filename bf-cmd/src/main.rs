@@ -18,7 +18,7 @@ use log::{info, Level};
 struct Command {
     #[clap(subcommand)]
     subcommand: SubCommand,
-    #[clap(env = "RUST_LOG", default_value_t = Level::Warn)]
+    #[clap(long, env = "RUST_LOG", default_value_t = Level::Warn)]
     log_level: Level,
 }
 
