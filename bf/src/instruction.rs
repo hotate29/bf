@@ -139,9 +139,10 @@ impl Instruction {
             {
                 Some(instruction)
             }
-            (Output(x_offset, x), Output(y_offset, y)) if x_offset == y_offset => {
-                Some(Output(x_offset, x + y))
-            }
+            // .>.<.でバグってしまい悲しい
+            // (Output(x_offset, x), Output(y_offset, y)) if x_offset == y_offset => {
+            //     Some(Output(x_offset, x + y))
+            // }
             (ins, instruction) | (instruction, ins) if ins.is_no_action() => Some(instruction),
             (_, _) => None,
         }
