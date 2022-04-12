@@ -12,12 +12,14 @@ use bf::{
     transcompile,
 };
 use clap::StructOpt;
-use log::info;
+use log::{info, Level};
 
 #[derive(Debug, clap::Parser)]
 struct Command {
     #[clap(subcommand)]
     subcommand: SubCommand,
+    #[clap(env = "RUST_LOG")]
+    log_level: Level,
 }
 
 #[derive(Debug, clap::Subcommand)]
@@ -56,9 +58,11 @@ macro_rules! time {
 }
 
 fn main() -> anyhow::Result<()> {
-    env_logger::init();
-
     let arg = Command::parse();
+
+    env_logger::builder()
+        .filter_level(arg.log_level.to_level_filter())
+        .init();
 
     match arg.subcommand {
         SubCommand::Run(arg) => {
