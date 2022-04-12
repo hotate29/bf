@@ -3,6 +3,7 @@ use crate::parse::Nodes;
 
 use std::io::{self, Read, Write};
 
+use log::trace;
 use thiserror::Error;
 
 type Result<T> = std::result::Result<T, Error>;
@@ -13,7 +14,10 @@ impl Memory {
     #[inline]
     fn extend(&mut self, index: usize) {
         if self.0.len() <= index + 1 {
-            self.0.resize(self.0.len() * 2 + index + 1, 0);
+            let extend_len = self.0.len() * 2 + index + 1;
+
+            trace!("extend! {} -> {}", self.0.len(), extend_len);
+            self.0.resize(extend_len, 0);
         }
     }
     #[inline]
