@@ -206,8 +206,8 @@ impl<R: Read, W: Write> InterPrinter<R, W> {
     }
     #[inline]
     fn step(&mut self) -> Result<()> {
-        if self.now < self.instructions.len() {
-            match self.instructions[self.now] {
+        if let Some(ins) = self.instructions.get(self.now) {
+            match *ins {
                 CInstruction::Instruction(instruction) => {
                     match instruction {
                         Instruction::PtrIncrement(n) => self.state.pointer_add(n),
@@ -270,6 +270,7 @@ impl<R: Read, W: Write> InterPrinter<R, W> {
                 CInstruction::WhileEnd => self.now = self.while_begin_jump_table[self.now],
             }
         }
+
         Ok(())
     }
 }
