@@ -3,7 +3,7 @@ use crate::parse::Nodes;
 
 use std::io::{self, Read, Write};
 
-use log::trace;
+use log::{trace, warn};
 use thiserror::Error;
 
 type Result<T> = std::result::Result<T, Error>;
@@ -92,7 +92,12 @@ impl State {
     #[inline]
     fn input(&mut self, offset: isize, reader: &mut impl Read) -> Result<()> {
         let mut buf = [0];
+
         reader.read_exact(&mut buf)?;
+        if &buf == b"\r" {
+            warn!("\\r!!!");
+        }
+
         *self.at_offset_mut(offset)? = buf[0];
         Ok(())
     }
