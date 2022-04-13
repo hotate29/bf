@@ -79,3 +79,22 @@ fn bench_optimized_hello_world(bencher: &mut test::Bencher) {
             .count();
     })
 }
+
+#[bench]
+fn bench_optimized_pi16(bencher: &mut test::Bencher) {
+    let hello_world = include_str!("../../bf_codes/pi16.bf");
+
+    let tokens = tokenize(hello_world);
+    let root_node = Node::from_tokens(tokens).unwrap();
+
+    let optimized_node = optimize(&root_node);
+
+    bencher.iter(|| {
+        InterPrinter::builder()
+            .root_node(&optimized_node)
+            .input(io::empty())
+            .output(io::sink())
+            .build()
+            .count();
+    })
+}
