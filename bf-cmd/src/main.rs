@@ -76,14 +76,14 @@ fn main() -> anyhow::Result<()> {
                 root_node = time!(optimize(&root_node))
             }
 
-            let interpreter = InterPrinter::builder()
+            let mut interpreter = InterPrinter::builder()
                 .input(io::stdin())
                 .output(io::stdout())
                 .root_node(&root_node)
                 .memory_len(arg.initial_memory_len.get())
                 .build();
 
-            let step_count = time!(interpreter.count());
+            let step_count = time!(interpreter.iter().count());
             info!("step: {step_count}");
         }
         SubCommand::Trans(arg) => {

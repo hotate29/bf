@@ -21,6 +21,7 @@ fn bench_not_optimize_mandelbrot(bencher: &mut test::Bencher) {
             .input(io::empty())
             .output(io::sink())
             .build()
+            .iter()
             .count();
     })
 }
@@ -40,6 +41,7 @@ fn bench_optimized_mandelbrot(bencher: &mut test::Bencher) {
             .input(io::empty())
             .output(io::sink())
             .build()
+            .iter()
             .count();
     })
 }
@@ -57,6 +59,7 @@ fn bench_hello_world(bencher: &mut test::Bencher) {
             .input(io::empty())
             .output(io::sink())
             .build()
+            .iter()
             .count();
     })
 }
@@ -76,6 +79,7 @@ fn bench_optimized_hello_world(bencher: &mut test::Bencher) {
             .input(io::empty())
             .output(io::sink())
             .build()
+            .iter()
             .count();
     })
 }
@@ -95,6 +99,7 @@ fn bench_optimized_pi16(bencher: &mut test::Bencher) {
             .input(io::empty())
             .output(io::sink())
             .build()
+            .iter()
             .count();
     })
 }

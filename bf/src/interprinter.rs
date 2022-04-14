@@ -138,7 +138,7 @@ fn node_to_c_instructions(nodes: &Nodes) -> Vec<CInstruction> {
 
 #[derive(Debug, Error)]
 pub enum Error {
-    #[error("{0}")]
+    #[error("I/O Error: {0}")]
     IoError(#[from] io::Error),
     #[error("{0}")]
     NegativePointer(isize),
@@ -203,6 +203,9 @@ impl<R: Read, W: Write> InterPrinter<R, W> {
     }
     pub fn now(&self) -> usize {
         self.now
+    }
+    pub fn iter(&mut self) -> InterPrinterIter<'_, R, W> {
+        InterPrinterIter(self)
     }
     #[inline]
     fn step(&mut self) -> Result<()> {
@@ -271,13 +274,13 @@ impl<R: Read, W: Write> InterPrinter<R, W> {
     }
 }
 
-impl<R: Read, W: Write> Iterator for InterPrinter<R, W> {
+impl<R: Read, W: Write> Iterator for InterPrinterIter<'_, R, W> {
     type Item = Result<()>;
 
     #[inline]
     fn next(&mut self) -> Option<Self::Item> {
-        if self.now < self.instructions.len() {
-            Some(self.step())
+        if self.0.now < self.0.instructions.len() {
+            Some(self.0.step())
         } else {
             None
         }
@@ -339,6 +342,8 @@ impl<'a, R: Read, W: Write> InterPrinterBuilder<'a, R, W> {
     }
 }
 
+pub struct InterPrinterIter<'a, R: Read, W: Write>(&'a mut InterPrinter<R, W>);
+
 #[cfg(test)]
 mod test {
     use std::io;
@@ -395,6 +400,7 @@ mod test {
             .input(io::empty())
             .output(&mut output_buffer)
             .build()
+            .iter()
             .count();
 
         let output_string = String::from_utf8(output_buffer).unwrap();
@@ -416,6 +422,7 @@ mod test {
             .input(io::empty())
             .output(&mut output_buffer)
             .build()
+            .iter()
             .count();
 
         let output_string = String::from_utf8(output_buffer).unwrap();
@@ -435,6 +442,7 @@ mod test {
             .input(io::empty())
             .output(&mut output_buffer)
             .build()
+            .iter()
             .count();
 
         let output = String::from_utf8(output_buffer).unwrap();
@@ -454,6 +462,7 @@ mod test {
             .input(io::empty())
             .output(&mut output_buffer)
             .build()
+            .iter()
             .count();
 
         let output = String::from_utf8(output_buffer).unwrap();
