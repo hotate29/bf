@@ -180,16 +180,16 @@ pub fn offset_opt(nodes: &Nodes) -> Nodes {
             }
         }
 
-        if state.pointer_offset == 0
-            && !has_loop
-            && is_loop
-            // [->>>.<<<]を弾く
-            && !has_io
-            && state.offset_map
-                .get(&0)
-                .filter(|ins| ins.inner.len() == 1 && ins.inner[0].1 == Sub(0, 1.into()))
-                .is_some()
-        {
+        let loop_counter_ins = state
+            .offset_map
+            .get(&0)
+            .filter(|ins| ins.inner.len() == 1)
+            .map(|ins| ins.inner[0].1);
+
+        let optimizable = state.pointer_offset == 0 && !has_loop && is_loop && !has_io; // [->>>.<<<]を弾く
+
+        // ポインターが指している値の回数だけ操作をするタイプのループ
+        if optimizable && loop_counter_ins == Some(Sub(0, 1.into())) {
             // 最適化をするぞ！バリバリ！
             // 注: ここで出力するのは命令列で、ループではない。これの扱いをどうする？
 
@@ -202,9 +202,6 @@ pub fn offset_opt(nodes: &Nodes) -> Nodes {
                         Add(0, value @ Value::Const(_)) => MulAdd(offset, Value::Memory(0), *value),
                         Sub(0, Value::Const(1)) => Sub(offset, Value::Memory(0)),
                         Sub(0, value @ Value::Const(_)) => MulSub(offset, Value::Memory(0), *value),
-                        // Output(repeat) => OutputOffset(repeat, offset),
-                        // Input(_) => todo!(),
-                        // ZeroSet => ZeroSetOffset(offset),
                         ins => panic!("{ins:?}"),
                     };
                     new_nodes.push_back(instruction.into());
@@ -213,17 +210,9 @@ pub fn offset_opt(nodes: &Nodes) -> Nodes {
             new_nodes.push_back(SetValue(0, 0.into()).into());
 
             Nod::Instructions(new_nodes)
-        } else if state.pointer_offset == 0
-            && !has_loop
-            && is_loop
-            // [->>>.<<<]を弾く
-            && !has_io
-            &&state.offset_map.len()==1
-            && state.offset_map
-                .get(&0)
-                .filter(|ins| ins.inner.len() == 1 && ins.inner[0].1 == Add(0, 1.into()))
-                .is_some()
-        {
+        }
+        // (255 - ポインターが指している値)の回数だけ操作をするタイプのループ。これはよくわからないので簡単なやつだけ。
+        else if optimizable && loop_counter_ins == Some(Sub(0, 1.into())) {
             Nod::Instructions([SetValue(0, 0.into()).into()].into())
         } else {
             let mut instructions = state.into_nodes();
@@ -298,7 +287,6 @@ impl SimplifiedNodes {
 
                 let ins = match ins {
                     PtrIncrement(_) | PtrDecrement(_) => unreachable!(),
-                    Add(0, value) => Add(self.pointer_offset, value),
                     Add(offset, value) => Add(
                         self.pointer_offset + offset,
                         value.map_offset(|offset| self.pointer_offset + offset),
