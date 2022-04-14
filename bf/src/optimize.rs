@@ -250,20 +250,9 @@ fn offset_merge(nodes: Nodes) -> Nodes {
     simplified_nodes.into_nodes()
 }
 
-fn merge(nodes: Nodes) -> Nodes {
-    merge_instruction(nodes)
-        .into_iter()
-        .map(|node| match node {
-            Node::Loop(loop_nodes) => Node::Loop(merge(loop_nodes)),
-            ins_node @ Node::Instruction(_) => ins_node,
-        })
-        .collect()
-}
-
 pub fn optimize(nodes: &Nodes) -> Nodes {
     let nodes = offset_opt(nodes);
-    let nodes = offset_merge(nodes);
-    merge(nodes)
+    offset_merge(nodes)
 }
 #[derive(Debug, Default)]
 struct SimplifiedNodes {
