@@ -258,7 +258,6 @@ impl<R: Read, W: Write> InterPrinter<R, W> {
                                 value.get_or(|offset| self.state.at_offset(offset).unwrap());
                             *self.state.at_offset_mut(offset)? = value;
                         }
-                        ins => panic!("unimplemented instruction. {ins:?}"),
                     };
                     self.now += 1
                 }

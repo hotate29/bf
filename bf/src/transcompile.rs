@@ -27,6 +27,7 @@ pub fn to_c(root_node: &Nodes, memory_len: usize) -> String {
                             "{check}{{*({PTR_NAME}+{to_offset})+=*({PTR_NAME}+{offset});}}"
                         ))
                     }
+                    Instruction::Add(_, _) => unreachable!(),
                     Instruction::Sub(offset, Value::Const(value)) => {
                         c_code.push_str(&format!("*({PTR_NAME}+{offset})-={value};"))
                     }
@@ -38,6 +39,7 @@ pub fn to_c(root_node: &Nodes, memory_len: usize) -> String {
                             "{check}{{*({PTR_NAME}+{to_offset})-=*({PTR_NAME}+{offset});}}"
                         ))
                     }
+                    Instruction::Sub(_, _) => unreachable!(),
                     Instruction::Output(offset) => {
                         c_code.push_str(&format!("putchar(*({PTR_NAME}+{offset}));"))
                     }
@@ -59,6 +61,7 @@ pub fn to_c(root_node: &Nodes, memory_len: usize) -> String {
                             "{check}{{*({PTR_NAME}+{to_offset})+={value}**({PTR_NAME}+{offset});}}"
                         ));
                     }
+                    Instruction::MulAdd(_, _, _) => unreachable!(),
                     Instruction::MulSub(to_offset, Value::Memory(offset), value)
                         if *offset >= 0 =>
                     {
@@ -74,11 +77,11 @@ pub fn to_c(root_node: &Nodes, memory_len: usize) -> String {
                             "{check}{{*({PTR_NAME}+{to_offset})-={value}**({PTR_NAME}+{offset});}}"
                         ));
                     }
+                    Instruction::MulSub(_, _, _) => unreachable!(),
                     Instruction::SetValue(offset, value) => {
                         let value = value_to_string(PTR_NAME, *value);
                         c_code.push_str(&format!("*({PTR_NAME}+{offset})={value};"))
                     }
-                    ins => panic!("unimplemented instruction. {ins:?}"),
                 },
             }
         }
