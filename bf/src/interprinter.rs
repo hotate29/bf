@@ -244,15 +244,11 @@ impl<R: Read, W: Write> InterPrinter<R, W> {
                                 self.state.sub(to_offset, n.wrapping_mul(value))?;
                             }
                         }
-                        Instruction::Output(offset, repeat) => {
-                            for _ in 0..repeat {
-                                self.state.output(offset, &mut self.output)?
-                            }
+                        Instruction::Output(offset) => {
+                            self.state.output(offset, &mut self.output)?
                         }
-                        Instruction::Input(offset, repeat) => {
-                            for _ in 0..repeat {
-                                self.state.input(offset, &mut self.input)?;
-                            }
+                        Instruction::Input(offset) => {
+                            self.state.input(offset, &mut self.input)?;
                         }
                         Instruction::SetValue(offset, value) => {
                             let value =

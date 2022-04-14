@@ -38,15 +38,11 @@ pub fn to_c(root_node: &Nodes, memory_len: usize) -> String {
                             "{check}{{*({PTR_NAME}+{to_offset})-=*({PTR_NAME}+{offset});}}"
                         ))
                     }
-                    Instruction::Output(offset, repeat) => {
-                        for _ in 0..*repeat {
-                            c_code.push_str(&format!("putchar(*({PTR_NAME}+{offset}));"))
-                        }
+                    Instruction::Output(offset) => {
+                        c_code.push_str(&format!("putchar(*({PTR_NAME}+{offset}));"))
                     }
-                    Instruction::Input(offset, repeat) => {
-                        for _ in 0..*repeat {
-                            c_code.push_str(&format!("*({PTR_NAME}+{offset})=getchar();"))
-                        }
+                    Instruction::Input(offset) => {
+                        c_code.push_str(&format!("*({PTR_NAME}+{offset})=getchar();"))
                     }
                     Instruction::MulAdd(to_offset, Value::Memory(offset), value)
                         if *offset >= 0 =>

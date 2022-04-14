@@ -14,8 +14,8 @@ pub enum Instruction {
     MulAdd(isize, Value, Value),
     /// mem[左isize] -= value1 * value2
     MulSub(isize, Value, Value),
-    Output(isize, usize),
-    Input(isize, usize),
+    Output(isize),
+    Input(isize),
     // SetValue(isize, u8),
     SetValue(isize, Value),
 }
@@ -28,8 +28,8 @@ impl Instruction {
             Token::Less => Some(Self::PtrDecrement(1)),
             Token::Plus => Some(Self::Add(0, 1.into())),
             Token::Minus => Some(Self::Sub(0, 1.into())),
-            Token::Period => Some(Self::Output(0, 1)),
-            Token::Comma => Some(Self::Input(0, 1)),
+            Token::Period => Some(Self::Output(0)),
+            Token::Comma => Some(Self::Input(0)),
             Token::LeftBracket | Token::RightBracket => None,
         }
     }
@@ -39,14 +39,14 @@ impl Instruction {
             Instruction::PtrDecrement(n) => Some(format!("{}<", n)),
             Instruction::Add(0, Value::Const(n)) => Some(format!("{}+", n)),
             Instruction::Sub(0, Value::Const(n)) => Some(format!("{}-", n)),
-            Instruction::Output(0, n) => Some(format!("{}.", n)),
-            Instruction::Input(0, n) => Some(format!("{},", n)),
+            Instruction::Output(0) => Some(".".to_string()),
+            Instruction::Input(0) => Some(",".to_string()),
             Instruction::MulAdd(_, _, _)
             | Instruction::MulSub(_, _, _)
             | Instruction::Add(_, _)
             | Instruction::Sub(_, _)
-            | Instruction::Output(_, _)
-            | Instruction::Input(_, _)
+            | Instruction::Output(_)
+            | Instruction::Input(_)
             | Instruction::SetValue(_, _) => None,
         }
     }
@@ -56,14 +56,14 @@ impl Instruction {
             Instruction::PtrDecrement(n) => Some("<".repeat(n)),
             Instruction::Add(0, Value::Const(n)) => Some("+".repeat(n as usize)),
             Instruction::Sub(0, Value::Const(n)) => Some("-".repeat(n as usize)),
-            Instruction::Output(0, n) => Some(".".repeat(n)),
-            Instruction::Input(0, n) => Some(",".repeat(n)),
+            Instruction::Output(0) => Some(".".to_string()),
+            Instruction::Input(0) => Some(",".to_string()),
             Instruction::MulAdd(_, _, _)
             | Instruction::MulSub(_, _, _)
             | Instruction::Add(_, _)
             | Instruction::Sub(_, _)
-            | Instruction::Output(_, _)
-            | Instruction::Input(_, _)
+            | Instruction::Output(_)
+            | Instruction::Input(_)
             | Instruction::SetValue(_, _) => None,
         }
     }

@@ -90,8 +90,8 @@ pub fn offset_opt(nodes: &Nodes) -> Nodes {
                 PtrDecrement(dec) => self.pointer_offset -= dec as isize,
                 ins @ (Add(0, _)
                 | Sub(0, _)
-                | Output(0, _)
-                | Input(0, _)
+                | Output(0)
+                | Input(0)
                 | SetValue(0, Value::Const(0))) => {
                     self.offset_map
                         .entry(self.pointer_offset)
@@ -110,8 +110,8 @@ pub fn offset_opt(nodes: &Nodes) -> Nodes {
                         let ins = match ins {
                             Add(0, value) => Add(offset, value),
                             Sub(0, value) => Sub(offset, value),
-                            Output(0, repeat) => Output(offset, repeat),
-                            Input(0, repeat) => Input(offset, repeat),
+                            Output(0) => Output(offset),
+                            Input(0) => Input(offset),
                             SetValue(0, Value::Const(0)) => SetValue(offset, Value::Const(0)),
                             _ => panic!(),
                         };
@@ -173,7 +173,7 @@ pub fn offset_opt(nodes: &Nodes) -> Nodes {
                     }
                 }
                 Node::Instruction(instruction) => {
-                    has_io |= matches!(instruction, Output(0, _) | Input(0, _));
+                    has_io |= matches!(instruction, Output(0) | Input(0));
 
                     state.push_instruction(*instruction);
                 }
@@ -317,8 +317,8 @@ impl SimplifiedNodes {
                         lhs.map_offset(|offset| self.pointer_offset + offset),
                         rhs.map_offset(|offset| self.pointer_offset + offset),
                     ),
-                    Output(offset, repeat) => Output(self.pointer_offset + offset, repeat),
-                    Input(offset, repeat) => Input(self.pointer_offset + offset, repeat),
+                    Output(offset) => Output(self.pointer_offset + offset),
+                    Input(offset) => Input(self.pointer_offset + offset),
                     SetValue(offset, value) => SetValue(
                         self.pointer_offset + offset,
                         value.map_offset(|offset| self.pointer_offset + offset),
@@ -392,10 +392,10 @@ mod test {
         case("[>>>-<<<-]", [Sub(3, Value::Memory(0)).into(), SetValue(0, 0.into()).into()].into()),
         case("[>>>->+<<<<-]", [Sub(3, Value::Memory(0)).into(), Add(4, Value::Memory(0)).into(), SetValue(0, 0.into()).into()].into()),
         case("+++[>>>[-][[->+<]]<<<]", [Add(0, 3.into()).into(), Node::Loop([PtrIncrement(3).into(), SetValue(0, 0.into()).into(), Node::Loop([Add(1, Value::Memory(0)).into(), SetValue(0, 0.into()).into()].into()), PtrDecrement(3).into()].into())].into()),
-        case("[->>>.<<<]", [Node::Loop([Sub(0, 1.into()).into(), Output(3, 1).into()].into())].into()),
+        case("[->>>.<<<]", [Node::Loop([Sub(0, 1.into()).into(), Output(3).into()].into())].into()),
         case("[->+>+>++>+++<<<<]", [Add(1, Value::Memory(0)).into(), Add(2, Value::Memory(0)).into(), MulAdd(3, Value::Memory(0), 2.into()).into(), MulAdd(4, Value::Memory(0), 3.into()).into(), SetValue(0, 0.into()).into()].into()),
         case("[-<<<-->>>]", [MulSub(-3, Value::Memory(0), 2.into()).into(), SetValue(0, 0.into()).into()].into()),
-        case(".>.<.", [Output(0, 1).into(), Output(1, 1).into(), Output(0, 1).into()].into()),
+        case(".>.<.", [Output(0).into(), Output(1).into(), Output(0).into()].into()),
     )]
     fn test_optimize(input: &str, expected: Nodes) {
         let tokens = tokenize(input);
