@@ -163,7 +163,12 @@ pub fn offset_opt(nodes: &Nodes) -> Nodes {
                     new_nodes.append(&mut instructions);
 
                     match inner(loop_nodes, true) {
-                        Nod::Loop(loop_nodes) => new_nodes.push_back(Node::Loop(loop_nodes)),
+                        Nod::Loop(loop_nodes) => {
+                            new_nodes.push_back(Node::Loop(loop_nodes));
+
+                            // ループを抜けたときにポインターが指している値は必ず0なので、一応命令を挿入しておく。
+                            new_nodes.push_back(SetValue(0, 0.into()).into());
+                        }
                         Nod::Instructions(mut instructions) => new_nodes.append(&mut instructions),
                     }
                 }
