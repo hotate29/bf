@@ -55,11 +55,15 @@ impl<'a, T> Graph<'a, T> {
     pub fn node(&self, index: usize) -> Option<&&T> {
         self.nodes.get(&index)
     }
-    pub fn indegree(&self) -> Vec<usize> {
-        let mut indegree = vec![0; self.nodes.len()];
+    pub fn indegree(&self) -> BTreeMap<usize, usize> {
+        let mut indegree = BTreeMap::new();
+
+        for node in self.nodes.keys() {
+            indegree.insert(*node, 0);
+        }
 
         for to in self.edges.values().flatten() {
-            indegree[*to] += 1;
+            *indegree.get_mut(to).unwrap() += 1;
         }
 
         indegree
