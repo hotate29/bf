@@ -157,6 +157,10 @@ impl Instruction {
                 | Instruction::Sub(_, Value::Const(0))
         )
     }
+    #[inline]
+    pub fn is_io(self) -> bool {
+        matches!(self, Instruction::Input(_) | Instruction::Output(_))
+    }
 }
 
 impl Display for Instruction {
