@@ -1,6 +1,7 @@
-use std::{cmp::Ordering, collections::BTreeMap, mem::swap};
+use std::{cmp::Ordering, collections::BTreeMap, fs::File, mem::swap};
 
 use crate::{
+    graph::Graph,
     instruction::{
         Instruction::{self, *},
         Value,
@@ -329,6 +330,81 @@ impl SimplifiedNodes {
 
         nodes
     }
+}
+
+pub fn dep_opt(nodes: Nodes) {
+    #[derive(Debug, Clone, Copy)]
+    struct InstructionID(usize);
+
+    let mut prev_ins = BTreeMap::<isize, InstructionID>::new();
+
+    let mut graph = Graph::new();
+    let mut last_ptr_move = None;
+
+    for (id, node) in nodes
+        .iter()
+        .enumerate()
+        .map(|(i, node)| (InstructionID(i), node))
+    {
+        // この命令がどこの値に依存しているか
+        let mut dependent_offset = Vec::new();
+        let mut update_offset = Vec::new();
+
+        match dbg!(node) {
+            Node::Loop(loop_nods) => todo!(),
+            Node::Instruction(ins) => match ins {
+                PtrIncrement(_) | PtrDecrement(_) => {
+                    dependent_offset.extend(prev_ins.keys());
+                    last_ptr_move = Some(id);
+                    // prev_ins.clear();
+                }
+                Output(offset) => {
+                    dependent_offset.push(*offset);
+                }
+                Input(offset) => {
+                    update_offset.push(*offset);
+                }
+                Add(offset, value) | Sub(offset, value) | SetValue(offset, value) => {
+                    update_offset.push(*offset);
+                    dependent_offset.push(*offset);
+
+                    if let Value::Memory(mem_offset) = value {
+                        dependent_offset.push(*mem_offset);
+                    }
+                }
+                MulAdd(offset, value1, value2) | MulSub(offset, value1, value2) => {
+                    update_offset.push(*offset);
+                    dependent_offset.push(*offset);
+
+                    for value in [value1, value2] {
+                        if let Value::Memory(mem_offset) = value {
+                            dependent_offset.push(*mem_offset);
+                        }
+                    }
+                }
+            },
+        }
+
+        graph.push_node(node);
+
+        for offset in dbg!(dependent_offset) {
+            if let Some(dependent_ins) = prev_ins.get(&offset).copied().or(last_ptr_move) {
+                graph.add_edge(id.0, dependent_ins.0);
+            }
+        }
+
+        for offset in dbg!(update_offset) {
+            prev_ins.insert(offset, id);
+        }
+
+        if let Node::Instruction(PtrIncrement(_) | PtrDecrement(_)) = node {
+            prev_ins.clear();
+        }
+    }
+    eprintln!("{graph:?}");
+
+    let mut file = File::create("dotdot.dot").unwrap();
+    graph.to_dot(&mut file);
 }
 
 #[cfg(test)]
