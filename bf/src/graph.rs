@@ -1,15 +1,15 @@
-use std::{fmt::Debug, io::Write};
+use std::{collections::BTreeMap, fmt::Debug, io::Write};
 
 #[derive(Debug)]
 pub struct Graph<'a, T> {
     nodes: Vec<&'a T>,
-    edges: Vec<Vec<usize>>,
+    edges: BTreeMap<usize, Vec<usize>>,
 }
 impl<T> Graph<'_, T> {
     pub fn new() -> Self {
         Self {
             nodes: vec![],
-            edges: vec![],
+            edges: BTreeMap::new(),
         }
     }
 }
@@ -29,13 +29,16 @@ impl Graph<'_, crate::parse::Node> {
 impl<'a, T> Graph<'a, T> {
     pub fn push_node(&mut self, node: &'a T) {
         self.nodes.push(node);
-        self.edges.push(vec![])
+        self.edges.insert(self.nodes.len() - 1, vec![]);
     }
     pub fn add_edge(&mut self, from: usize, to: usize) {
-        self.edges[from].push(to);
+        self.edges.get_mut(&from).unwrap().push(to);
     }
+    // pub fn remove_node(&mut self, index: usize) {
+    //     self.
+    // }
     pub fn edges(&self, from: usize) -> &Vec<usize> {
-        &self.edges[from]
+        &self.edges[&from]
     }
     pub fn node(&self, index: usize) -> &T {
         self.nodes[index]
@@ -76,8 +79,7 @@ impl<T: Debug> dot::GraphWalk<'_, Node, Edge> for Graph<'_, T> {
     fn edges(&self) -> dot::Edges<'_, Edge> {
         self.edges
             .iter()
-            .enumerate()
-            .flat_map(|(from, tos)| tos.iter().map(move |to| (from, *to)))
+            .flat_map(|(from, tos)| tos.iter().map(move |to| (*from, *to)))
             .collect()
     }
 
