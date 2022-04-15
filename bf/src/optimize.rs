@@ -336,6 +336,19 @@ pub fn dep_opt(nodes: Nodes) {
     #[derive(Debug, Clone, Copy, PartialEq, Eq)]
     struct InstructionID(usize);
 
+    fn remove_dead_code(g: &mut Graph<Node>) -> Vec<usize> {
+        let indegree = g.indegree();
+        let mut removed_index = Vec::new();
+
+        for (index, n) in indegree {
+            if n == 0 && !g.node(index).unwrap().as_instruction().unwrap().is_io() {
+                g.remove_node(index);
+                removed_index.push(index)
+            }
+        }
+        removed_index
+    }
+
     let mut update_ins = BTreeMap::<isize, InstructionID>::new();
     let mut dependent_ins = BTreeMap::<isize, Vec<InstructionID>>::new();
 
