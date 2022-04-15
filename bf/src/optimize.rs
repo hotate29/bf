@@ -336,7 +336,7 @@ pub fn dep_opt(nodes: Nodes) {
     #[derive(Debug, Clone, Copy, PartialEq, Eq)]
     struct InstructionID(usize);
 
-    let mut update_ins = BTreeMap::<isize, Vec<InstructionID>>::new();
+    let mut update_ins = BTreeMap::<isize, InstructionID>::new();
     let mut dependent_ins = BTreeMap::<isize, Vec<InstructionID>>::new();
 
     let mut graph = Graph::new();
@@ -361,6 +361,7 @@ pub fn dep_opt(nodes: Nodes) {
                 }
                 Output(offset) => {
                     dependent_offset.push(*offset);
+                    update_offset.push(*offset);
                 }
                 Input(offset) => {
                     dependent_offset.push(*offset);
@@ -393,9 +394,7 @@ pub fn dep_opt(nodes: Nodes) {
             dependent_ins.entry(offset).or_default().push(id);
 
             if let Some(dependent_ins) = update_ins.get(&offset) {
-                for ins in dependent_ins {
-                    graph.add_edge(id.0, ins.0);
-                }
+                graph.add_edge(id.0, dependent_ins.0);
             } else if let Some(dependent_ins) = last_ptr_move {
                 graph.add_edge(id.0, dependent_ins.0);
             }
@@ -412,8 +411,7 @@ pub fn dep_opt(nodes: Nodes) {
                 dependent_ins.entry(offset).or_default().clear();
             }
 
-            let instructions = update_ins.entry(offset).or_default();
-            instructions.push(id)
+            update_ins.insert(offset, id);
         }
 
         if let Node::Instruction(PtrIncrement(_) | PtrDecrement(_)) = node {
