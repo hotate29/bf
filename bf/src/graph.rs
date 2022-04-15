@@ -98,7 +98,7 @@ impl dot::Labeller<'_, Node, Edge> for Graph<'_, crate::parse::Node> {
 
 impl<T: Debug> dot::GraphWalk<'_, Node, Edge> for Graph<'_, T> {
     fn nodes(&self) -> dot::Nodes<'_, Node> {
-        (0..self.nodes.len()).collect()
+        self.nodes.keys().copied().collect()
     }
 
     fn edges(&self) -> dot::Edges<'_, Edge> {
