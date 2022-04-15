@@ -1,4 +1,4 @@
-use std::cmp::Ordering;
+use std::{cmp::Ordering, fmt::Display};
 
 use serde::Serialize;
 
@@ -50,7 +50,7 @@ impl Instruction {
             | Instruction::SetValue(_, _) => None,
         }
     }
-    pub fn to_string(self) -> Option<String> {
+    pub fn to_string_bf(self) -> Option<String> {
         match self {
             Instruction::PtrIncrement(n) => Some(">".repeat(n)),
             Instruction::PtrDecrement(n) => Some("<".repeat(n)),
@@ -156,6 +156,35 @@ impl Instruction {
                 | Instruction::Add(_, Value::Const(0))
                 | Instruction::Sub(_, Value::Const(0))
         )
+    }
+}
+
+impl Display for Instruction {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Instruction::PtrIncrement(inc) => format_args!("PtrIncrement({inc})").fmt(f),
+            Instruction::PtrDecrement(dec) => format_args!("PtrDecrement({dec})").fmt(f),
+            Instruction::Add(to, value) => format_args!("Add({to}, {})", (value)).fmt(f),
+            Instruction::Sub(to, value) => format_args!("Sub({to}, {})", (value)).fmt(f),
+            Instruction::SetValue(to, value) => format_args!("SetValue({to}, {})", (value)).fmt(f),
+            Instruction::MulAdd(to, value1, value2) => {
+                format_args!("MulAdd({to}, {}, {})", (value1), (value2)).fmt(f)
+            }
+            Instruction::MulSub(to, value1, value2) => {
+                format_args!("MulSub({to}, {}, {})", (value1), (value2)).fmt(f)
+            }
+            Instruction::Output(offset) => format_args!("Output({offset})").fmt(f),
+            Instruction::Input(offset) => format_args!("Input({offset})").fmt(f),
+        }
+    }
+}
+
+impl Display for Value {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Value::Const(n) => n.fmt(f),
+            Value::Memory(offset) => format_args!("mem[{offset}]").fmt(f),
+        }
     }
 }
 
