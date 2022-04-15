@@ -333,10 +333,11 @@ impl SimplifiedNodes {
 }
 
 pub fn dep_opt(nodes: Nodes) {
-    #[derive(Debug, Clone, Copy)]
+    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
     struct InstructionID(usize);
 
-    let mut prev_ins = BTreeMap::<isize, InstructionID>::new();
+    let mut update_ins = BTreeMap::<isize, Vec<InstructionID>>::new();
+    let mut dependent_ins = BTreeMap::<isize, Vec<InstructionID>>::new();
 
     let mut graph = Graph::new();
     let mut last_ptr_move = None;
@@ -348,20 +349,21 @@ pub fn dep_opt(nodes: Nodes) {
     {
         // この命令がどこの値に依存しているか
         let mut dependent_offset = Vec::new();
+        // この命令がどこの値を更新するか
         let mut update_offset = Vec::new();
 
         match dbg!(node) {
             Node::Loop(loop_nods) => todo!(),
             Node::Instruction(ins) => match ins {
                 PtrIncrement(_) | PtrDecrement(_) => {
-                    dependent_offset.extend(prev_ins.keys());
+                    dependent_offset.extend(update_ins.keys());
                     last_ptr_move = Some(id);
-                    // prev_ins.clear();
                 }
                 Output(offset) => {
                     dependent_offset.push(*offset);
                 }
                 Input(offset) => {
+                    dependent_offset.push(*offset);
                     update_offset.push(*offset);
                 }
                 Add(offset, value) | Sub(offset, value) | SetValue(offset, value) => {
@@ -388,18 +390,36 @@ pub fn dep_opt(nodes: Nodes) {
         graph.push_node(node);
 
         for offset in dbg!(dependent_offset) {
-            if let Some(dependent_ins) = prev_ins.get(&offset).copied().or(last_ptr_move) {
+            dependent_ins.entry(offset).or_default().push(id);
+
+            if let Some(dependent_ins) = update_ins.get(&offset) {
+                for ins in dependent_ins {
+                    graph.add_edge(id.0, ins.0);
+                }
+            } else if let Some(dependent_ins) = last_ptr_move {
                 graph.add_edge(id.0, dependent_ins.0);
             }
         }
 
         for offset in dbg!(update_offset) {
-            prev_ins.insert(offset, id);
+            if let Some(dependent_ins_) = dependent_ins.get(&offset) {
+                for ins in dependent_ins_ {
+                    if *ins == id {
+                        continue;
+                    }
+                    graph.add_edge(id.0, ins.0);
+                }
+                dependent_ins.entry(offset).or_default().clear();
+            }
+
+            let instructions = update_ins.entry(offset).or_default();
+            instructions.push(id)
         }
 
         if let Node::Instruction(PtrIncrement(_) | PtrDecrement(_)) = node {
-            prev_ins.clear();
+            update_ins.clear();
         }
+        dbg!(&update_ins);
     }
     eprintln!("{graph:?}");
 
