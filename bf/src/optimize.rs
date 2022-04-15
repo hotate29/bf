@@ -334,7 +334,7 @@ impl SimplifiedNodes {
 
 pub fn dep_opt(nodes: Nodes) {
     #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-    struct InstructionID(usize);
+    struct NodeID(usize);
 
     fn remove_dead_code(g: &mut Graph<Node>) -> Vec<usize> {
         let indegree = g.indegree();
@@ -349,17 +349,13 @@ pub fn dep_opt(nodes: Nodes) {
         removed_index
     }
 
-    let mut update_ins = BTreeMap::<isize, InstructionID>::new();
-    let mut dependent_ins = BTreeMap::<isize, Vec<InstructionID>>::new();
+    let mut update_ins = BTreeMap::<isize, NodeID>::new();
+    let mut dependent_ins = BTreeMap::<isize, Vec<NodeID>>::new();
 
     let mut graph = Graph::new();
     let mut last_ptr_move = None;
 
-    for (id, node) in nodes
-        .iter()
-        .enumerate()
-        .map(|(i, node)| (InstructionID(i), node))
-    {
+    for (id, node) in nodes.iter().enumerate().map(|(i, node)| (NodeID(i), node)) {
         // この命令がどこの値に依存しているか
         let mut dependent_offset = Vec::new();
         // この命令がどこの値を更新するか
@@ -426,6 +422,8 @@ pub fn dep_opt(nodes: Nodes) {
         }
         dbg!(&update_ins);
     }
+    // let removed_index = remove_dead_code(&mut graph);
+
     eprintln!("{graph:?}");
     eprintln!("{:?}", graph.indegree());
 
