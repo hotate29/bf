@@ -1,14 +1,20 @@
-use std::{collections::BTreeMap, fmt::Debug, io::Write};
+use std::{
+    collections::{BTreeMap, BTreeSet},
+    fmt::Debug,
+    io::Write,
+};
 
 #[derive(Debug)]
 pub struct Graph<'a, T> {
-    nodes: Vec<&'a T>,
-    edges: BTreeMap<usize, Vec<usize>>,
+    nodes: BTreeMap<usize, &'a T>,
+    node_count: usize,
+    edges: BTreeMap<usize, BTreeSet<usize>>,
 }
 impl<T> Graph<'_, T> {
     pub fn new() -> Self {
         Self {
-            nodes: vec![],
+            nodes: BTreeMap::new(),
+            node_count: 0,
             edges: BTreeMap::new(),
         }
     }
@@ -28,20 +34,26 @@ impl Graph<'_, crate::parse::Node> {
 
 impl<'a, T> Graph<'a, T> {
     pub fn push_node(&mut self, node: &'a T) {
-        self.nodes.push(node);
-        self.edges.insert(self.nodes.len() - 1, vec![]);
+        self.nodes.insert(self.node_count, node);
+        self.edges.insert(self.node_count, BTreeSet::new());
+        self.node_count += 1;
+    }
+    pub fn remove_node(&mut self, index: usize) {
+        self.nodes.remove(&index);
+        self.edges.remove(&index);
+
+        for e in self.edges.values_mut() {
+            e.remove(&index);
+        }
     }
     pub fn add_edge(&mut self, from: usize, to: usize) {
-        self.edges.get_mut(&from).unwrap().push(to);
+        self.edges.get_mut(&from).unwrap().insert(to);
     }
-    // pub fn remove_node(&mut self, index: usize) {
-    //     self.
-    // }
-    pub fn edges(&self, from: usize) -> &Vec<usize> {
+    pub fn edges(&self, from: usize) -> &BTreeSet<usize> {
         &self.edges[&from]
     }
-    pub fn node(&self, index: usize) -> &T {
-        self.nodes[index]
+    pub fn node(&self, index: usize) -> Option<&&T> {
+        self.nodes.get(&index)
     }
 }
 
@@ -54,7 +66,7 @@ impl dot::Labeller<'_, Node, Edge> for Graph<'_, crate::parse::Node> {
     }
 
     fn node_id(&self, n: &Node) -> dot::Id<'_> {
-        let node = self.nodes[*n];
+        let node = self.nodes[&*n];
         let s = match node {
             crate::parse::Node::Loop(_) => format!("Loop{n}"),
             crate::parse::Node::Instruction(_) => format!("Ins{n}"),
@@ -62,7 +74,7 @@ impl dot::Labeller<'_, Node, Edge> for Graph<'_, crate::parse::Node> {
         dot::Id::new(s).unwrap()
     }
     fn node_label(&self, n: &Node) -> dot::LabelText<'_> {
-        let node = self.nodes[*n];
+        let node = self.nodes[&*n];
         let s = match node {
             crate::parse::Node::Loop(_) => format!("Loop{n}"),
             crate::parse::Node::Instruction(ins) => ins.to_string(),
