@@ -359,11 +359,7 @@ pub fn dep_opt(nodes: Nodes) {
                     dependent_offset.extend(update_ins.keys());
                     last_ptr_move = Some(id);
                 }
-                Output(offset) => {
-                    dependent_offset.push(*offset);
-                    update_offset.push(*offset);
-                }
-                Input(offset) => {
+                Output(offset) | Input(offset) => {
                     dependent_offset.push(*offset);
                     update_offset.push(*offset);
                 }
@@ -393,9 +389,7 @@ pub fn dep_opt(nodes: Nodes) {
         for offset in dbg!(dependent_offset) {
             dependent_ins.entry(offset).or_default().push(id);
 
-            if let Some(dependent_ins) = update_ins.get(&offset) {
-                graph.add_edge(id.0, dependent_ins.0);
-            } else if let Some(dependent_ins) = last_ptr_move {
+            if let Some(dependent_ins) = update_ins.get(&offset).copied().or(last_ptr_move) {
                 graph.add_edge(id.0, dependent_ins.0);
             }
         }
@@ -420,6 +414,7 @@ pub fn dep_opt(nodes: Nodes) {
         dbg!(&update_ins);
     }
     eprintln!("{graph:?}");
+    eprintln!("{:?}", graph.indegree());
 
     let mut file = File::create("dotdot.dot").unwrap();
     graph.to_dot(&mut file);
