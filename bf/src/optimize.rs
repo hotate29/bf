@@ -362,7 +362,10 @@ pub fn dep_opt(nodes: Nodes) {
         let mut update_offset = Vec::new();
 
         match dbg!(node) {
-            Node::Loop(loop_nods) => todo!(),
+            Node::Loop(_) => {
+                dependent_offset.extend(update_ins.keys());
+                last_ptr_move = Some(id);
+            }
             Node::Instruction(ins) => match ins {
                 PtrIncrement(_) | PtrDecrement(_) => {
                     dependent_offset.extend(update_ins.keys());
@@ -417,12 +420,12 @@ pub fn dep_opt(nodes: Nodes) {
             update_ins.insert(offset, id);
         }
 
-        if let Node::Instruction(PtrIncrement(_) | PtrDecrement(_)) = node {
-            update_ins.clear();
+        if let Node::Loop(_) | Node::Instruction(PtrIncrement(_) | PtrDecrement(_)) = node {
+            dependent_ins.values_mut().for_each(|ins| *ins = vec![id]);
+            update_ins.values_mut().for_each(|ins| *ins = id);
         }
         dbg!(&update_ins);
     }
-    // let removed_index = remove_dead_code(&mut graph);
 
     eprintln!("{graph:?}");
     eprintln!("{:?}", graph.indegree());
