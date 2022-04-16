@@ -18,6 +18,9 @@ impl<T> Graph<'_, T> {
             edges: BTreeMap::new(),
         }
     }
+    pub fn nodes(&self) -> &BTreeMap<usize, &T> {
+        &self.nodes
+    }
 }
 
 impl<T> Default for Graph<'_, T> {
@@ -38,13 +41,18 @@ impl<'a, T> Graph<'a, T> {
         self.edges.insert(self.node_count, BTreeSet::new());
         self.node_count += 1;
     }
-    pub fn remove_node(&mut self, index: usize) {
+    pub fn remove_node(&mut self, index: usize) -> Vec<usize> {
+        let mut edge_removed = Vec::new();
+
         self.nodes.remove(&index);
         self.edges.remove(&index);
 
-        for e in self.edges.values_mut() {
-            e.remove(&index);
+        for (index, e) in &mut self.edges {
+            if e.remove(index) {
+                edge_removed.push(*index);
+            }
         }
+        edge_removed
     }
     pub fn add_edge(&mut self, from: usize, to: usize) {
         self.edges.get_mut(&from).unwrap().insert(to);
