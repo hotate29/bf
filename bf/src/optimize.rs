@@ -354,6 +354,7 @@ pub fn dep_opt(nodes: Nodes) {
 
     let mut graph = Graph::new();
     let mut last_ptr_move = None;
+    let mut last_io: Option<NodeID> = None;
 
     for (id, node) in nodes.iter().enumerate().map(|(i, node)| (NodeID(i), node)) {
         // この命令がどこの値に依存しているか
@@ -418,6 +419,15 @@ pub fn dep_opt(nodes: Nodes) {
             }
 
             update_ins.insert(offset, id);
+        }
+
+        if let Some(ins) = node.as_instruction() {
+            if ins.is_io() {
+                if let Some(io_id) = last_io {
+                    graph.add_edge(id.0, io_id.0);
+                }
+                last_io = Some(id)
+            }
         }
 
         if let Node::Loop(_) | Node::Instruction(PtrIncrement(_) | PtrDecrement(_)) = node {
