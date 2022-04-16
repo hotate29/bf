@@ -349,7 +349,7 @@ pub fn dep_opt(nodes: Nodes) {
         removed_index
     }
 
-    fn nodes_to_graph(nodes: &Nodes) -> Graph<'_, Node> {
+    fn nodes_to_graph(nodes: Nodes) -> Graph<Node> {
         let mut update_ins = BTreeMap::<isize, NodeID>::new();
         let mut dependent_ins = BTreeMap::<isize, Vec<NodeID>>::new();
 
@@ -357,7 +357,11 @@ pub fn dep_opt(nodes: Nodes) {
         let mut last_ptr_move = None;
         let mut last_io: Option<NodeID> = None;
 
-        for (id, node) in nodes.iter().enumerate().map(|(i, node)| (NodeID(i), node)) {
+        for (id, node) in nodes
+            .into_iter()
+            .enumerate()
+            .map(|(i, node)| (NodeID(i), node))
+        {
             // この命令がどこの値に依存しているか
             let mut dependent_offset = Vec::new();
             // この命令がどこの値を更新するか
@@ -374,31 +378,31 @@ pub fn dep_opt(nodes: Nodes) {
                         last_ptr_move = Some(id);
                     }
                     Output(offset) | Input(offset) => {
-                        dependent_offset.push(*offset);
-                        update_offset.push(*offset);
+                        dependent_offset.push(offset);
+                        update_offset.push(offset);
                     }
                     Add(offset, value) | Sub(offset, value) | SetValue(offset, value) => {
-                        update_offset.push(*offset);
-                        dependent_offset.push(*offset);
+                        update_offset.push(offset);
+                        dependent_offset.push(offset);
 
                         if let Value::Memory(mem_offset) = value {
-                            dependent_offset.push(*mem_offset);
+                            dependent_offset.push(mem_offset);
                         }
                     }
                     MulAdd(offset, value1, value2) | MulSub(offset, value1, value2) => {
-                        update_offset.push(*offset);
-                        dependent_offset.push(*offset);
+                        update_offset.push(offset);
+                        dependent_offset.push(offset);
 
                         for value in [value1, value2] {
                             if let Value::Memory(mem_offset) = value {
-                                dependent_offset.push(*mem_offset);
+                                dependent_offset.push(mem_offset);
                             }
                         }
                     }
                 },
             }
 
-            graph.push_node(node);
+            graph.push_node(node.clone());
 
             // この値（を最後に操作した命令）に依存している
             for offset in dependent_offset {
@@ -441,7 +445,7 @@ pub fn dep_opt(nodes: Nodes) {
         graph
     }
 
-    let graph = nodes_to_graph(&nodes);
+    let mut graph = nodes_to_graph(nodes);
 
     eprintln!("{graph:?}");
     eprintln!("{:?}", graph.indegree());
