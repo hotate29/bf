@@ -36,10 +36,12 @@ impl Graph<crate::parse::Node> {
 }
 
 impl<T> Graph<T> {
-    pub fn push_node(&mut self, node: T) {
-        self.nodes.insert(self.node_count, node);
-        self.edges.insert(self.node_count, BTreeSet::new());
+    pub fn push_node(&mut self, node: T) -> usize {
+        let index = self.node_count;
+        self.nodes.insert(index, node);
+        self.edges.insert(index, BTreeSet::new());
         self.node_count += 1;
+        index
     }
     pub fn remove_node(&mut self, index: usize) -> Vec<usize> {
         let mut edge_removed = Vec::new();
