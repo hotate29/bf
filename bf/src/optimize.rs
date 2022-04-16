@@ -445,11 +445,68 @@ pub fn dep_opt(nodes: Nodes) {
         graph
     }
 
+    fn merge_ins(graph: &mut Graph<Node>) {
+        // SetValue(of, 0) <- Add(of, x)
+        // を SetValue(of, x)にできたらまず合格
+        fn merge(node: &Node, node2: &Node) -> Option<Node> {
+            match (node, node2) {
+                (Node::Instruction(ins1), Node::Instruction(ins2)) => {
+                    ins1.merge(*ins2).map(Node::Instruction)
+                }
+                (_, _) => None,
+            }
+        }
+
+        // 要命名
+        fn search_mergeable(graph: &Graph<Node>) -> Option<(usize, usize, Node)> {
+            for (index, node) in graph.nodes() {
+                let edges = graph.edges(*index);
+                let edge = edges.iter().next().filter(|_| edges.len() == 1);
+                match edge {
+                    Some(from_index) => {
+                        let from_node = graph.node(*from_index).unwrap();
+                        let merged_node = merge(from_node, node);
+                        // dbg!(from_node, node, &merged_node);
+
+                        match merged_node {
+                            Some(merged_node) => {
+                                return Some((*from_index, *index, merged_node));
+                            }
+                            None => continue,
+                        }
+                    }
+                    None => continue,
+                }
+            }
+            None
+        }
+        while let Some((from_index, to_index, merged)) = (search_mergeable(graph)) {
+            let merged_node_index = graph.push_node(merged);
+
+            // 新しいNodeへ張りなおす
+            let to_edge_removed = graph.remove_node(to_index);
+            // .into_iter() // つらみ
+            // // .filter(|v| *v != to_index)
+            // .collect::<Vec<_>>();
+
+            // 新しいNodeから張りなおす
+            let from_edge_removed = graph.edges(from_index).clone();
+            graph.remove_node(from_index);
+
+            for from in to_edge_removed {
+                graph.add_edge(from, merged_node_index)
+            }
+            for to in from_edge_removed {
+                graph.add_edge(merged_node_index, to)
+            }
+        }
+    }
+
     let mut graph = nodes_to_graph(nodes);
+    merge_ins(&mut graph);
 
     eprintln!("{graph:?}");
     eprintln!("{:?}", graph.indegree());
-
     let mut file = File::create("dotdot.dot").unwrap();
     graph.to_dot(&mut file);
 }
