@@ -363,7 +363,7 @@ pub fn dep_opt(nodes: Nodes) {
             // この命令がどこの値を更新するか
             let mut update_offset = Vec::new();
 
-            match dbg!(node) {
+            match node {
                 Node::Loop(_) => {
                     dependent_offset.extend(update_ins.keys());
                     last_ptr_move = Some(id);
@@ -401,7 +401,7 @@ pub fn dep_opt(nodes: Nodes) {
             graph.push_node(node);
 
             // この値（を最後に操作した命令）に依存している
-            for offset in dbg!(dependent_offset) {
+            for offset in dependent_offset {
                 dependent_ins.entry(offset).or_default().push(id);
 
                 if let Some(dependent_ins) = update_ins.get(&offset).copied().or(last_ptr_move) {
@@ -410,7 +410,7 @@ pub fn dep_opt(nodes: Nodes) {
             }
 
             // この値を更新したぜ！
-            for offset in dbg!(update_offset) {
+            for offset in update_offset {
                 if let Some(dependent_ins_) = dependent_ins.get(&offset) {
                     for ins in dependent_ins_ {
                         if *ins == id {
@@ -437,7 +437,6 @@ pub fn dep_opt(nodes: Nodes) {
                 dependent_ins.values_mut().for_each(|ins| *ins = vec![id]);
                 update_ins.values_mut().for_each(|ins| *ins = id);
             }
-            dbg!(&update_ins);
         }
         graph
     }
