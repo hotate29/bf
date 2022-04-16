@@ -49,9 +49,9 @@ impl<T> Graph<T> {
         self.nodes.remove(&index);
         self.edges.remove(&index);
 
-        for (index, e) in &mut self.edges {
-            if e.remove(index) {
-                edge_removed.push(*index);
+        for (node_index, e) in &mut self.edges {
+            if e.remove(&index) {
+                edge_removed.push(*node_index);
             }
         }
         edge_removed
