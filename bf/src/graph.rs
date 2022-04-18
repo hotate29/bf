@@ -1,5 +1,6 @@
 use std::{
-    collections::{BTreeMap, BTreeSet},
+    cmp::Reverse,
+    collections::{BTreeMap, BTreeSet, BinaryHeap},
     fmt::Debug,
     io::Write,
 };
@@ -78,6 +79,28 @@ impl<T> Graph<T> {
 
         indegree
     }
+}
+
+pub fn dijkstra<T>(graph: &Graph<T>, start: usize) -> BTreeMap<usize, usize> {
+    let mut q = BinaryHeap::from([Reverse((0, start))]);
+    let mut costs = BTreeMap::from([(start, 0)]);
+
+    while let Some(Reverse((cost, now_node))) = q.pop() {
+        if cost > costs[&now_node] {
+            continue;
+        }
+
+        for node in graph.edges(now_node) {
+            let c = 1 + costs.get(&now_node).copied().unwrap_or_default();
+
+            if *costs.get(node).unwrap_or(&usize::MAX) > c {
+                costs.insert(*node, c);
+                q.push(Reverse((c, *node)))
+            }
+        }
+    }
+
+    costs
 }
 
 type Node = usize;
