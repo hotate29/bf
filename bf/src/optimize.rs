@@ -1,7 +1,12 @@
-use std::{cmp::Ordering, collections::BTreeMap, fs::File, mem::swap};
+use std::{
+    cmp::Ordering,
+    collections::{BTreeMap, VecDeque},
+    fs::File,
+    mem::swap,
+};
 
 use crate::{
-    graph::Graph,
+    graph::{dijkstra, Graph},
     instruction::{
         Instruction::{self, *},
         Value,
@@ -480,7 +485,7 @@ pub fn dep_opt(nodes: Nodes) {
             }
             None
         }
-        while let Some((from_index, to_index, merged)) = (search_mergeable(graph)) {
+        while let Some((from_index, to_index, merged)) = search_mergeable(graph) {
             let merged_node_index = graph.push_node(merged);
 
             // 新しいNodeへ張りなおす
@@ -501,11 +506,77 @@ pub fn dep_opt(nodes: Nodes) {
             }
         }
     }
+    // 推移簡約
+    fn transitive_reduction(graph: &mut Graph<Node>) {
+        let roots = graph
+            .nodes()
+            .keys()
+            .map(|id| (*id, dijkstra(graph, *id)))
+            .collect::<BTreeMap<usize, _>>();
+
+        let node_keys = graph.nodes().keys().copied().collect::<Vec<_>>();
+
+        // 遅そう
+        for from in &node_keys {
+            let mut max_cost = 0;
+            let mut max_edges = Vec::new();
+
+            for to in &node_keys {
+                if from == to {
+                    continue;
+                }
+                for aida in graph.edges(*from) {
+                    if to == aida {
+                        continue;
+                    }
+                    // dbg!(from, to, aida);
+                    let aida_costs = &roots[aida];
+                    // dbg!(&max_edges, max_cost, aida_costs.get(to));
+                    if let Some(cost) = aida_costs.get(to) {
+                        match max_cost.cmp(cost) {
+                            Ordering::Less => {
+                                dbg!(max_cost, cost);
+                                max_cost = *cost;
+                                max_edges.clear();
+                                max_edges.push(*aida);
+                            }
+                            Ordering::Equal => {
+                                max_edges.push(*aida);
+                            }
+                            Ordering::Greater => (),
+                        }
+                    }
+                }
+            }
+            graph.remove_all_edge(*from);
+            dbg!(max_cost);
+            for to in max_edges {
+                graph.add_edge(*from, to);
+            }
+
+            // dbg!(max_cost, max_edges);
+        }
+    }
+
+    // fn topological_sort<T>(graph: &Graph<T>) {
+    //     let mut sorted = Vec::new();
+    //     let mut indegree = graph.indegree();
+
+    //     let mut que = VecDeque::new();
+
+    //     for (ind, n) in indegree {
+    //         if n == 0{
+    //             ind.push
+    //         }
+    //     }
+    // }
 
     let mut graph = nodes_to_graph(nodes);
-    merge_ins(&mut graph);
+    // merge_ins(&mut graph);
 
-    eprintln!("{graph:?}");
+    // dbg!(dijkstra(&graph, 5));
+    // transitive_reduction(&mut graph);
+    // eprintln!("{graph:?}");
     eprintln!("{:?}", graph.indegree());
     let mut file = File::create("dotdot.dot").unwrap();
     graph.to_dot(&mut file);

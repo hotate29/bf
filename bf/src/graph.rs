@@ -60,6 +60,12 @@ impl<T> Graph<T> {
     pub fn add_edge(&mut self, from: usize, to: usize) {
         self.edges.get_mut(&from).unwrap().insert(to);
     }
+    pub fn remove_all_edge(&mut self, start: usize) -> bool {
+        self.edges
+            .get_mut(&start)
+            .map(|edges| edges.clear())
+            .is_some()
+    }
     pub fn edges(&self, from: usize) -> &BTreeSet<usize> {
         &self.edges[&from]
     }
