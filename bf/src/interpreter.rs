@@ -144,7 +144,7 @@ pub enum Error {
     NegativePointer(isize),
 }
 
-pub struct InterPrinter<R: Read, W: Write> {
+pub struct InterPreter<R: Read, W: Write> {
     state: State,
     input: R,
     output: W,
@@ -153,9 +153,9 @@ pub struct InterPrinter<R: Read, W: Write> {
     while_begin_jump_table: Vec<usize>,
     while_end_jump_table: Vec<usize>,
 }
-impl<R: Read, W: Write> InterPrinter<R, W> {
-    pub fn builder<'a>() -> InterPrinterBuilder<'a, R, W> {
-        InterPrinterBuilder::default()
+impl<R: Read, W: Write> InterPreter<R, W> {
+    pub fn builder<'a>() -> InterPreterBuilder<'a, R, W> {
+        InterPreterBuilder::default()
     }
     fn new(root_node: &Nodes, memory_len: usize, input: R, output: W) -> Self {
         let state = State {
@@ -204,8 +204,8 @@ impl<R: Read, W: Write> InterPrinter<R, W> {
     pub fn now(&self) -> usize {
         self.now
     }
-    pub fn iter(&mut self) -> InterPrinterIter<'_, R, W> {
-        InterPrinterIter(self)
+    pub fn iter(&mut self) -> InterPreterIter<'_, R, W> {
+        InterPreterIter(self)
     }
     #[inline]
     fn step(&mut self) -> Result<()> {
@@ -273,7 +273,7 @@ impl<R: Read, W: Write> InterPrinter<R, W> {
     }
 }
 
-impl<R: Read, W: Write> Iterator for InterPrinterIter<'_, R, W> {
+impl<R: Read, W: Write> Iterator for InterPreterIter<'_, R, W> {
     type Item = Result<()>;
 
     #[inline]
@@ -286,13 +286,13 @@ impl<R: Read, W: Write> Iterator for InterPrinterIter<'_, R, W> {
     }
 }
 
-pub struct InterPrinterBuilder<'a, R: Read, W: Write> {
+pub struct InterPreterBuilder<'a, R: Read, W: Write> {
     root_node: Option<&'a Nodes>,
     memory_len: usize,
     input: Option<R>,
     output: Option<W>,
 }
-impl<'a, R: Read, W: Write> Default for InterPrinterBuilder<'a, R, W> {
+impl<'a, R: Read, W: Write> Default for InterPreterBuilder<'a, R, W> {
     fn default() -> Self {
         Self {
             root_node: Default::default(),
@@ -302,7 +302,7 @@ impl<'a, R: Read, W: Write> Default for InterPrinterBuilder<'a, R, W> {
         }
     }
 }
-impl<'a, R: Read, W: Write> InterPrinterBuilder<'a, R, W> {
+impl<'a, R: Read, W: Write> InterPreterBuilder<'a, R, W> {
     pub fn root_node(self, root_node: &'a Nodes) -> Self {
         Self {
             root_node: Some(root_node),
@@ -325,7 +325,7 @@ impl<'a, R: Read, W: Write> InterPrinterBuilder<'a, R, W> {
             ..self
         }
     }
-    pub fn build(self) -> InterPrinter<R, W> {
+    pub fn build(self) -> InterPreter<R, W> {
         let Self {
             root_node,
             memory_len,
@@ -337,23 +337,23 @@ impl<'a, R: Read, W: Write> InterPrinterBuilder<'a, R, W> {
         let input = input.unwrap();
         let output = output.unwrap();
 
-        InterPrinter::new(root_node, memory_len, input, output)
+        InterPreter::new(root_node, memory_len, input, output)
     }
 }
 
-pub struct InterPrinterIter<'a, R: Read, W: Write>(&'a mut InterPrinter<R, W>);
+pub struct InterPreterIter<'a, R: Read, W: Write>(&'a mut InterPreter<R, W>);
 
 #[cfg(test)]
 mod test {
     use std::io;
 
     use crate::{
-        interprinter::Memory,
+        interpreter::Memory,
         optimize::optimize,
         parse::{tokenize, Node, Nodes},
     };
 
-    use super::InterPrinter;
+    use super::InterPreter;
 
     fn node_from_source(source: &str) -> Nodes {
         let tokens = tokenize(source);
@@ -386,7 +386,7 @@ mod test {
     // 実行する場合は、`cargo test --release -- --ignored`
     #[test]
     #[ignore]
-    fn test_interprinter_mandelbrot() {
+    fn test_interpreter_mandelbrot() {
         let mandelbrot_source = include_str!("../../bf_codes/mandelbrot.bf");
         let assert_mandelbrot = include_str!("../../bf_codes/mandelbrot.out");
 
@@ -394,7 +394,7 @@ mod test {
 
         let mut output_buffer = Vec::new();
 
-        InterPrinter::builder()
+        InterPreter::builder()
             .root_node(&root_node)
             .input(io::empty())
             .output(&mut output_buffer)
@@ -408,7 +408,7 @@ mod test {
 
     #[test]
     #[ignore]
-    fn test_optimized_interprinter_mandelbrot() {
+    fn test_optimized_interpreter_mandelbrot() {
         let mandelbrot_source = include_str!("../../bf_codes/mandelbrot.bf");
         let assert_mandelbrot = include_str!("../../bf_codes/mandelbrot.out");
 
@@ -416,7 +416,7 @@ mod test {
 
         let mut output_buffer = Vec::new();
 
-        InterPrinter::builder()
+        InterPreter::builder()
             .root_node(&root_node)
             .input(io::empty())
             .output(&mut output_buffer)
@@ -428,7 +428,7 @@ mod test {
         assert_eq!(output_string, assert_mandelbrot);
     }
     #[test]
-    fn test_hello_world_interprinter() {
+    fn test_hello_world_interpreter() {
         let hello_world_code = include_str!("../../bf_codes/hello_world.bf");
         let hello_world = include_str!("../../bf_codes/hello_world.out");
 
@@ -436,7 +436,7 @@ mod test {
 
         let mut output_buffer = vec![];
 
-        InterPrinter::builder()
+        InterPreter::builder()
             .root_node(&root_node)
             .input(io::empty())
             .output(&mut output_buffer)
@@ -448,7 +448,7 @@ mod test {
         assert_eq!(output, hello_world);
     }
     #[test]
-    fn test_optimized_hello_world_interprinter() {
+    fn test_optimized_hello_world_interpreter() {
         let hello_world_code = include_str!("../../bf_codes/hello_world.bf");
         let hello_world = include_str!("../../bf_codes/hello_world.out");
 
@@ -456,7 +456,7 @@ mod test {
 
         let mut output_buffer = vec![];
 
-        InterPrinter::builder()
+        InterPreter::builder()
             .root_node(&root_node)
             .input(io::empty())
             .output(&mut output_buffer)

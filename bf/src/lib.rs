@@ -1,6 +1,6 @@
 pub mod graph;
 pub mod instruction;
-pub mod interprinter;
+pub mod interpreter;
 pub mod optimize;
 pub mod parse;
 pub mod transcompile;

@@ -6,7 +6,7 @@ use std::{
 };
 
 use bf::{
-    interprinter::InterPrinter,
+    interpreter::InterPreter,
     optimize::optimize,
     parse::{tokenize, Node},
     transcompile,
@@ -76,7 +76,7 @@ fn main() -> anyhow::Result<()> {
                 root_node = time!(optimize(&root_node))
             }
 
-            let mut interpreter = InterPrinter::builder()
+            let mut interpreter = InterPreter::builder()
                 .input(io::stdin())
                 .output(io::stdout())
                 .root_node(&root_node)
