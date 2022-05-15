@@ -104,7 +104,7 @@ fn main() -> anyhow::Result<()> {
                 root_node = time!(optimize(&root_node))
             }
 
-            let code = transcompile::to_c(&root_node, arg.memory_len);
+            let code = transcompile::c::to_c(&root_node, arg.memory_len);
 
             match arg.out {
                 Some(path) => fs::write(path, code)?,
