@@ -1,9 +1,4 @@
-use std::{
-    cmp::Ordering,
-    collections::{BTreeMap, VecDeque},
-    fs::File,
-    mem::swap,
-};
+use std::{cmp::Ordering, collections::BTreeMap, fs::File, mem::swap};
 
 use crate::{
     graph::{dijkstra, Graph},
@@ -24,8 +19,8 @@ fn merge_instruction(nodes: Nodes) -> Nodes {
             .iter()
             .nth_back(1)
             .zip(new_nodes.back())
-            .and_then(|(back2, back)| back2.as_instruction().zip(back.as_instruction()))
-            .and_then(|(back2, back)| back2.merge(back))
+            .and_then(|(back, back2)| back.as_instruction().zip(back2.as_instruction()))
+            .and_then(|(back, back2)| back.merge(back2))
         {
             new_nodes.pop_back().unwrap();
             new_nodes.pop_back().unwrap();
@@ -218,7 +213,7 @@ pub fn offset_opt(nodes: &Nodes) -> Nodes {
             Nod::Instructions(new_nodes)
         }
         // (255 - ポインターが指している値)の回数だけ操作をするタイプのループ。これはよくわからないので簡単なやつだけ。
-        else if optimizable && loop_counter_ins == Some(Sub(0, 1.into())) {
+        else if optimizable && loop_counter_ins == Some(Add(0, 1.into())) {
             Nod::Instructions([SetValue(0, 0.into()).into()].into())
         } else {
             let mut instructions = state.into_nodes();
@@ -324,6 +319,7 @@ impl SimplifiedNodes {
     }
     fn into_nodes(self) -> Nodes {
         let mut nodes = merge_instruction(self.nodes);
+        // dbg!(&nodes);
 
         match self.pointer_offset.cmp(&0) {
             Ordering::Less => {
@@ -584,9 +580,9 @@ pub fn dep_opt(nodes: Nodes) {
 
 #[cfg(test)]
 mod test {
-    use super::{merge_instruction, offset_opt, SimplifiedNodes};
+    use super::*;
     use crate::{
-        instruction::{Instruction::*, Value},
+        instruction::Value,
         parse::{tokenize, Node, Nodes},
     };
 
@@ -608,7 +604,7 @@ mod test {
     #[rstest(input, expected,
         case("[-]", [SetValue(0, 0.into()).into()].into()),
         case("[+]", [SetValue(0, 0.into()).into()].into()),
-        case("[++]", [Node::Loop([Add(0, 2.into()).into()].into())].into()),
+        case("[++]", [Node::Loop([Add(0, 2.into()).into()].into()), SetValue(0, 0.into()).into()].into()),
         case("[->>>+<<<]", [Add(3, Value::Memory(0)).into(), SetValue(0, 0.into()).into()].into()),
         case("[>>>+<<<-]", [Add(3, Value::Memory(0)).into(), SetValue(0, 0.into()).into()].into()),
         case("[-<<<+>>>]", [Add(-3, Value::Memory(0)).into(), SetValue(0, 0.into()).into()].into()),
@@ -624,14 +620,14 @@ mod test {
         case("+++---", [].into()),
         case(">+++<-", [Add(1, 3.into()).into(), Sub(0, 1.into()).into()].into()),
         case(">+++", [Add(1, 3.into()).into(), PtrIncrement(1).into()].into()),
-        case("[[[]]]", [Node::Loop([Node::Loop([Node::Loop([].into())].into())].into())].into()),
+        case("[[[]]]", [Node::Loop([Node::Loop([Node::Loop([].into()), SetValue(0, 0.into()).into()].into()), SetValue(0, 0.into()).into()].into()), SetValue(0, 0.into()).into()].into()),
         case("->+<", [Sub(0, 1.into()).into(), Add(1, 1.into()).into()].into()),
         case("[->>>-<<<]", [Sub(3, Value::Memory(0)).into(), SetValue(0, 0.into()).into()].into()),
         case("+++>-<[->>>-<<<]", [Add(0, 3.into()).into(),Sub(1, 1.into()).into(), Sub(3, Value::Memory(0)).into(), SetValue(0, 0.into()).into()].into()),
         case("[>>>-<<<-]", [Sub(3, Value::Memory(0)).into(), SetValue(0, 0.into()).into()].into()),
         case("[>>>->+<<<<-]", [Sub(3, Value::Memory(0)).into(), Add(4, Value::Memory(0)).into(), SetValue(0, 0.into()).into()].into()),
-        case("+++[>>>[-][[->+<]]<<<]", [Add(0, 3.into()).into(), Node::Loop([PtrIncrement(3).into(), SetValue(0, 0.into()).into(), Node::Loop([Add(1, Value::Memory(0)).into(), SetValue(0, 0.into()).into()].into()), PtrDecrement(3).into()].into())].into()),
-        case("[->>>.<<<]", [Node::Loop([Sub(0, 1.into()).into(), Output(3).into()].into())].into()),
+        case("+++[>>>[-][[->+<]]<<<]", [Add(0, 3.into()).into(), Node::Loop([SetValue(3, 0.into()).into(), PtrIncrement(3).into(), Node::Loop([Add(1, Value::Memory(0)).into(), SetValue(0, 0.into()).into()].into()), SetValue(0, 0.into()).into(), PtrDecrement(3).into()].into()), SetValue(0, 0.into()).into()].into()),
+        case("[->>>.<<<]", [Node::Loop([Sub(0, 1.into()).into(), Output(3).into()].into()), SetValue(0, 0.into()).into()].into()),
         case("[->+>+>++>+++<<<<]", [Add(1, Value::Memory(0)).into(), Add(2, Value::Memory(0)).into(), MulAdd(3, Value::Memory(0), 2.into()).into(), MulAdd(4, Value::Memory(0), 3.into()).into(), SetValue(0, 0.into()).into()].into()),
         case("[-<<<-->>>]", [MulSub(-3, Value::Memory(0), 2.into()).into(), SetValue(0, 0.into()).into()].into()),
         case(".>.<.", [Output(0).into(), Output(1).into(), Output(0).into()].into()),
@@ -640,7 +636,7 @@ mod test {
         let tokens = tokenize(input);
         let nodes = Node::from_tokens(tokens).unwrap();
 
-        let optimized_node = offset_opt(&nodes);
+        let optimized_node = optimize(&nodes);
         assert_eq!(optimized_node, expected)
     }
 
