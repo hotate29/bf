@@ -1,4 +1,3 @@
-pub mod graph;
 pub mod instruction;
 pub mod interpreter;
 pub mod optimize;
