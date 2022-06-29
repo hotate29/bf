@@ -173,7 +173,7 @@ fn to_wat(nodes: &Nodes) -> String {
                         *wat += &format!("i32.const {n}");
                         *wat += "i32.sub";
                         *wat += "local.set $pointer";
-                    },
+                    }
                     Add(offset, value) => todo!(),
                     Sub(_, _) => todo!(),
                     MulAdd(_, _, _) => todo!(),
@@ -189,24 +189,10 @@ fn to_wat(nodes: &Nodes) -> String {
     unimplemented!()
 }
 
-pub fn run_wasm(bf: &str) -> anyhow::Result<()> {
-    let tokens = tokenize(bf);
-    let node = Node::from_tokens(tokens).unwrap();
-    let node = optimize::optimize(&node);
-
-    // let bf = fs::read_to_string("hello_world.bf").unwrap();
-    // let bf = fs::read_to_string("hanoi.bf")?;
-    // let bf = fs::read_to_string("mandelbrot.bf")?;
-    // let bf = "++++++++++[>+++++++>++++++++++>+++++++++++>+++>+++++++++>+<<<<<<-]>++.>+.>--..+++.>++.>---.<<.+++.------.<-.>>+.>>.";
-    // let bf = "-+.";
+pub fn run_bf(bf: &str) -> anyhow::Result<()> {
     let wat = bf_wat(bf);
-    // let wat = fs::read_to_string("bf.wat")?;
-    fs::write("bf.wat", &wat)?;
 
     let engine = Engine::default();
-
-    // let print_char = Func::wrap(&mut store, |x: i32| print!("{}", x as u8 as char));
-    // let print_int = Func::wrap(&mut store, |x: i32| println!("{x}"));
 
     let mut linker = Linker::new(&engine);
     wasmtime_wasi::add_to_linker(&mut linker, |a| a)?;
