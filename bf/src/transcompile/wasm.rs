@@ -1,13 +1,5 @@
-use std::fs;
-
 // use wasmtime::{Engine, Linker, Module, Store};
 // use wasmtime_wasi::WasiCtxBuilder;
-
-use crate::{
-    instruction::Instruction::*,
-    optimize,
-    parse::{tokenize, Node, Nodes},
-};
 
 pub fn bf_wat(bf: &str) -> String {
     fn code_to_wat(code: &str, memory_base_address: i32) -> String {
@@ -133,60 +125,6 @@ pub fn bf_wat(bf: &str) -> String {
     wat += ")";
 
     wat
-}
-
-fn to_wat(nodes: &Nodes) -> String {
-    fn body(wat: &mut String, nodes: &Nodes, depth: i32) -> String {
-        for node in nodes {
-            match node {
-                Node::Loop(loop_nodes) => {
-                    let loop_name = format!("loop_{depth}");
-                    let exit_name = format!("exit_{depth}");
-                    if depth != 0 {
-                        *wat += &format!(
-                            "
-                            (block ${exit_name}
-                                (loop ${loop_name}
-                                    i32.const 0
-                                    local.get $pointer
-                                    i32.load8_u
-
-                                    (br_if ${exit_name} (i32.eq))
-                            "
-                        );
-                    }
-                    body(wat, loop_nodes, depth + 1);
-                    if depth != 0 {
-                        *wat += &format!("(br ${loop_name})");
-                        *wat += "))";
-                    };
-                }
-                Node::Instruction(instruction) => match instruction {
-                    PtrIncrement(n) => {
-                        *wat += "local.get $pointer";
-                        *wat += &format!("i32.const {n}");
-                        *wat += "i32.add";
-                        *wat += "local.set $pointer";
-                    }
-                    PtrDecrement(n) => {
-                        *wat += "local.get $pointer";
-                        *wat += &format!("i32.const {n}");
-                        *wat += "i32.sub";
-                        *wat += "local.set $pointer";
-                    }
-                    Add(offset, value) => todo!(),
-                    Sub(_, _) => todo!(),
-                    MulAdd(_, _, _) => todo!(),
-                    MulSub(_, _, _) => todo!(),
-                    Output(_) => todo!(),
-                    Input(_) => todo!(),
-                    SetValue(_, _) => todo!(),
-                },
-            };
-        }
-        unimplemented!()
-    }
-    unimplemented!()
 }
 
 // pub fn run_bf(bf: &str) -> anyhow::Result<()> {
