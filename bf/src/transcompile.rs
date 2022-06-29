@@ -1,3 +1,5 @@
+pub mod wasm;
+
 pub mod c {
     use crate::instruction::{Instruction, Value};
     use crate::parse::Nodes;
