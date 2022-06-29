@@ -1,7 +1,7 @@
 use std::fs;
 
-use wasmtime::{Engine, Linker, Module, Store};
-use wasmtime_wasi::WasiCtxBuilder;
+// use wasmtime::{Engine, Linker, Module, Store};
+// use wasmtime_wasi::WasiCtxBuilder;
 
 use crate::{
     instruction::Instruction::*,
@@ -189,23 +189,23 @@ fn to_wat(nodes: &Nodes) -> String {
     unimplemented!()
 }
 
-pub fn run_bf(bf: &str) -> anyhow::Result<()> {
-    let wat = bf_wat(bf);
+// pub fn run_bf(bf: &str) -> anyhow::Result<()> {
+//     let wat = bf_wat(bf);
 
-    let engine = Engine::default();
+//     let engine = Engine::default();
 
-    let mut linker = Linker::new(&engine);
-    wasmtime_wasi::add_to_linker(&mut linker, |a| a)?;
+//     let mut linker = Linker::new(&engine);
+//     wasmtime_wasi::add_to_linker(&mut linker, |a| a)?;
 
-    let wasi = WasiCtxBuilder::new().inherit_stdout().build();
-    let mut store = Store::new(&engine, wasi);
+//     let wasi = WasiCtxBuilder::new().inherit_stdout().build();
+//     let mut store = Store::new(&engine, wasi);
 
-    let module = Module::new(&engine, wat)?;
+//     let module = Module::new(&engine, wat)?;
 
-    linker
-        .module(&mut store, "", &module)?
-        .get_default(&mut store, "")?
-        .typed::<(), (), _>(&store)?
-        .call(&mut store, ())?;
-    Ok(())
-}
+//     linker
+//         .module(&mut store, "", &module)?
+//         .get_default(&mut store, "")?
+//         .typed::<(), (), _>(&store)?
+//         .call(&mut store, ())?;
+//     Ok(())
+// }
