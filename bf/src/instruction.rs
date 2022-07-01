@@ -87,7 +87,7 @@ impl Instruction {
                 let z = x - y;
 
                 match z.cmp(&0) {
-                    Ordering::Less => Some(Sub(x_offset, (z.abs() as u8).into())),
+                    Ordering::Less => Some(Sub(x_offset, (z.unsigned_abs() as u8).into())),
                     Ordering::Greater => Some(Add(x_offset, (z as u8).into())),
                     Ordering::Equal => Some(Add(x_offset, 0.into())),
                 }
@@ -105,7 +105,7 @@ impl Instruction {
                 let z = x - y;
 
                 match z.cmp(&0) {
-                    Ordering::Less => Some(PtrDecrement(z.abs() as usize)),
+                    Ordering::Less => Some(PtrDecrement(z.unsigned_abs() as usize)),
                     Ordering::Greater => Some(PtrIncrement(z as usize)),
                     Ordering::Equal => Some(PtrIncrement(0)),
                 }

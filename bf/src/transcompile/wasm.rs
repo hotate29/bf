@@ -1,3 +1,5 @@
+use std::fmt::Write;
+
 // use wasmtime::{Engine, Linker, Module, Store};
 // use wasmtime_wasi::WasiCtxBuilder;
 
@@ -48,7 +50,8 @@ pub fn bf_wat(bf: &str) -> String {
                     let exit_name = format!("exit_{loop_count}");
                     loop_count += 1;
 
-                    wat += &format!(
+                    write!(
+                        wat,
                         "
 (block ${exit_name}
     (loop ${loop_name}
@@ -57,12 +60,13 @@ pub fn bf_wat(bf: &str) -> String {
         i32.load8_u
 
         (br_if ${exit_name} (i32.eq))
-"
-                    );
+                    "
+                    )
+                    .unwrap();
                 }
                 ']' => {
                     let loop_name = loop_stack.pop().unwrap();
-                    wat += &format!("(br ${loop_name})");
+                    write!(wat, "(br ${loop_name})").unwrap();
                     wat += "))";
                 }
                 _ => continue,

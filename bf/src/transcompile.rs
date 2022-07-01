@@ -1,6 +1,8 @@
 pub mod wasm;
 
 pub mod c {
+    use std::fmt::Write;
+
     use crate::instruction::{Instruction, Value};
     use crate::parse::Nodes;
     const PTR_NAME: &str = "ptr";
@@ -10,93 +12,95 @@ pub mod c {
             for node in nodes {
                 match node {
                     crate::parse::Node::Loop(loop_nodes) => {
-                        c_code.push_str(&format!("while(*{PTR_NAME}){{"));
+                        write!(c_code, "while(*{PTR_NAME}){{").unwrap();
                         inner(loop_nodes, c_code);
                         c_code.push('}');
                     }
                     crate::parse::Node::Instruction(instruction) => match instruction {
-                        Instruction::PtrIncrement(n) => {
-                            c_code.push_str(&format!("{PTR_NAME}+={n};"))
-                        }
-                        Instruction::PtrDecrement(n) => {
-                            c_code.push_str(&format!("{PTR_NAME}-={n};"))
-                        }
+                        Instruction::PtrIncrement(n) => write!(c_code, "{PTR_NAME}+={n};").unwrap(),
+                        Instruction::PtrDecrement(n) => write!(c_code, "{PTR_NAME}-={n};").unwrap(),
                         Instruction::Add(offset, value @ Value::Const(_)) => {
                             let value = value_to_string(PTR_NAME, *value);
-                            c_code.push_str(&format!("*({PTR_NAME}+{offset})+={value};"))
+                            write!(c_code, "*({PTR_NAME}+{offset})+={value};").unwrap()
                         }
                         Instruction::Add(to_offset, Value::Memory(offset)) if *offset >= 0 => {
-                            c_code.push_str(&format!(
-                                "*({PTR_NAME}+{to_offset})+={PTR_NAME}[{offset}];"
-                            ))
+                            write!(c_code, "*({PTR_NAME}+{to_offset})+={PTR_NAME}[{offset}];")
+                                .unwrap()
                         }
                         Instruction::Add(to_offset, Value::Memory(offset)) if *offset < 0 => {
                             let check = check_zero(PTR_NAME, *offset);
-                            c_code.push_str(&format!(
+                            write!(
+                                c_code,
                                 "{check}{{*({PTR_NAME}+{to_offset})+=*({PTR_NAME}+{offset});}}"
-                            ))
+                            )
+                            .unwrap()
                         }
                         Instruction::Add(_, _) => unreachable!(),
                         Instruction::Sub(offset, Value::Const(value)) => {
-                            c_code.push_str(&format!("*({PTR_NAME}+{offset})-={value};"))
+                            write!(c_code, "*({PTR_NAME}+{offset})-={value};").unwrap()
                         }
                         Instruction::Sub(to_offset, Value::Memory(offset)) if *offset >= 0 => {
-                            c_code.push_str(&format!(
-                                "*({PTR_NAME}+{to_offset})-={PTR_NAME}[{offset}];"
-                            ))
+                            write!(c_code, "*({PTR_NAME}+{to_offset})-={PTR_NAME}[{offset}];")
+                                .unwrap()
                         }
                         Instruction::Sub(to_offset, Value::Memory(offset)) if *offset < 0 => {
                             let check = check_zero(PTR_NAME, *offset);
-                            c_code.push_str(&format!(
+                            write!(
+                                c_code,
                                 "{check}{{*({PTR_NAME}+{to_offset})-=*({PTR_NAME}+{offset});}}"
-                            ))
+                            )
+                            .unwrap()
                         }
                         Instruction::Sub(_, _) => unreachable!(),
                         Instruction::Output(offset) => {
-                            c_code.push_str(&format!("putchar(*({PTR_NAME}+{offset}));"))
+                            write!(c_code, "putchar(*({PTR_NAME}+{offset}));").unwrap()
                         }
                         Instruction::Input(offset) => {
-                            c_code.push_str(&format!("*({PTR_NAME}+{offset})=getchar();"))
+                            write!(c_code, "*({PTR_NAME}+{offset})=getchar();").unwrap()
                         }
                         Instruction::MulAdd(to_offset, Value::Memory(offset), value)
                             if *offset >= 0 =>
                         {
                             let value = value_to_string(PTR_NAME, *value);
-                            c_code.push_str(&format!(
+                            write!(
+                                c_code,
                                 "*({PTR_NAME}+{to_offset})+={value}*{PTR_NAME}[{offset}];"
-                            ));
+                            )
+                            .unwrap();
                         }
                         Instruction::MulAdd(to_offset, Value::Memory(offset), value)
                             if *offset < 0 =>
                         {
                             let value = value_to_string(PTR_NAME, *value);
                             let check = check_zero(PTR_NAME, *offset);
-                            c_code.push_str(&format!(
-                            "{check}{{*({PTR_NAME}+{to_offset})+={value}**({PTR_NAME}+{offset});}}"
-                        ));
+                            write!(
+                                c_code,
+                                "{check}{{*({PTR_NAME}+{to_offset})+={value}**({PTR_NAME}+{offset});}}"
+                            )
+                            .unwrap();
                         }
                         Instruction::MulAdd(_, _, _) => unreachable!(),
                         Instruction::MulSub(to_offset, Value::Memory(offset), value)
                             if *offset >= 0 =>
                         {
                             let value = value_to_string(PTR_NAME, *value);
-                            c_code.push_str(&format!(
+                            write!(
+                                c_code,
                                 "*({PTR_NAME}+{to_offset})-={value}*{PTR_NAME}[{offset}];"
-                            ));
+                            )
+                            .unwrap();
                         }
                         Instruction::MulSub(to_offset, Value::Memory(offset), value)
                             if *offset < 0 =>
                         {
                             let value = value_to_string(PTR_NAME, *value);
                             let check = check_zero(PTR_NAME, *offset);
-                            c_code.push_str(&format!(
-                            "{check}{{*({PTR_NAME}+{to_offset})-={value}**({PTR_NAME}+{offset});}}"
-                        ));
+                            write!(c_code, "{check}{{*({PTR_NAME}+{to_offset})-={value}**({PTR_NAME}+{offset});}}").unwrap();
                         }
                         Instruction::MulSub(_, _, _) => unreachable!(),
                         Instruction::SetValue(offset, value) => {
                             let value = value_to_string(PTR_NAME, *value);
-                            c_code.push_str(&format!("*({PTR_NAME}+{offset})={value};"))
+                            write!(c_code, "*({PTR_NAME}+{offset})={value};").unwrap()
                         }
                     },
                 }

@@ -128,9 +128,8 @@ pub fn offset_opt(nodes: &Nodes) -> Nodes {
                 .collect::<Nodes>();
 
             match self.pointer_offset.cmp(&0) {
-                Ordering::Less => {
-                    out_nodes.push_back(PtrDecrement(self.pointer_offset.abs() as usize).into())
-                }
+                Ordering::Less => out_nodes
+                    .push_back(PtrDecrement(self.pointer_offset.unsigned_abs() as usize).into()),
                 Ordering::Greater => {
                     out_nodes.push_back(PtrIncrement(self.pointer_offset as usize).into())
                 }
@@ -259,9 +258,9 @@ impl SimplifiedNodes {
             loop_node @ Node::Loop(_) => {
                 // ポインターを動かしておく
                 match self.pointer_offset.cmp(&0) {
-                    Ordering::Less => self
-                        .nodes
-                        .push_back(PtrDecrement(self.pointer_offset.abs() as usize).into()),
+                    Ordering::Less => self.nodes.push_back(
+                        PtrDecrement(self.pointer_offset.unsigned_abs() as usize).into(),
+                    ),
                     Ordering::Greater => self
                         .nodes
                         .push_back(PtrIncrement(self.pointer_offset as usize).into()),
@@ -322,7 +321,7 @@ impl SimplifiedNodes {
 
         match self.pointer_offset.cmp(&0) {
             Ordering::Less => {
-                nodes.push_back(PtrDecrement(self.pointer_offset.abs() as usize).into())
+                nodes.push_back(PtrDecrement(self.pointer_offset.unsigned_abs() as usize).into())
             }
             Ordering::Greater => nodes.push_back(PtrIncrement(self.pointer_offset as usize).into()),
             Ordering::Equal => (),
