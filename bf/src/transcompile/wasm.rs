@@ -1,83 +1,159 @@
-use std::fmt::Write;
+use std::{fmt::Write, str::Chars};
 
 // use wasmtime::{Engine, Linker, Module, Store};
 // use wasmtime_wasi::WasiCtxBuilder;
 
-pub fn bf_wat(bf: &str) -> String {
-    fn code_to_wat(code: &str, memory_base_address: i32) -> String {
-        let mut loop_count = 0;
-        let mut loop_stack = Vec::new();
+#[derive(Debug, Clone)]
+enum Op {
+    Add,
+    Sub,
+    PtrAdd,
+    PtrSub,
+    Out,
+    // Input,
+}
 
-        let mut wat =
-            format!("(local $pointer i32) i32.const {memory_base_address} local.set $pointer ");
-        for code in code.chars() {
-            match code {
-                '+' => {
-                    wat += "local.get $pointer\n";
-                    wat += "i32.const 1\n";
-                    wat += "call $add";
-                    wat += "\n";
-                }
-                '-' => {
-                    wat += "local.get $pointer\n";
-                    wat += "i32.const 1\n";
-                    wat += "call $sub\n";
-                    wat += "\n";
-                }
-                '>' => {
-                    wat += "local.get $pointer\n";
-                    wat += "i32.const 1\n";
-                    wat += "i32.add\n";
-                    wat += "local.set $pointer\n";
-                    wat += "\n";
-                }
-                '<' => {
-                    wat += "local.get $pointer\n";
-                    wat += "i32.const 1\n";
-                    wat += "i32.sub\n";
-                    wat += "local.set $pointer\n";
-                    wat += "\n";
-                }
-                '.' => {
-                    wat += "local.get $pointer\n";
-                    wat += "i32.load8_u\n";
-                    wat += "call $print_char\n";
-                    wat += "\n";
-                }
-                '[' => {
-                    let loop_name = format!("loop_{loop_count}");
-                    loop_stack.push(loop_name.clone());
-                    let exit_name = format!("exit_{loop_count}");
-                    loop_count += 1;
+#[derive(Debug, Clone)]
+enum BlockItem {
+    Op(Op),
+    Loop(Block),
+}
 
-                    write!(
-                        wat,
-                        "
-(block ${exit_name}
-    (loop ${loop_name}
-        i32.const 0
-        local.get $pointer
-        i32.load8_u
+#[derive(Debug, Clone, Default)]
+struct Block {
+    items: Vec<BlockItem>,
+}
 
-        (br_if ${exit_name} (i32.eq))
-                    "
-                    )
-                    .unwrap();
+impl Block {
+    fn new() -> Self {
+        Self::default()
+    }
+    fn push_item(&mut self, item: BlockItem) {
+        self.items.push(item)
+    }
+    fn to_wat(&self, memory_base_address: i32) -> String {
+        fn block_to_wat(
+            block: &Block,
+            wat: &mut String,
+            loop_stack: &mut Vec<u32>,
+            mut loop_count: u32,
+        ) {
+            for item in &block.items {
+                match item {
+                    BlockItem::Op(op) => match op {
+                        Op::Add => {
+                            *wat += "local.get $pointer\n";
+                            *wat += "i32.const 1\n";
+                            *wat += "call $add";
+                            *wat += "\n";
+                        }
+                        Op::Sub => {
+                            *wat += "local.get $pointer\n";
+                            *wat += "i32.const 1\n";
+                            *wat += "call $sub\n";
+                            *wat += "\n";
+                        }
+                        Op::PtrAdd => {
+                            *wat += "local.get $pointer\n";
+                            *wat += "i32.const 1\n";
+                            *wat += "i32.add\n";
+                            *wat += "local.set $pointer\n";
+                            *wat += "\n";
+                        }
+                        Op::PtrSub => {
+                            *wat += "local.get $pointer\n";
+                            *wat += "i32.const 1\n";
+                            *wat += "i32.sub\n";
+                            *wat += "local.set $pointer\n";
+                            *wat += "\n";
+                        }
+                        Op::Out => {
+                            *wat += "local.get $pointer\n";
+                            *wat += "i32.load8_u\n";
+                            *wat += "call $print_char\n";
+                            *wat += "\n";
+                        }
+                    },
+                    BlockItem::Loop(block) => {
+                        loop_stack.push(loop_count);
+
+                        let loop_label = format!("loop_{loop_count}");
+                        let block_label = format!("block_{loop_count}");
+                        writeln!(
+                            wat,
+                            "(block ${block_label}
+                                    (loop ${loop_label}
+                                        i32.const 0
+                                        local.get $pointer
+                                        i32.load8_u
+
+                                        (br_if ${block_label} (i32.eq))\n"
+                        )
+                        .unwrap();
+
+                        loop_count += 1;
+                        block_to_wat(block, wat, loop_stack, loop_count);
+
+                        loop_stack.pop().unwrap();
+
+                        writeln!(wat, "(br ${loop_label})").unwrap();
+                        *wat += "))";
+                    }
                 }
-                ']' => {
-                    let loop_name = loop_stack.pop().unwrap();
-                    write!(wat, "(br ${loop_name})").unwrap();
-                    wat += "))";
-                }
-                _ => continue,
             }
         }
+
+        let mut wat = String::new();
+
+        writeln!(
+            wat,
+            "(local $pointer i32) i32.const {memory_base_address} local.set $pointer"
+        )
+        .unwrap();
+
+        let mut loop_stack = vec![];
+
+        block_to_wat(self, &mut wat, &mut loop_stack, 0);
+
         wat
     }
+}
 
-    let memory_base_address = 40;
+fn bf_to_block(bf: &str) -> Block {
+    fn inner(block: &mut Block, chars: &mut Chars) {
+        while let Some(char) = chars.next() {
+            match char {
+                '+' => block.push_item(BlockItem::Op(Op::Add)),
+                '-' => block.push_item(BlockItem::Op(Op::Sub)),
+                '>' => block.push_item(BlockItem::Op(Op::PtrAdd)),
+                '<' => block.push_item(BlockItem::Op(Op::PtrSub)),
+                '.' => block.push_item(BlockItem::Op(Op::Out)),
+                ',' => unimplemented!(),
+                '[' => {
+                    let mut b = Block::new();
+                    inner(&mut b, chars);
+                    block.push_item(BlockItem::Loop(b));
+                }
+                ']' => return,
+                _ => (),
+            }
+        }
+    }
+    let mut block = Block::new();
+    let mut bf_chars = bf.chars();
 
-    let mut wat = String::from(
+    inner(&mut block, &mut bf_chars);
+
+    block
+}
+
+pub fn bf_to_wat(bf: &str) -> String {
+    let block = bf_to_block(bf);
+    let body = block.to_wat(40);
+
+    // Base Wasmer
+    // https://github.com/wasmerio/wasmer/blob/75a98ab171bee010b9a7cd0f836919dc4519dcaf/lib/wasi/tests/stdio.rs
+    format!(
         r#"
 (module
     (import "wasi_unstable" "fd_write" (func $fd_write (param i32 i32 i32 i32) (result i32)))
@@ -117,18 +193,11 @@ pub fn bf_wat(bf: &str) -> String {
 
         i32.store8
     )
+
+    (func $main (export "_start") {body})
+)
 "#,
-    );
-
-    let main_func = format!(
-        "(func $main (export \"_start\") {})",
-        code_to_wat(bf, memory_base_address)
-    );
-
-    wat += &main_func;
-    wat += ")";
-
-    wat
+    )
 }
 
 // pub fn run_bf(bf: &str) -> anyhow::Result<()> {
