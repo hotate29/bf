@@ -3,12 +3,14 @@ use std::{fmt::Write, str::Chars};
 // use wasmtime::{Engine, Linker, Module, Store};
 // use wasmtime_wasi::WasiCtxBuilder;
 
-#[derive(Debug, Clone)]
+mod opt;
+
+#[derive(Debug, Clone, Copy)]
 enum Op {
-    Add,
-    Sub,
-    PtrAdd,
-    PtrSub,
+    Add(u32),
+    Sub(u32),
+    PtrAdd(u32),
+    PtrSub(u32),
     Out,
     Input,
 }
@@ -41,28 +43,28 @@ impl Block {
             for item in &block.items {
                 match item {
                     BlockItem::Op(op) => match op {
-                        Op::Add => {
+                        Op::Add(n) => {
                             *wat += "local.get $pointer\n";
-                            *wat += "i32.const 1\n";
+                            writeln!(wat, "i32.const {n}").unwrap();
                             *wat += "call $add";
                             *wat += "\n";
                         }
-                        Op::Sub => {
+                        Op::Sub(n) => {
                             *wat += "local.get $pointer\n";
-                            *wat += "i32.const 1\n";
+                            writeln!(wat, "i32.const {n}").unwrap();
                             *wat += "call $sub\n";
                             *wat += "\n";
                         }
-                        Op::PtrAdd => {
+                        Op::PtrAdd(n) => {
                             *wat += "local.get $pointer\n";
-                            *wat += "i32.const 1\n";
+                            writeln!(wat, "i32.const {n}").unwrap();
                             *wat += "i32.add\n";
                             *wat += "local.set $pointer\n";
                             *wat += "\n";
                         }
-                        Op::PtrSub => {
+                        Op::PtrSub(n) => {
                             *wat += "local.get $pointer\n";
-                            *wat += "i32.const 1\n";
+                            writeln!(wat, "i32.const {n}").unwrap();
                             *wat += "i32.sub\n";
                             *wat += "local.set $pointer\n";
                             *wat += "\n";
@@ -128,10 +130,10 @@ fn bf_to_block(bf: &str) -> Block {
     fn inner(block: &mut Block, chars: &mut Chars) {
         while let Some(char) = chars.next() {
             match char {
-                '+' => block.push_item(BlockItem::Op(Op::Add)),
-                '-' => block.push_item(BlockItem::Op(Op::Sub)),
-                '>' => block.push_item(BlockItem::Op(Op::PtrAdd)),
-                '<' => block.push_item(BlockItem::Op(Op::PtrSub)),
+                '+' => block.push_item(BlockItem::Op(Op::Add(1))),
+                '-' => block.push_item(BlockItem::Op(Op::Sub(1))),
+                '>' => block.push_item(BlockItem::Op(Op::PtrAdd(1))),
+                '<' => block.push_item(BlockItem::Op(Op::PtrSub(1))),
                 '.' => block.push_item(BlockItem::Op(Op::Out)),
                 ',' => block.push_item(BlockItem::Op(Op::Input)),
                 '[' => {
@@ -154,12 +156,13 @@ fn bf_to_block(bf: &str) -> Block {
 
 pub fn bf_to_wat(bf: &str) -> String {
     let block = bf_to_block(bf);
+    let block = opt::merge(block);
     let body = block.to_wat(40);
 
     // Base Wasmer
     // https://github.com/wasmerio/wasmer/blob/75a98ab171bee010b9a7cd0f836919dc4519dcaf/lib/wasi/tests/stdio.rs
     format!(
-r#"(module
+        r#"(module
     (import "wasi_unstable" "fd_write" (func $fd_write (param i32 i32 i32 i32) (result i32)))
     (import "wasi_unstable" "fd_read" (func $fd_read (param i32 i32 i32 i32) (result i32)))
     (memory (export "memory") 1 1000)
