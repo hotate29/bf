@@ -10,7 +10,7 @@ enum Op {
     PtrAdd,
     PtrSub,
     Out,
-    // Input,
+    Input,
 }
 
 #[derive(Debug, Clone)]
@@ -73,6 +73,11 @@ impl Block {
                             *wat += "call $print_char\n";
                             *wat += "\n";
                         }
+                        Op::Input => {
+                            *wat += "local.get $pointer\n";
+                            *wat += "call $input_char\n";
+                            *wat += "\n";
+                        }
                     },
                     BlockItem::Loop(block) => {
                         loop_stack.push(loop_count);
@@ -128,7 +133,7 @@ fn bf_to_block(bf: &str) -> Block {
                 '>' => block.push_item(BlockItem::Op(Op::PtrAdd)),
                 '<' => block.push_item(BlockItem::Op(Op::PtrSub)),
                 '.' => block.push_item(BlockItem::Op(Op::Out)),
-                ',' => unimplemented!(),
+                ',' => block.push_item(BlockItem::Op(Op::Input)),
                 '[' => {
                     let mut b = Block::new();
                     inner(&mut b, chars);
@@ -154,10 +159,22 @@ pub fn bf_to_wat(bf: &str) -> String {
     // Base Wasmer
     // https://github.com/wasmerio/wasmer/blob/75a98ab171bee010b9a7cd0f836919dc4519dcaf/lib/wasi/tests/stdio.rs
     format!(
-        r#"
-(module
+r#"(module
     (import "wasi_unstable" "fd_write" (func $fd_write (param i32 i32 i32 i32) (result i32)))
+    (import "wasi_unstable" "fd_read" (func $fd_read (param i32 i32 i32 i32) (result i32)))
     (memory (export "memory") 1 1000)
+    (func $input_char (param $ptr i32)
+        (i32.store (i32.const 4) (local.get $ptr))
+        (i32.store (i32.const 8) (i32.const 1))
+
+        (call $fd_read
+            (i32.const 0)
+            (i32.const 4)
+            (i32.const 1)
+            (i32.const 12)
+        )
+        drop
+    )
     (func $print_char (param $char i32)
         i32.const 0
         local.get $char
