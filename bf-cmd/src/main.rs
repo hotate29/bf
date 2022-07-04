@@ -11,7 +11,7 @@ use bf::{
     parse::{tokenize, Node},
     transcompile,
 };
-use clap::StructOpt;
+use clap::{ArgEnum, StructOpt};
 use log::{info, Level};
 
 #[derive(Debug, clap::Parser)]
@@ -40,11 +40,19 @@ struct RunArg {
 #[derive(Debug, clap::Parser)]
 struct TransArg {
     file: Option<PathBuf>,
+    #[clap(arg_enum, value_parser)]
+    target: TransTarget,
     #[clap(short, long)]
     optimize: bool,
     out: Option<PathBuf>,
     #[clap(short, long, default_value_t = 30000)]
     memory_len: usize,
+}
+
+#[derive(Debug, Clone, Copy, ArgEnum)]
+enum TransTarget {
+    C,
+    Wat,
 }
 
 macro_rules! time {
@@ -96,19 +104,24 @@ fn main() -> anyhow::Result<()> {
                 }
             };
 
-            let tokens = tokenize(&code);
+            let output = match arg.target {
+                TransTarget::C => {
+                    let tokens = tokenize(&code);
 
-            let mut root_node = Node::from_tokens(tokens)?;
+                    let mut root_node = Node::from_tokens(tokens)?;
 
-            if arg.optimize {
-                root_node = time!(optimize(&root_node))
-            }
+                    if arg.optimize {
+                        root_node = time!(optimize(&root_node))
+                    }
 
-            let code = transcompile::c::to_c(&root_node, arg.memory_len);
+                    transcompile::c::to_c(&root_node, arg.memory_len)
+                }
+                TransTarget::Wat => transcompile::wasm::bf_to_wat(&code),
+            };
 
             match arg.out {
-                Some(path) => fs::write(path, code)?,
-                None => println!("{code}"),
+                Some(path) => fs::write(path, output)?,
+                None => println!("{output}"),
             }
         }
     }
