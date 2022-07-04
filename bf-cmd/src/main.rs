@@ -12,7 +12,7 @@ use bf::{
     transcompile,
 };
 use clap::{ArgEnum, StructOpt};
-use log::{info, Level};
+use log::{info, warn, Level};
 
 #[derive(Debug, clap::Parser)]
 struct Command {
@@ -39,9 +39,10 @@ struct RunArg {
 
 #[derive(Debug, clap::Parser)]
 struct TransArg {
-    file: Option<PathBuf>,
     #[clap(arg_enum, value_parser)]
     target: TransTarget,
+    #[clap(value_parser)]
+    file: Option<PathBuf>,
     #[clap(short, long)]
     optimize: bool,
     out: Option<PathBuf>,
@@ -95,12 +96,20 @@ fn main() -> anyhow::Result<()> {
             info!("step: {step_count}");
         }
         SubCommand::Trans(arg) => {
-            let code = match arg.file {
-                Some(path) => fs::read_to_string(path)?,
+            let mut code = String::new();
+
+            match arg.file {
+                Some(path) => {
+                    let mut file = fs::File::open(path)?;
+                    file.read_to_string(&mut code)?;
+                }
                 None => {
-                    let mut code = String::new();
+                    if atty::is(atty::Stream::Stdin) {
+                        warn!(
+                            r#"This is pipe mode. If you want to input from a file, use the "file" argument."#
+                        );
+                    }
                     io::stdin().read_to_string(&mut code)?;
-                    code
                 }
             };
 
