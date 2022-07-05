@@ -46,14 +46,20 @@ impl Block {
                     BlockItem::Op(op) => match op {
                         Op::Add(n) => {
                             *wat += "local.get $pointer\n";
+                            *wat += "local.get $pointer\n";
+                            *wat += "i32.load8_u\n";
                             writeln!(wat, "i32.const {n}").unwrap();
-                            *wat += "call $add";
+                            *wat += "i32.add\n";
+                            *wat += "i32.store8\n";
                             *wat += "\n";
                         }
                         Op::Sub(n) => {
                             *wat += "local.get $pointer\n";
+                            *wat += "local.get $pointer\n";
+                            *wat += "i32.load8_u\n";
                             writeln!(wat, "i32.const {n}").unwrap();
-                            *wat += "call $sub\n";
+                            *wat += "i32.sub\n";
+                            *wat += "i32.store8\n";
                             *wat += "\n";
                         }
                         Op::PtrAdd(n) => {
@@ -203,25 +209,6 @@ pub fn bf_to_wat(bf: &str) -> String {
         )
         drop ;; Discard the number of bytes written from the top of the stack
     )
-    (func $add (param $pointer i32) (param $value i32)
-        local.get $pointer
-        local.get $pointer
-        i32.load8_u
-        local.get $value
-        i32.add
-
-        i32.store8
-    )
-    (func $sub (param $pointer i32) (param $value i32)
-        local.get $pointer
-        local.get $pointer
-        i32.load8_u
-        local.get $value
-        i32.sub
-
-        i32.store8
-    )
-
     (func $main (export "_start") {body})
 )
 "#,
