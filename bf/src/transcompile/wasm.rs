@@ -11,6 +11,7 @@ enum Op {
     Sub(u32),
     PtrAdd(u32),
     PtrSub(u32),
+    Clear,
     Out,
     Input,
 }
@@ -67,6 +68,12 @@ impl Block {
                             writeln!(wat, "i32.const {n}").unwrap();
                             *wat += "i32.sub\n";
                             *wat += "local.set $pointer\n";
+                            *wat += "\n";
+                        }
+                        Op::Clear => {
+                            *wat += "local.get $pointer\n";
+                            *wat += "i32.const 0\n";
+                            *wat += "i32.store8\n";
                             *wat += "\n";
                         }
                         Op::Out => {
@@ -157,6 +164,7 @@ fn bf_to_block(bf: &str) -> Block {
 pub fn bf_to_wat(bf: &str) -> String {
     let block = bf_to_block(bf);
     let block = opt::merge(block);
+    let block = opt::clear(block);
     let body = block.to_wat(40);
 
     // Base Wasmer

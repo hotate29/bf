@@ -41,3 +41,22 @@ pub(super) fn merge(block: Block) -> Block {
 
     merged_block
 }
+
+pub(super) fn clear(block: Block) -> Block {
+    let mut optimized_block = Block::new();
+
+    for item in block.items {
+        if let BlockItem::Loop(block) = item {
+            if let [BlockItem::Op(Op::Sub(1))] = block.items.as_slice() {
+                optimized_block.push_item(BlockItem::Op(Op::Clear));
+            } else {
+                let item = clear(block);
+                optimized_block.push_item(BlockItem::Loop(item));
+            }
+        } else {
+            optimized_block.push_item(item)
+        }
+    }
+
+    optimized_block
+}
