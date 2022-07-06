@@ -45,53 +45,88 @@ impl Block {
                 match item {
                     BlockItem::Op(op) => match op {
                         Op::Add(n) => {
-                            *wat += "local.get $pointer\n";
-                            *wat += "local.get $pointer\n";
-                            *wat += "i32.load8_u\n";
-                            writeln!(wat, "i32.const {n}").unwrap();
-                            *wat += "i32.add\n";
-                            *wat += "i32.store8\n";
-                            *wat += "\n";
+                            writeln!(
+                                wat,
+                                "
+                                local.get $pointer
+                                local.get $pointer
+                                i32.load8_u
+                                i32.const {n}
+                                i32.add
+                                i32.store8
+                                "
+                            )
+                            .unwrap();
                         }
                         Op::Sub(n) => {
-                            *wat += "local.get $pointer\n";
-                            *wat += "local.get $pointer\n";
-                            *wat += "i32.load8_u\n";
-                            writeln!(wat, "i32.const {n}").unwrap();
-                            *wat += "i32.sub\n";
-                            *wat += "i32.store8\n";
-                            *wat += "\n";
+                            writeln!(
+                                wat,
+                                "
+                                local.get $pointer
+                                local.get $pointer
+                                i32.load8_u
+                                i32.const {n}
+                                i32.sub
+                                i32.store8
+                                "
+                            )
+                            .unwrap();
                         }
                         Op::PtrAdd(n) => {
-                            *wat += "local.get $pointer\n";
-                            writeln!(wat, "i32.const {n}").unwrap();
-                            *wat += "i32.add\n";
-                            *wat += "local.set $pointer\n";
-                            *wat += "\n";
+                            writeln!(
+                                wat,
+                                "
+                                local.get $pointer
+                                i32.const {n}
+                                i32.add
+                                local.set $pointer
+                                "
+                            )
+                            .unwrap();
                         }
                         Op::PtrSub(n) => {
-                            *wat += "local.get $pointer\n";
-                            writeln!(wat, "i32.const {n}").unwrap();
-                            *wat += "i32.sub\n";
-                            *wat += "local.set $pointer\n";
-                            *wat += "\n";
+                            writeln!(
+                                wat,
+                                "
+                                local.get $pointer
+                                i32.const {n}
+                                i32.sub
+                                local.set $pointer
+                                "
+                            )
+                            .unwrap();
                         }
                         Op::Clear => {
-                            *wat += "local.get $pointer\n";
-                            *wat += "i32.const 0\n";
-                            *wat += "i32.store8\n";
-                            *wat += "\n";
+                            writeln!(
+                                *wat,
+                                "
+                                local.get $pointer
+                                i32.const 0
+                                i32.store8
+                                "
+                            )
+                            .unwrap();
                         }
                         Op::Out => {
-                            *wat += "local.get $pointer\n";
-                            *wat += "i32.load8_u\n";
-                            *wat += "call $print_char\n";
-                            *wat += "\n";
+                            writeln!(
+                                wat,
+                                "
+                                local.get $pointer
+                                i32.load8_u
+                                call $print_char
+                                "
+                            )
+                            .unwrap();
                         }
                         Op::Input => {
-                            *wat += "local.get $pointer\n";
-                            *wat += "call $input_char\n";
-                            *wat += "\n";
+                            writeln!(
+                                wat,
+                                "
+                                local.get $pointer
+                                call $input_char
+                                "
+                            )
+                            .unwrap();
                         }
                     },
                     BlockItem::Loop(block) => {
@@ -116,8 +151,7 @@ impl Block {
 
                         loop_stack.pop().unwrap();
 
-                        writeln!(wat, "(br ${loop_label})").unwrap();
-                        *wat += "))";
+                        writeln!(wat, "(br ${loop_label})))").unwrap();
                     }
                 }
             }
