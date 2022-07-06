@@ -11,6 +11,7 @@ enum Op {
     Sub(u32),
     PtrAdd(u32),
     PtrSub(u32),
+    Mul(i32, i32),
     Clear,
     Out,
     Input,
@@ -96,6 +97,40 @@ impl Block {
                             )
                             .unwrap();
                         }
+                        Op::Mul(of, x) => {
+                            writeln!(
+                                wat,
+                                "
+                                local.get $pointer
+                                i32.load8_u
+
+                                (if (i32.ne (i32.const 0))
+                                    (then
+                                        ;; (local $ptr i32)
+
+                                        local.get $pointer
+                                        i32.const {of}
+                                        i32.add
+                                        local.set $ptr
+
+                                        local.get $ptr
+
+                                        local.get $ptr
+                                        i32.load8_u
+
+                                        local.get $pointer
+                                        i32.load8_u
+                                        i32.const {x}
+                                        i32.mul
+
+                                        i32.add
+                                        i32.store8
+                                    )
+                                )
+                            "
+                            )
+                            .unwrap();
+                        }
                         Op::Clear => {
                             writeln!(
                                 *wat,
@@ -136,13 +171,15 @@ impl Block {
                         let block_label = format!("block_{loop_count}");
                         writeln!(
                             wat,
-                            "(block ${block_label}
+                            "
+                            (block ${block_label}
                                     (loop ${loop_label}
                                         i32.const 0
                                         local.get $pointer
                                         i32.load8_u
 
-                                        (br_if ${block_label} (i32.eq))\n"
+                                        (br_if ${block_label} (i32.eq))\n
+                            "
                         )
                         .unwrap();
 
@@ -161,7 +198,7 @@ impl Block {
 
         writeln!(
             wat,
-            "(local $pointer i32) i32.const {memory_base_address} local.set $pointer"
+            "(local $pointer i32) (local $ptr i32) i32.const {memory_base_address} local.set $pointer"
         )
         .unwrap();
 
@@ -205,6 +242,7 @@ pub fn bf_to_wat(bf: &str) -> String {
     let block = bf_to_block(bf);
     let block = opt::merge(block);
     let block = opt::clear(block);
+    let block = opt::mul(block);
     let body = block.to_wat(40);
 
     // Base Wasmer
