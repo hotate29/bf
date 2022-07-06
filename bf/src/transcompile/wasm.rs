@@ -173,11 +173,10 @@ impl Block {
                             "
                             (block ${block_label}
                                     (loop ${loop_label}
-                                        i32.const 0
                                         local.get $pointer
                                         i32.load8_u
 
-                                        (br_if ${block_label} (i32.eq))\n
+                                        (br_if ${block_label} (i32.eqz))\n
                             "
                         )
                         .unwrap();
