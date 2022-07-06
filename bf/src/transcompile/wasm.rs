@@ -49,13 +49,13 @@ impl Block {
                             writeln!(
                                 wat,
                                 "
+                                ;; Add
                                 local.get $pointer
                                 local.get $pointer
                                 i32.load8_u
                                 i32.const {n}
                                 i32.add
-                                i32.store8
-                                "
+                                i32.store8"
                             )
                             .unwrap();
                         }
@@ -63,13 +63,13 @@ impl Block {
                             writeln!(
                                 wat,
                                 "
+                                ;; Sub
                                 local.get $pointer
                                 local.get $pointer
                                 i32.load8_u
                                 i32.const {n}
                                 i32.sub
-                                i32.store8
-                                "
+                                i32.store8"
                             )
                             .unwrap();
                         }
@@ -77,11 +77,11 @@ impl Block {
                             writeln!(
                                 wat,
                                 "
+                                ;; Pointer Add
                                 local.get $pointer
                                 i32.const {n}
                                 i32.add
-                                local.set $pointer
-                                "
+                                local.set $pointer"
                             )
                             .unwrap();
                         }
@@ -89,11 +89,11 @@ impl Block {
                             writeln!(
                                 wat,
                                 "
+                                ;; Pointer Sub
                                 local.get $pointer
                                 i32.const {n}
                                 i32.sub
-                                local.set $pointer
-                                "
+                                local.set $pointer"
                             )
                             .unwrap();
                         }
@@ -101,13 +101,12 @@ impl Block {
                             writeln!(
                                 wat,
                                 "
+                                ;; Mul
                                 local.get $pointer
                                 i32.load8_u
 
                                 (if (i32.ne (i32.const 0))
                                     (then
-                                        ;; (local $ptr i32)
-
                                         local.get $pointer
                                         i32.const {of}
                                         i32.add
@@ -135,10 +134,10 @@ impl Block {
                             writeln!(
                                 *wat,
                                 "
+                                ;; Clear
                                 local.get $pointer
                                 i32.const 0
-                                i32.store8
-                                "
+                                i32.store8"
                             )
                             .unwrap();
                         }
@@ -146,10 +145,10 @@ impl Block {
                             writeln!(
                                 wat,
                                 "
+                                ;; Out
                                 local.get $pointer
                                 i32.load8_u
-                                call $print_char
-                                "
+                                call $print_char"
                             )
                             .unwrap();
                         }
@@ -157,9 +156,9 @@ impl Block {
                             writeln!(
                                 wat,
                                 "
+                                ;; Input
                                 local.get $pointer
-                                call $input_char
-                                "
+                                call $input_char"
                             )
                             .unwrap();
                         }
