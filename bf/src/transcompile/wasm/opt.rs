@@ -87,60 +87,68 @@ pub(super) fn mul(block: Block) -> Block {
             }
         }
 
-        return optimized_block;
-    }
+        optimized_block
+    } else {
+        let mut optimized_block = Block::new();
 
-    let mut optimized_block = Block::new();
+        for item in &block.items {
+            match item {
+                // こっちだったら最適化
+                BlockItem::Loop(loop_block) => {
+                    let mut offset_op = BTreeMap::new();
+                    let mut ptr_offset = 0;
 
-    for item in &block.items {
-        match item {
-            // こっちだったら最適化
-            BlockItem::Loop(loop_block) => {
-                let mut offset_op = BTreeMap::new();
-                let mut ptr_offset = 0;
+                    for item in &loop_block.items {
+                        match item {
+                            BlockItem::Loop(_) => unreachable!(),
+                            BlockItem::Op(op) => match op {
+                                Op::Add(v) => {
+                                    offset_op
+                                        .entry(ptr_offset)
+                                        .and_modify(|x| *x += *v as i32)
+                                        .or_insert(*v as i32);
+                                }
+                                Op::Sub(v) => {
+                                    offset_op
+                                        .entry(ptr_offset)
+                                        .and_modify(|x| *x -= *v as i32)
+                                        .or_insert(-(*v as i32));
+                                }
 
-                for item in &loop_block.items {
-                    match item {
-                        BlockItem::Loop(_) => unreachable!(),
-                        BlockItem::Op(op) => match op {
-                            Op::Add(v) => {
-                                offset_op
-                                    .entry(ptr_offset)
-                                    .and_modify(|x| *x += *v as i32)
-                                    .or_insert(*v as i32);
-                            }
-                            Op::Sub(v) => {
-                                offset_op
-                                    .entry(ptr_offset)
-                                    .and_modify(|x| *x -= *v as i32)
-                                    .or_insert(-(*v as i32));
-                            }
-
-                            Op::PtrAdd(of) => ptr_offset += *of as i32,
-                            Op::PtrSub(of) => ptr_offset -= *of as i32,
-                            Op::Mul(_, _) | Op::Clear | Op::Out | Op::Input => unreachable!(),
-                        },
-                    };
-                }
-
-                if ptr_offset != 0 || offset_op.get(&0) != Some(&-1) {
-                    return block;
-                }
-
-                for (offset, value) in offset_op {
-                    // 0は後で処理
-                    if offset == 0 {
+                                Op::PtrAdd(of) => ptr_offset += *of as i32,
+                                Op::PtrSub(of) => ptr_offset -= *of as i32,
+                                Op::Mul(_, _) | Op::Clear | Op::Out | Op::Input => unreachable!(),
+                            },
+                        };
+                    }
+                    if ptr_offset != 0
+                        || !(offset_op.get(&0) == Some(&-1) || offset_op.get(&0) == Some(&1))
+                    {
+                        eprintln!("失敗, {ptr_offset}, {offset_op:?}");
+                        return block;
+                    }
+                    if offset_op.len() == 1
+                        && (offset_op.get(&0) != Some(&-1) || offset_op.get(&0) != Some(&1))
+                    {
+                        optimized_block.push_item(BlockItem::Op(Op::Clear));
                         continue;
                     }
-                    optimized_block.push_item(BlockItem::Op(Op::Mul(offset, value)));
-                    // eprintln!("{offset}, {value}");
+
+                    for (offset, value) in offset_op {
+                        // 0は後で処理
+                        if offset == 0 {
+                            continue;
+                        }
+                        optimized_block.push_item(BlockItem::Op(Op::Mul(offset, value)));
+                        // eprintln!("{offset}, {value}");
+                    }
+
+                    optimized_block.push_item(BlockItem::Op(Op::Clear))
                 }
+                BlockItem::Op(op) => optimized_block.push_item(BlockItem::Op(*op)),
+            };
+        }
 
-                optimized_block.push_item(BlockItem::Op(Op::Clear))
-            }
-            BlockItem::Op(op) => optimized_block.push_item(BlockItem::Op(*op)),
-        };
+        optimized_block
     }
-
-    optimized_block
 }
