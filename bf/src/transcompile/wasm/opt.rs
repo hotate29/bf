@@ -14,10 +14,10 @@ impl Add for Op {
             (Op::Add(_) | Op::Sub(_), Op::Clear) => Some(Op::Clear),
             (Op::Clear, Op::Mul(_, _)) => Some(Op::Clear),
             (Op::Clear, Op::Clear) => Some(Op::Clear),
+            (Op::Sub(_), Op::Add(_)) => rhs + self,
+            (Op::PtrSub(_), Op::PtrAdd(_)) => rhs + self,
             (Op::Add(_), Op::Sub(_)) => None,
-            (Op::Sub(_), Op::Add(_)) => None,
             (Op::PtrAdd(_), Op::PtrSub(_)) => None,
-            (Op::PtrSub(_), Op::PtrAdd(_)) => None,
             (_, _) => None,
         }
     }
