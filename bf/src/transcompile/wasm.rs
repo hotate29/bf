@@ -239,10 +239,13 @@ fn bf_to_block(bf: &str) -> Block {
 }
 
 pub fn bf_to_wat(bf: &str) -> String {
-    let block = bf_to_block(bf);
+    let mut block = bf_to_block(bf);
+    block.items.insert(0, BlockItem::Op(Op::Clear));
+
     let block = opt::merge(block);
     let block = opt::clear(block);
     let block = opt::mul(block);
+    let block = opt::merge(block);
     let body = block.to_wat(40);
 
     // Base Wasmer

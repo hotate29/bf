@@ -11,6 +11,9 @@ impl Add for Op {
             (Op::Sub(n), Op::Sub(m)) => Some(Op::Sub(n + m)),
             (Op::PtrAdd(n), Op::PtrAdd(m)) => Some(Op::PtrAdd(n + m)),
             (Op::PtrSub(n), Op::PtrSub(m)) => Some(Op::PtrSub(n + m)),
+            (Op::Add(_) | Op::Sub(_), Op::Clear) => Some(Op::Clear),
+            (Op::Clear, Op::Mul(_, _)) => Some(Op::Clear),
+            (Op::Clear, Op::Clear) => Some(Op::Clear),
             (Op::Add(_), Op::Sub(_)) => None,
             (Op::Sub(_), Op::Add(_)) => None,
             (Op::PtrAdd(_), Op::PtrSub(_)) => None,
@@ -24,21 +27,30 @@ pub(super) fn merge(block: Block) -> Block {
     let mut merged_block = Block::new();
 
     for item in block.items {
-        let last_item = merged_block.items.last();
-        match (last_item, item) {
-            (Some(BlockItem::Op(lhs)), BlockItem::Op(rhs)) if (*lhs + rhs).is_some() => {
-                // 無念
-                let op = (*lhs + rhs).unwrap();
-                merged_block.items.pop().unwrap();
-                merged_block.push_item(BlockItem::Op(op))
+        match item {
+            item @ BlockItem::Op(_) => merged_block.push_item(item),
+            BlockItem::Loop(loop_block) => {
+                merged_block.push_item(BlockItem::Loop(merge(loop_block)))
             }
-            (_, BlockItem::Loop(loop_item)) => {
-                merged_block.push_item(BlockItem::Loop(merge(loop_item)))
+        };
+        loop {
+            if merged_block.items.len() < 2 {
+                break;
             }
-            (_, item) => (merged_block.push_item(item)),
+            let last2 = merged_block.items.iter().nth_back(1).unwrap();
+            let last = merged_block.items.last().unwrap();
+
+            match (last2, last) {
+                (BlockItem::Op(lhs), BlockItem::Op(rhs)) if (*lhs + *rhs).is_some() => {
+                    let op = (*lhs + *rhs).unwrap();
+                    merged_block.items.pop().unwrap();
+                    merged_block.items.pop().unwrap();
+                    merged_block.push_item(BlockItem::Op(op))
+                }
+                (_, _) => break,
+            }
         }
     }
-
     merged_block
 }
 
