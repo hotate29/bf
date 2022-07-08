@@ -94,8 +94,7 @@ pub(super) fn unwrap(block: &mut Block) {
 }
 
 pub(super) fn mul(block: Block) -> Block {
-    let mut is_optimizable = true;
-    for item in &block.items {
+    let is_optimizable = block.items.iter().all(|item| {
         if let BlockItem::Loop(loop_block) = item {
             let optimizable = loop_block.items.iter().any(|item| {
                 matches!(
@@ -104,23 +103,13 @@ pub(super) fn mul(block: Block) -> Block {
                         | BlockItem::Loop(_)
                 )
             });
-            is_optimizable &= !optimizable;
+            !optimizable
+        } else {
+            true
         }
-    }
+    });
 
-    if !is_optimizable {
-        let mut optimized_block = Block::new();
-        for item in block.items {
-            match item {
-                BlockItem::Op(op) => optimized_block.push_item(BlockItem::Op(op)),
-                BlockItem::Loop(loop_block) => {
-                    optimized_block.push_item(BlockItem::Loop(mul(loop_block)))
-                }
-            }
-        }
-
-        optimized_block
-    } else {
+    if is_optimizable {
         let mut optimized_block = Block::new();
 
         for item in &block.items {
@@ -179,6 +168,18 @@ pub(super) fn mul(block: Block) -> Block {
                 }
                 BlockItem::Op(op) => optimized_block.push_item(BlockItem::Op(*op)),
             };
+        }
+
+        optimized_block
+    } else {
+        let mut optimized_block = Block::new();
+        for item in block.items {
+            match item {
+                BlockItem::Op(op) => optimized_block.push_item(BlockItem::Op(op)),
+                BlockItem::Loop(loop_block) => {
+                    optimized_block.push_item(BlockItem::Loop(mul(loop_block)))
+                }
+            }
         }
 
         optimized_block
