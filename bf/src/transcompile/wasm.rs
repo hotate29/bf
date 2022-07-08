@@ -240,6 +240,7 @@ pub fn bf_to_wat(bf: &str) -> String {
     let mut block = bf_to_block(bf);
     block.items.insert(0, BlockItem::Op(Op::Clear));
 
+    opt::unwrap(&mut block);
     let block = opt::merge(block);
     let block = opt::clear(block);
     let block = opt::mul(block);

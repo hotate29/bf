@@ -73,6 +73,26 @@ pub(super) fn clear(block: Block) -> Block {
     optimized_block
 }
 
+pub(super) fn unwrap(block: &mut Block) {
+    fn inner(item: &mut BlockItem) -> bool {
+        if let BlockItem::Loop(loop_block) = item {
+            if loop_block.items.len() == 1 {
+                match loop_block.items.pop().unwrap() {
+                    op @ BlockItem::Op(_) => loop_block.push_item(op),
+                    BlockItem::Loop(deep_loop_block) => *loop_block = deep_loop_block,
+                }
+            }
+        }
+        false
+    }
+    block.items.iter_mut().for_each(|item| {
+        while inner(item) {}
+        if let BlockItem::Loop(loop_block) = item {
+            unwrap(loop_block)
+        }
+    });
+}
+
 pub(super) fn mul(block: Block) -> Block {
     let mut is_optimizable = true;
     for item in &block.items {
