@@ -16,6 +16,15 @@ enum Op {
     Out,
     Input,
 }
+impl Op {
+    fn ptr(of: i32) -> Self {
+        if of <= 0 {
+            Op::PtrSub(-of as u32)
+        } else {
+            Op::PtrAdd(of as u32)
+        }
+    }
+}
 
 #[derive(Debug, Clone)]
 enum BlockItem {
