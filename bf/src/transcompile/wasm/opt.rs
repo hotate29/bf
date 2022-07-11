@@ -28,10 +28,10 @@ pub(super) fn merge(block: Block) -> Block {
 
     for item in block.items {
         match item {
-            item @ BlockItem::Op(_) => merged_block.push_item(item),
             BlockItem::Loop(loop_block) => {
                 merged_block.push_item(BlockItem::Loop(merge(loop_block)))
             }
+            item => merged_block.push_item(item),
         };
         loop {
             if merged_block.items.len() < 2 {
@@ -78,8 +78,8 @@ pub(super) fn unwrap(block: &mut Block) {
         if let BlockItem::Loop(loop_block) = item {
             if loop_block.items.len() == 1 {
                 match loop_block.items.pop().unwrap() {
-                    op @ BlockItem::Op(_) => loop_block.push_item(op),
                     BlockItem::Loop(deep_loop_block) => *loop_block = deep_loop_block,
+                    item => loop_block.push_item(item),
                 }
             }
         }
@@ -201,10 +201,10 @@ pub(super) fn mul(block: Block) -> Block {
         let mut optimized_block = Block::new();
         for item in block.items {
             match item {
-                BlockItem::Op(op) => optimized_block.push_item(BlockItem::Op(op)),
                 BlockItem::Loop(loop_block) => {
                     optimized_block.push_item(BlockItem::Loop(mul(loop_block)))
                 }
+                item => optimized_block.push_item(item),
             }
         }
 
