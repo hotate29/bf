@@ -1,6 +1,7 @@
 use std::{fmt::Write, str::Chars};
 
 mod opt;
+mod wasm_binary;
 
 #[derive(Debug, Clone, Copy)]
 enum Op {
