@@ -64,20 +64,28 @@ impl Type {
     }
 }
 
-pub struct Module {}
+struct Module {
+    sections: Vec<Section>,
+}
 impl Module {
-    pub fn new() -> Self {
-        Module {}
+    fn new() -> Self {
+        Module {
+            sections: Vec::new(),
+        }
     }
 
-    pub fn write(&self, mut writer: impl Write) -> io::Result<()> {
-        writer.write_all(WASM_BINARY_MAGIC.to_le_bytes().as_slice())?;
-        writer.write_all(WASM_BINARY_VERSION.to_le_bytes().as_slice())?;
+    fn write(&self, mut w: impl Write) -> io::Result<()> {
+        w.write_all(WASM_BINARY_MAGIC.to_le_bytes().as_slice())?;
+        w.write_all(WASM_BINARY_VERSION.to_le_bytes().as_slice())?;
+
+        for section in &self.sections {
+            section.write(&mut w)?;
+        }
         Ok(())
     }
 }
-enum Section {
-    Type(Type),
+pub enum Section {
+    Type(TypeSection),
     Import,
     Function,
     Table,
@@ -87,4 +95,46 @@ enum Section {
     Start,
     Element,
     Code,
+}
+impl Section {
+    fn write(&self, w: impl Write) -> io::Result<()> {
+        match self {
+            Section::Type(type_section) => type_section.write(w),
+            Section::Import => todo!(),
+            Section::Function => todo!(),
+            Section::Table => unimplemented!(),
+            Section::Memory => todo!(),
+            Section::Data => unimplemented!(),
+            Section::Global => unimplemented!(),
+            Section::Start => todo!(),
+            Section::Element => todo!(),
+            Section::Code => todo!(),
+        }
+    }
+}
+
+pub struct TypeSection {
+    types: Vec<Type>,
+}
+impl TypeSection {
+    fn new() -> Self {
+        Self { types: Vec::new() }
+    }
+    fn write(&self, mut w: impl Write) -> io::Result<()> {
+        let mut type_bytes = Vec::new();
+        for ty in &self.types {
+            ty.write(&mut type_bytes)?;
+        }
+
+        let id = Var(1u8);
+        id.write(&mut w)?;
+
+        let payload_len = Var(type_bytes.len() as u32);
+        payload_len.write(&mut w)?;
+
+        let type_count = Var(self.types.len() as u32);
+        type_count.write(&mut w)?;
+
+        w.write_all(type_bytes.as_slice())
+    }
 }
