@@ -5,7 +5,7 @@ mod var;
 
 use std::io::{self, Write};
 
-use var::{Var, VarImpl};
+use var::Var;
 
 enum Type {
     I32,
