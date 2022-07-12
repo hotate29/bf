@@ -34,28 +34,30 @@ impl Type {
     fn opcode_var(&self) -> Var<i8> {
         Var(self.opcode_int())
     }
-    fn write(&self, mut writer: impl Write) -> io::Result<()> {
+    fn write(&self, mut w: impl Write) -> io::Result<()> {
         match self {
             Type::I32 | Type::I64 | Type::F32 | Type::F64 | Type::Void => {
-                self.opcode_var().write(writer)
+                self.opcode_var().write(w)
             }
             // AnyFuncを使う予定は無いのでunimplemented!
             Type::AnyFunc => unimplemented!(),
             Type::Func { params, result } => {
-                self.opcode_var().write(&mut writer)?;
+                // Func
+                self.opcode_var().write(&mut w)?;
 
+                // Len
                 let params_len = Var(params.len() as u32);
-                params_len.write(&mut writer)?;
+                params_len.write(&mut w)?;
 
                 for param_type in params {
-                    param_type.write(&mut writer)?
+                    param_type.write(&mut w)?
                 }
 
                 if let Some(result) = result {
-                    Var(true).write(&mut writer)?;
-                    result.write(writer)?
+                    Var(true).write(&mut w)?;
+                    result.write(w)?
                 } else {
-                    Var(false).write(&mut writer)?;
+                    Var(false).write(w)?;
                 }
 
                 Ok(())
