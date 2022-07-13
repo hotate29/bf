@@ -93,6 +93,8 @@ impl Module {
 
 #[test]
 fn a() {
+    use crate::transcompile::wasm::wasm_binary::section::{ImportEntry, ImportSection};
+
     use std::fs::File;
 
     let mut module = Module::new();
@@ -100,20 +102,24 @@ fn a() {
     let mut type_section = TypeSection::new();
 
     type_section.push(Type::Func {
-        params: vec![Type::I32],
+        params: vec![Type::I32, Type::I32, Type::I32, Type::I32],
         result: Some(Box::new(Type::I32)),
-    });
-    type_section.push(Type::Func {
-        params: vec![Type::I32, Type::I32],
-        result: Some(Box::new(Type::I32)),
-    });
-    type_section.push(Type::Func {
-        params: vec![Type::F32, Type::F32],
-        result: Some(Box::new(Type::F32)),
     });
 
     module.sections.push(Section::Type(type_section));
 
-    let mut file = File::create("aa").unwrap();
+    let mut import_section = ImportSection::new();
+
+    let entry = ImportEntry::function(
+        "wasi_unstable".to_string(),
+        "fd_write".to_string(),
+        Var(0_u32),
+    );
+
+    import_section.push(entry);
+
+    module.sections.push(Section::Import(import_section));
+
+    let mut file = File::create("aa.wasm").unwrap();
     module.write(&mut file).unwrap();
 }
