@@ -8,7 +8,7 @@ pub enum Section {
     Import(ImportSection),
     Function(FunctionSection),
     Table,
-    Memory,
+    Memory(MemorySection),
     Data,
     Global,
     Start,
@@ -22,7 +22,7 @@ impl Section {
             Section::Import(_) => Var(2u8),
             Section::Function(_) => Var(3u8),
             Section::Table => todo!(),
-            Section::Memory => todo!(),
+            Section::Memory(_) => Var(5u8),
             Section::Data => todo!(),
             Section::Global => todo!(),
             Section::Start => todo!(),
@@ -37,16 +37,10 @@ impl Section {
         let mut payload = Vec::new();
 
         match self {
-            Section::Type(type_section) => {
-                type_section.write(&mut payload)?;
-            }
-            Section::Import(import_section) => {
-                import_section.write(&mut payload)?;
-            }
-            Section::Function(function_section) => {
-                function_section.write(&mut payload)?;
-            }
-            Section::Memory => todo!(),
+            Section::Type(type_section) => type_section.write(&mut payload)?,
+            Section::Import(import_section) => import_section.write(&mut payload)?,
+            Section::Function(function_section) => function_section.write(&mut payload)?,
+            Section::Memory(memory_section) => memory_section.write(&mut payload)?,
             Section::Start => todo!(),
             Section::Code => todo!(),
             Section::Table | Section::Data | Section::Global | Section::Element => unimplemented!(),
@@ -178,6 +172,56 @@ impl FunctionSection {
 
         for index in &self.types {
             index.write(&mut w)?;
+        }
+        Ok(())
+    }
+}
+
+pub struct MemorySection {
+    entries: Vec<MemoryType>,
+}
+
+impl MemorySection {
+    pub fn new() -> Self {
+        Self {
+            entries: Vec::new(),
+        }
+    }
+    pub fn push(&mut self, memory_type: MemoryType) {
+        self.entries.push(memory_type)
+    }
+    fn write(&self, mut w: impl Write) -> io::Result<()> {
+        let count = Var(self.entries.len() as u32);
+        count.write(&mut w)?;
+
+        for entry in &self.entries {
+            entry.write(&mut w)?;
+        }
+
+        Ok(())
+    }
+}
+
+pub struct MemoryType {
+    pub limits: ResizableLimits,
+}
+impl MemoryType {
+    fn write(&self, w: impl Write) -> io::Result<()> {
+        self.limits.write(w)
+    }
+}
+
+pub struct ResizableLimits {
+    pub flags: Var<bool>,
+    pub initial: Var<u32>,
+    pub maximum: Option<Var<u32>>,
+}
+impl ResizableLimits {
+    fn write(&self, mut w: impl Write) -> io::Result<()> {
+        self.flags.write(&mut w)?;
+        self.initial.write(&mut w)?;
+        if let Some(maximum) = &self.maximum {
+            maximum.write(&mut w)?;
         }
         Ok(())
     }
