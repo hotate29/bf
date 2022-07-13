@@ -31,51 +31,32 @@ impl Section {
         }
     }
     pub fn write(&self, mut w: impl Write) -> io::Result<()> {
+        let section_id = self.section_id();
+        section_id.write(&mut w)?;
+
+        let mut payload = Vec::new();
+
         match self {
             Section::Type(type_section) => {
-                let mut payload = Vec::new();
                 type_section.write(&mut payload)?;
-
-                let section_id = self.section_id();
-                section_id.write(&mut w)?;
-
-                let payload_size = Var(payload.len() as u32);
-                payload_size.write(&mut w)?;
-
-                w.write_all(&payload)?
             }
             Section::Import(import_section) => {
-                let mut payload = Vec::new();
                 import_section.write(&mut payload)?;
-
-                let section_id = self.section_id();
-                section_id.write(&mut w)?;
-
-                let payload_size = Var(payload.len() as u32);
-                payload_size.write(&mut w)?;
-
-                w.write_all(&payload)?
             }
             Section::Function(function_section) => {
-                let mut payload = Vec::new();
                 function_section.write(&mut payload)?;
-
-                let section_id = self.section_id();
-                section_id.write(&mut w)?;
-
-                let payload_size = Var(payload.len() as u32);
-                payload_size.write(&mut w)?;
-
-                w.write_all(&payload)?
             }
-            Section::Table => unimplemented!(),
             Section::Memory => todo!(),
-            Section::Data => unimplemented!(),
-            Section::Global => unimplemented!(),
             Section::Start => todo!(),
-            Section::Element => todo!(),
             Section::Code => todo!(),
+            Section::Table | Section::Data | Section::Global | Section::Element => unimplemented!(),
         }
+
+        let payload_size = Var(payload.len() as u32);
+        payload_size.write(&mut w)?;
+
+        w.write_all(&payload)?;
+
         Ok(())
     }
 }
