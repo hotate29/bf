@@ -1,13 +1,15 @@
 const WASM_BINARY_MAGIC: u32 = 0x6d736100; // \0asm
 const WASM_BINARY_VERSION: u32 = 1;
 
+mod section;
 mod var;
 
 use std::io::{self, prelude::*};
 
+use section::{Section, TypeSection};
 use var::Var;
 
-enum Type {
+pub enum Type {
     I32,
     I64,
     F32,
@@ -88,58 +90,30 @@ impl Module {
         Ok(())
     }
 }
-pub enum Section {
-    Type(TypeSection),
-    Import,
-    Function,
-    Table,
-    Memory,
-    Data,
-    Global,
-    Start,
-    Element,
-    Code,
-}
-impl Section {
-    fn write(&self, w: impl Write) -> io::Result<()> {
-        match self {
-            Section::Type(type_section) => type_section.write(w),
-            Section::Import => todo!(),
-            Section::Function => todo!(),
-            Section::Table => unimplemented!(),
-            Section::Memory => todo!(),
-            Section::Data => unimplemented!(),
-            Section::Global => unimplemented!(),
-            Section::Start => todo!(),
-            Section::Element => todo!(),
-            Section::Code => todo!(),
-        }
-    }
-}
 
-pub struct TypeSection {
-    types: Vec<Type>,
-}
-impl TypeSection {
-    fn new() -> Self {
-        Self { types: Vec::new() }
-    }
-    fn write(&self, mut w: impl Write) -> io::Result<()> {
-        let mut payload = Vec::new();
+#[test]
+fn a() {
+    use std::fs::File;
 
-        let type_count = Var(self.types.len() as u32);
-        type_count.write(&mut payload)?;
+    let mut module = Module::new();
 
-        for ty in &self.types {
-            ty.write(&mut payload)?;
-        }
+    let mut type_section = TypeSection::new();
 
-        let id = Var(1u8);
-        id.write(&mut w)?;
+    type_section.push(Type::Func {
+        params: vec![Type::I32],
+        result: Some(Box::new(Type::I32)),
+    });
+    type_section.push(Type::Func {
+        params: vec![Type::I32, Type::I32],
+        result: Some(Box::new(Type::I32)),
+    });
+    type_section.push(Type::Func {
+        params: vec![Type::F32, Type::F32],
+        result: Some(Box::new(Type::F32)),
+    });
 
-        let payload_len = Var(payload.len() as u32);
-        payload_len.write(&mut w)?;
+    module.sections.push(Section::Type(type_section));
 
-        w.write_all(&payload)
-    }
+    let mut file = File::create("aa").unwrap();
+    module.write(&mut file).unwrap();
 }
