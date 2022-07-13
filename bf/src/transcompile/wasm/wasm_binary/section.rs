@@ -16,10 +16,46 @@ pub enum Section {
     Code,
 }
 impl Section {
-    pub fn write(&self, w: impl Write) -> io::Result<()> {
+    fn section_id(&self) -> Var<u8> {
         match self {
-            Section::Type(type_section) => type_section.write(w),
-            Section::Import(import_section) => import_section.write(w),
+            Section::Type(_) => Var(1u8),
+            Section::Import(_) => Var(2u8),
+            Section::Function => todo!(),
+            Section::Table => todo!(),
+            Section::Memory => todo!(),
+            Section::Data => todo!(),
+            Section::Global => todo!(),
+            Section::Start => todo!(),
+            Section::Element => todo!(),
+            Section::Code => todo!(),
+        }
+    }
+    pub fn write(&self, mut w: impl Write) -> io::Result<()> {
+        match self {
+            Section::Type(type_section) => {
+                let mut payload = Vec::new();
+                type_section.write(&mut payload)?;
+
+                let section_id = self.section_id();
+                section_id.write(&mut w)?;
+
+                let payload_size = Var(payload.len() as u32);
+                payload_size.write(&mut w)?;
+
+                w.write_all(&payload)?
+            }
+            Section::Import(import_section) => {
+                let mut payload = Vec::new();
+                import_section.write(&mut payload)?;
+
+                let section_id = self.section_id();
+                section_id.write(&mut w)?;
+
+                let payload_size = Var(payload.len() as u32);
+                payload_size.write(&mut w)?;
+
+                w.write_all(&payload)?
+            }
             Section::Function => todo!(),
             Section::Table => unimplemented!(),
             Section::Memory => todo!(),
@@ -29,6 +65,7 @@ impl Section {
             Section::Element => todo!(),
             Section::Code => todo!(),
         }
+        Ok(())
     }
 }
 
@@ -43,22 +80,14 @@ impl TypeSection {
         self.types.push(ty);
     }
     pub fn write(&self, mut w: impl Write) -> io::Result<()> {
-        let mut payload = Vec::new();
-
         let type_count = Var(self.types.len() as u32);
-        type_count.write(&mut payload)?;
+        type_count.write(&mut w)?;
 
         for ty in &self.types {
-            ty.write(&mut payload)?;
+            ty.write(&mut w)?;
         }
 
-        let id = Var(1u8);
-        id.write(&mut w)?;
-
-        let payload_len = Var(payload.len() as u32);
-        payload_len.write(&mut w)?;
-
-        w.write_all(&payload)
+        Ok(())
     }
 }
 
@@ -75,22 +104,13 @@ impl ImportSection {
         self.import_entries.push(entry);
     }
     fn write(&self, mut w: impl Write) -> io::Result<()> {
-        let section_id = Var(2_u32);
-        section_id.write(&mut w)?;
-
-        let mut payload = Vec::new();
-
         let entry_count = Var(self.import_entries.len() as u32);
-        entry_count.write(&mut payload)?;
+        entry_count.write(&mut w)?;
 
         for entry in &self.import_entries {
-            entry.write(&mut payload)?;
+            entry.write(&mut w)?;
         }
-
-        let payload_size = Var(payload.len() as u32);
-        payload_size.write(&mut w)?;
-
-        w.write_all(&payload)
+        Ok(())
     }
 }
 
@@ -145,7 +165,7 @@ impl ImportType {
 #[repr(u8)]
 enum ImportKind {
     Function = 0,
-    Table = 1,
-    Memory = 2,
-    Global = 3,
+    // Table = 1,
+    // Memory = 2,
+    // Global = 3,
 }
