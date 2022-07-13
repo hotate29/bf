@@ -95,7 +95,7 @@ impl Module {
 fn a() {
     use crate::transcompile::wasm::wasm_binary::section::{
         ExportEntry, ExportSection, ExternalKind, ImportEntry, ImportSection, MemorySection,
-        MemoryType, ResizableLimits,
+        MemoryType, ResizableLimits, StartSection,
     };
 
     use std::fs::File;
@@ -153,6 +153,10 @@ fn a() {
     export_section.push(export_entry);
 
     module.sections.push(Section::Export(export_section));
+
+    let start_section = StartSection::new(Var(0));
+
+    module.sections.push(Section::Start(start_section));
 
     let mut file = File::create("aa.wasm").unwrap();
     module.write(&mut file).unwrap();
