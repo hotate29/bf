@@ -6,7 +6,7 @@ use super::Type;
 pub enum Section {
     Type(TypeSection),
     Import(ImportSection),
-    Function,
+    Function(FunctionSection),
     Table,
     Memory,
     Data,
@@ -20,7 +20,7 @@ impl Section {
         match self {
             Section::Type(_) => Var(1u8),
             Section::Import(_) => Var(2u8),
-            Section::Function => todo!(),
+            Section::Function(_) => Var(3u8),
             Section::Table => todo!(),
             Section::Memory => todo!(),
             Section::Data => todo!(),
@@ -56,7 +56,18 @@ impl Section {
 
                 w.write_all(&payload)?
             }
-            Section::Function => todo!(),
+            Section::Function(function_section) => {
+                let mut payload = Vec::new();
+                function_section.write(&mut payload)?;
+
+                let section_id = self.section_id();
+                section_id.write(&mut w)?;
+
+                let payload_size = Var(payload.len() as u32);
+                payload_size.write(&mut w)?;
+
+                w.write_all(&payload)?
+            }
             Section::Table => unimplemented!(),
             Section::Memory => todo!(),
             Section::Data => unimplemented!(),
@@ -168,4 +179,25 @@ enum ImportKind {
     // Table = 1,
     // Memory = 2,
     // Global = 3,
+}
+
+pub struct FunctionSection {
+    types: Vec<Var<u32>>,
+}
+impl FunctionSection {
+    pub fn new() -> Self {
+        Self { types: Vec::new() }
+    }
+    pub fn push(&mut self, index: Var<u32>) {
+        self.types.push(index)
+    }
+    fn write(&self, mut w: impl Write) -> io::Result<()> {
+        let count = Var(self.types.len() as u32);
+        count.write(&mut w)?;
+
+        for index in &self.types {
+            index.write(&mut w)?;
+        }
+        Ok(())
+    }
 }

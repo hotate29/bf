@@ -93,6 +93,7 @@ impl Module {
 
 #[test]
 fn a() {
+    use crate::transcompile::wasm::wasm_binary::section::FunctionSection;
     use crate::transcompile::wasm::wasm_binary::section::{ImportEntry, ImportSection};
 
     use std::fs::File;
@@ -115,10 +116,15 @@ fn a() {
         "fd_write".to_string(),
         Var(0_u32),
     );
-
     import_section.push(entry);
 
     module.sections.push(Section::Import(import_section));
+
+    let mut function_section = FunctionSection::new();
+
+    function_section.push(Var(0));
+
+    module.sections.push(Section::Function(function_section));
 
     let mut file = File::create("aa.wasm").unwrap();
     module.write(&mut file).unwrap();
