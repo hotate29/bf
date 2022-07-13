@@ -125,20 +125,21 @@ impl TypeSection {
         Self { types: Vec::new() }
     }
     fn write(&self, mut w: impl Write) -> io::Result<()> {
-        let mut type_bytes = Vec::new();
+        let mut payload = Vec::new();
+
+        let type_count = Var(self.types.len() as u32);
+        type_count.write(&mut payload)?;
+
         for ty in &self.types {
-            ty.write(&mut type_bytes)?;
+            ty.write(&mut payload)?;
         }
 
         let id = Var(1u8);
         id.write(&mut w)?;
 
-        let payload_len = Var(type_bytes.len() as u32);
+        let payload_len = Var(payload.len() as u32);
         payload_len.write(&mut w)?;
 
-        let type_count = Var(self.types.len() as u32);
-        type_count.write(&mut w)?;
-
-        w.write_all(type_bytes.as_slice())
+        w.write_all(&payload)
     }
 }
