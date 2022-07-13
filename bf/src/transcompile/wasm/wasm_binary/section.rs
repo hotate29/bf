@@ -7,8 +7,9 @@ pub enum Section {
     Type(TypeSection),
     Import(ImportSection),
     Function(FunctionSection),
-    Table,
     Memory(MemorySection),
+    Export(ExportSection),
+    Table,
     Data,
     Global,
     Start,
@@ -23,8 +24,9 @@ impl Section {
             Section::Function(_) => Var(3u8),
             Section::Table => todo!(),
             Section::Memory(_) => Var(5u8),
-            Section::Data => todo!(),
             Section::Global => todo!(),
+            Section::Export(_) => Var(7),
+            Section::Data => todo!(),
             Section::Start => todo!(),
             Section::Element => todo!(),
             Section::Code => todo!(),
@@ -41,6 +43,7 @@ impl Section {
             Section::Import(import_section) => import_section.write(&mut payload)?,
             Section::Function(function_section) => function_section.write(&mut payload)?,
             Section::Memory(memory_section) => memory_section.write(&mut payload)?,
+            Section::Export(export_section) => export_section.write(&mut payload)?,
             Section::Start => todo!(),
             Section::Code => todo!(),
             Section::Table | Section::Data | Section::Global | Section::Element => unimplemented!(),
@@ -133,9 +136,9 @@ enum ImportType {
     // Global,
 }
 impl ImportType {
-    fn kind(&self) -> ImportKind {
+    fn kind(&self) -> ExternalKind {
         match self {
-            ImportType::Function { .. } => ImportKind::Function,
+            ImportType::Function { .. } => ExternalKind::Function,
         }
     }
     fn write(&self, mut w: impl Write) -> io::Result<()> {
@@ -149,10 +152,11 @@ impl ImportType {
 }
 
 #[repr(u8)]
-enum ImportKind {
+#[derive(Debug, Clone, Copy)]
+pub enum ExternalKind {
     Function = 0,
     // Table = 1,
-    // Memory = 2,
+    Memory = 2,
     // Global = 3,
 }
 
@@ -224,5 +228,47 @@ impl ResizableLimits {
             maximum.write(&mut w)?;
         }
         Ok(())
+    }
+}
+
+pub struct ExportSection {
+    entries: Vec<ExportEntry>,
+}
+
+impl ExportSection {
+    pub fn new() -> Self {
+        Self {
+            entries: Vec::new(),
+        }
+    }
+    pub fn push(&mut self, entry: ExportEntry) {
+        self.entries.push(entry)
+    }
+    fn write(&self, mut w: impl Write) -> io::Result<()> {
+        let count = Var(self.entries.len() as u32);
+        count.write(&mut w)?;
+        for entry in &self.entries {
+            entry.write(&mut w)?
+        }
+        Ok(())
+    }
+}
+
+pub struct ExportEntry {
+    pub field: String,
+    pub kind: ExternalKind,
+    pub index: Var<u32>,
+}
+
+impl ExportEntry {
+    fn write(&self, mut w: impl Write) -> io::Result<()> {
+        let field_len = Var(self.field.len() as u32);
+        field_len.write(&mut w)?;
+
+        w.write_all(self.field.as_bytes())?;
+
+        w.write_all(&[self.kind as u8])?;
+
+        self.index.write(w)
     }
 }

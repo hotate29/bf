@@ -94,7 +94,8 @@ impl Module {
 #[test]
 fn a() {
     use crate::transcompile::wasm::wasm_binary::section::{
-        ImportEntry, ImportSection, MemorySection, MemoryType, ResizableLimits,
+        ExportEntry, ExportSection, ExternalKind, ImportEntry, ImportSection, MemorySection,
+        MemoryType, ResizableLimits,
     };
 
     use std::fs::File;
@@ -140,6 +141,18 @@ fn a() {
     memory_section.push(limits);
 
     module.sections.push(Section::Memory(memory_section));
+
+    let mut export_section = ExportSection::new();
+
+    let export_entry = ExportEntry {
+        field: "memory".to_string(),
+        kind: ExternalKind::Memory,
+        index: Var(0),
+    };
+
+    export_section.push(export_entry);
+
+    module.sections.push(Section::Export(export_section));
 
     let mut file = File::create("aa.wasm").unwrap();
     module.write(&mut file).unwrap();
