@@ -22,13 +22,13 @@ enum Type {
 impl Type {
     fn opcode_int(&self) -> i8 {
         match self {
-            Type::I32 => -1,
-            Type::I64 => -2,
-            Type::F32 => -3,
-            Type::F64 => -4,
-            Type::AnyFunc => -10,
-            Type::Func { .. } => -20,
-            Type::Void => -40,
+            Type::I32 => -0x1,
+            Type::I64 => -0x2,
+            Type::F32 => -0x3,
+            Type::F64 => -0x4,
+            Type::AnyFunc => -0x10,
+            Type::Func { .. } => -0x20,
+            Type::Void => -0x40,
         }
     }
     fn opcode_var(&self) -> Var<i8> {
