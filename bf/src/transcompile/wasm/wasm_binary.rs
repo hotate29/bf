@@ -3,7 +3,7 @@ const WASM_BINARY_VERSION: u32 = 1;
 
 mod var;
 
-use std::io::{self, Write};
+use std::io::{self, prelude::*};
 
 use var::Var;
 
@@ -34,7 +34,9 @@ impl Type {
     fn opcode_var(&self) -> Var<i8> {
         Var(self.opcode_int())
     }
-    fn write(&self, mut w: impl Write) -> io::Result<()> {
+    // 本当はimpl Writeとしたいけど、E0275エラーが発生してコンパイルが通らなかった。かなしい
+    // https://doc.rust-lang.org/error-index.html#E0275
+    fn write(&self, mut w: &mut dyn Write) -> io::Result<()> {
         match self {
             Type::I32 | Type::I64 | Type::F32 | Type::F64 | Type::Void => {
                 self.opcode_var().write(w)
