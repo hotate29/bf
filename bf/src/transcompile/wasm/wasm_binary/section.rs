@@ -1,8 +1,8 @@
 use std::io::{self, Write};
 
 use super::code::FunctionBody;
+use super::type_::Type;
 use super::var::Var;
-use super::Type;
 
 pub enum Section {
     Type(TypeSection),

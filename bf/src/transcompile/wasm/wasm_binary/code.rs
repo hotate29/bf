@@ -1,6 +1,6 @@
 use std::io::{self, Write};
 
-use super::{var::Var, Type};
+use super::{type_::Type, var::Var};
 
 pub struct FunctionBody {
     locals: Vec<LocalEntry>,
