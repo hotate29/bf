@@ -95,7 +95,7 @@ impl Module {
 #[test]
 fn a() {
     use crate::transcompile::wasm::wasm_binary::{
-        code::FunctionBody,
+        code::{FunctionBody, Op},
         section::{
             CodeSection, ExportEntry, ExportSection, ExternalKind, FunctionSection, ImportEntry,
             ImportSection, MemorySection, MemoryType, ResizableLimits, TypeSection,
@@ -135,7 +135,6 @@ fn a() {
     {
         let mut function_section = FunctionSection::new();
         function_section.push(Var(0));
-        function_section.push(Var(1));
 
         module.sections.push(Section::Function(function_section));
     }
@@ -180,7 +179,8 @@ fn a() {
         let mut code_section = CodeSection::new();
 
         let mut function_body = FunctionBody::new();
-        function_body.code = vec![0x01, 0x0b];
+
+        Op::End.write(&mut function_body.code).unwrap();
 
         code_section.push(function_body);
 
