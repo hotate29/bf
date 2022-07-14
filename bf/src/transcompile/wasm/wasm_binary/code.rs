@@ -36,8 +36,8 @@ impl FunctionBody {
 }
 
 pub struct LocalEntry {
-    count: Var<u32>,
-    type_: Type,
+    pub count: Var<u32>,
+    pub type_: Type,
 }
 impl LocalEntry {
     fn write(&self, mut w: impl Write) -> io::Result<()> {
@@ -63,9 +63,10 @@ pub enum Op {
     SetLocal { local_index: Var<u32> },
 
     I32Load8U(MemoryImmediate),
+    I32Store(MemoryImmediate),
     I32Store8(MemoryImmediate),
 
-    I32Const(Var<u32>),
+    I32Const(Var<i32>),
 
     I32Eqz,
     I32Ne,
@@ -117,6 +118,10 @@ impl Op {
                 w.write_all(&[0x2d])?;
                 memory_immediate.write(w)
             }
+            Op::I32Store(memory_immediate) => {
+                w.write_all(&[0x36])?;
+                memory_immediate.write(w)
+            }
             Op::I32Store8(memory_immediate) => {
                 w.write_all(&[0x3a])?;
                 memory_immediate.write(w)
@@ -139,20 +144,20 @@ pub struct MemoryImmediate {
     offset: Var<u32>,
 }
 impl MemoryImmediate {
-    fn zero() -> Self {
+    pub fn zero() -> Self {
         Self {
             flags: Var(0),
+            offset: Var(0),
+        }
+    }
+    pub fn i32() -> Self {
+        Self {
+            flags: Var(2),
             offset: Var(0),
         }
     }
     fn write(&self, mut w: impl Write) -> io::Result<()> {
         self.flags.write(&mut w)?;
         self.offset.write(&mut w)
-    }
-}
-
-impl Default for MemoryImmediate {
-    fn default() -> Self {
-        Self::zero()
     }
 }
