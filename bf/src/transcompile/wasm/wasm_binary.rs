@@ -1,12 +1,13 @@
 const WASM_BINARY_MAGIC: u32 = 0x6d736100; // \0asm
 const WASM_BINARY_VERSION: u32 = 1;
 
+mod code;
 mod section;
 mod var;
 
 use std::io::{self, prelude::*};
 
-use section::{Section, TypeSection};
+use section::Section;
 use var::Var;
 
 pub enum Type {
@@ -80,7 +81,7 @@ impl Module {
         }
     }
 
-    fn write(&self, mut w: impl Write) -> io::Result<()> {
+    pub fn write(&self, mut w: impl Write) -> io::Result<()> {
         w.write_all(WASM_BINARY_MAGIC.to_le_bytes().as_slice())?;
         w.write_all(WASM_BINARY_VERSION.to_le_bytes().as_slice())?;
 
@@ -93,70 +94,98 @@ impl Module {
 
 #[test]
 fn a() {
-    use crate::transcompile::wasm::wasm_binary::section::{
-        ExportEntry, ExportSection, ExternalKind, ImportEntry, ImportSection, MemorySection,
-        MemoryType, ResizableLimits, StartSection,
+    use crate::transcompile::wasm::wasm_binary::{
+        code::FunctionBody,
+        section::{
+            CodeSection, ExportEntry, ExportSection, ExternalKind, FunctionSection, MemorySection,
+            MemoryType, ResizableLimits, StartSection, TypeSection,
+        },
     };
 
     use std::fs::File;
 
     let mut module = Module::new();
 
-    let mut type_section = TypeSection::new();
+    {
+        let mut type_section = TypeSection::new();
 
-    type_section.push(Type::Func {
-        params: vec![Type::I32, Type::I32, Type::I32, Type::I32],
-        result: Some(Box::new(Type::I32)),
-    });
+        // type_section.push(Type::Func {
+        //     params: vec![Type::I32, Type::I32, Type::I32, Type::I32],
+        //     result: Some(Box::new(Type::I32)),
+        // });
 
-    module.sections.push(Section::Type(type_section));
+        type_section.push(Type::Func {
+            params: vec![],
+            result: None,
+        });
 
-    let mut import_section = ImportSection::new();
+        module.sections.push(Section::Type(type_section));
+    }
 
-    let entry = ImportEntry::function(
-        "wasi_unstable".to_string(),
-        "fd_write".to_string(),
-        Var(0_u32),
-    );
-    import_section.push(entry);
+    // let mut import_section = ImportSection::new();
 
-    module.sections.push(Section::Import(import_section));
+    // let entry = ImportEntry::function(
+    //     "wasi_unstable".to_string(),
+    //     "fd_write".to_string(),
+    //     Var(0_u32),
+    // );
+    // import_section.push(entry);
 
-    // let mut function_section = FunctionSection::new();
+    // module.sections.push(Section::Import(import_section));
 
-    // function_section.push(Var(0));
+    {
+        let mut function_section = FunctionSection::new();
+        function_section.push(Var(0));
 
-    // module.sections.push(Section::Function(function_section));
+        module.sections.push(Section::Function(function_section));
+    }
 
-    let mut memory_section = MemorySection::new();
+    {
+        let mut memory_section = MemorySection::new();
 
-    let limits = MemoryType {
-        limits: ResizableLimits {
-            flags: Var(true),
-            initial: Var(1),
-            maximum: Some(Var(2)),
-        },
-    };
+        let limits = MemoryType {
+            limits: ResizableLimits {
+                flags: Var(true),
+                initial: Var(1),
+                maximum: Some(Var(2)),
+            },
+        };
 
-    memory_section.push(limits);
+        memory_section.push(limits);
 
-    module.sections.push(Section::Memory(memory_section));
+        module.sections.push(Section::Memory(memory_section));
+    }
 
-    let mut export_section = ExportSection::new();
+    {
+        let mut export_section = ExportSection::new();
 
-    let export_entry = ExportEntry {
-        field: "memory".to_string(),
-        kind: ExternalKind::Memory,
-        index: Var(0),
-    };
+        let export_entry = ExportEntry {
+            field: "memory".to_string(),
+            kind: ExternalKind::Memory,
+            index: Var(0),
+        };
 
-    export_section.push(export_entry);
+        export_section.push(export_entry);
 
-    module.sections.push(Section::Export(export_section));
+        module.sections.push(Section::Export(export_section));
+    }
 
-    let start_section = StartSection::new(Var(0));
+    {
+        let start_section = StartSection::new(Var(0));
 
-    module.sections.push(Section::Start(start_section));
+        module.sections.push(Section::Start(start_section));
+    }
+
+    {
+        let mut code_section = CodeSection::new();
+
+        let mut function_body = FunctionBody::new();
+        function_body.code = vec![0x01, 0x0b];
+
+        code_section.push(function_body);
+
+        module.sections.push(Section::Code(code_section));
+    }
 
     let mut file = File::create("aa.wasm").unwrap();
     module.write(&mut file).unwrap();

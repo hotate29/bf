@@ -1,5 +1,6 @@
 use std::io::{self, Write};
 
+use super::code::FunctionBody;
 use super::var::Var;
 use super::Type;
 
@@ -10,11 +11,11 @@ pub enum Section {
     Memory(MemorySection),
     Export(ExportSection),
     Start(StartSection),
+    Code(CodeSection),
     Table,
     Data,
     Global,
     Element,
-    Code,
 }
 impl Section {
     fn section_id(&self) -> Var<u8> {
@@ -27,9 +28,9 @@ impl Section {
             Section::Global => todo!(),
             Section::Export(_) => Var(7),
             Section::Start(_) => Var(8),
-            Section::Data => todo!(),
             Section::Element => todo!(),
-            Section::Code => todo!(),
+            Section::Code(_) => Var(10),
+            Section::Data => todo!(),
         }
     }
     pub fn write(&self, mut w: impl Write) -> io::Result<()> {
@@ -44,8 +45,8 @@ impl Section {
             Section::Function(function_section) => function_section.write(&mut payload)?,
             Section::Memory(memory_section) => memory_section.write(&mut payload)?,
             Section::Export(export_section) => export_section.write(&mut payload)?,
-            Section::Start(start_section) => start_section.write(&mut w)?,
-            Section::Code => todo!(),
+            Section::Start(start_section) => start_section.write(&mut payload)?,
+            Section::Code(code_section) => code_section.write(&mut payload)?,
             Section::Table | Section::Data | Section::Global | Section::Element => unimplemented!(),
         }
 
@@ -282,5 +283,28 @@ impl StartSection {
     }
     fn write(&self, w: impl Write) -> io::Result<()> {
         self.index.write(w)
+    }
+}
+
+pub struct CodeSection {
+    function_bodies: Vec<FunctionBody>,
+}
+impl CodeSection {
+    pub fn new() -> Self {
+        Self {
+            function_bodies: Vec::new(),
+        }
+    }
+    pub fn push(&mut self, function_body: FunctionBody) {
+        self.function_bodies.push(function_body)
+    }
+    fn write(&self, mut w: impl Write) -> io::Result<()> {
+        let count = Var(self.function_bodies.len() as u32);
+        count.write(&mut w)?;
+
+        for body in &self.function_bodies {
+            body.write(&mut w)?;
+        }
+        Ok(())
     }
 }
