@@ -97,8 +97,8 @@ fn a() {
     use crate::transcompile::wasm::wasm_binary::{
         code::FunctionBody,
         section::{
-            CodeSection, ExportEntry, ExportSection, ExternalKind, FunctionSection, MemorySection,
-            MemoryType, ResizableLimits, StartSection, TypeSection,
+            CodeSection, ExportEntry, ExportSection, ExternalKind, FunctionSection, ImportEntry,
+            ImportSection, MemorySection, MemoryType, ResizableLimits, TypeSection,
         },
     };
 
@@ -109,33 +109,33 @@ fn a() {
     {
         let mut type_section = TypeSection::new();
 
-        // type_section.push(Type::Func {
-        //     params: vec![Type::I32, Type::I32, Type::I32, Type::I32],
-        //     result: Some(Box::new(Type::I32)),
-        // });
-
         type_section.push(Type::Func {
             params: vec![],
             result: None,
         });
 
+        type_section.push(Type::Func {
+            params: vec![Type::I32, Type::I32, Type::I32, Type::I32],
+            result: Some(Box::new(Type::I32)),
+        });
+
         module.sections.push(Section::Type(type_section));
     }
 
-    // let mut import_section = ImportSection::new();
+    {
+        let mut import_section = ImportSection::new();
 
-    // let entry = ImportEntry::function(
-    //     "wasi_unstable".to_string(),
-    //     "fd_write".to_string(),
-    //     Var(0_u32),
-    // );
-    // import_section.push(entry);
+        let entry =
+            ImportEntry::function("wasi_unstable".to_string(), "fd_write".to_string(), Var(1));
+        import_section.push(entry);
 
-    // module.sections.push(Section::Import(import_section));
+        module.sections.push(Section::Import(import_section));
+    }
 
     {
         let mut function_section = FunctionSection::new();
         function_section.push(Var(0));
+        function_section.push(Var(1));
 
         module.sections.push(Section::Function(function_section));
     }
@@ -164,16 +164,16 @@ fn a() {
             kind: ExternalKind::Memory,
             index: Var(0),
         };
+        export_section.push(export_entry);
 
+        let export_entry = ExportEntry {
+            field: "_start".to_string(),
+            kind: ExternalKind::Function,
+            index: Var(0),
+        };
         export_section.push(export_entry);
 
         module.sections.push(Section::Export(export_section));
-    }
-
-    {
-        let start_section = StartSection::new(Var(0));
-
-        module.sections.push(Section::Start(start_section));
     }
 
     {

@@ -10,7 +10,6 @@ pub enum Section {
     Function(FunctionSection),
     Memory(MemorySection),
     Export(ExportSection),
-    Start(StartSection),
     Code(CodeSection),
     Table,
     Data,
@@ -27,7 +26,6 @@ impl Section {
             Section::Memory(_) => Var(5u8),
             Section::Global => todo!(),
             Section::Export(_) => Var(7),
-            Section::Start(_) => Var(8),
             Section::Element => todo!(),
             Section::Code(_) => Var(10),
             Section::Data => todo!(),
@@ -45,7 +43,6 @@ impl Section {
             Section::Function(function_section) => function_section.write(&mut payload)?,
             Section::Memory(memory_section) => memory_section.write(&mut payload)?,
             Section::Export(export_section) => export_section.write(&mut payload)?,
-            Section::Start(start_section) => start_section.write(&mut payload)?,
             Section::Code(code_section) => code_section.write(&mut payload)?,
             Section::Table | Section::Data | Section::Global | Section::Element => unimplemented!(),
         }
@@ -270,18 +267,6 @@ impl ExportEntry {
 
         w.write_all(&[self.kind as u8])?;
 
-        self.index.write(w)
-    }
-}
-
-pub struct StartSection {
-    index: Var<u32>,
-}
-impl StartSection {
-    pub fn new(index: Var<u32>) -> Self {
-        Self { index }
-    }
-    fn write(&self, w: impl Write) -> io::Result<()> {
         self.index.write(w)
     }
 }
