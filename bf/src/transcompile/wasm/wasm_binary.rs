@@ -114,22 +114,22 @@ fn a() {
             result: None,
         });
 
-        // type_section.push(Type::Func {
-        //     params: vec![Type::I32, Type::I32, Type::I32, Type::I32],
-        //     result: Some(Box::new(Type::I32)),
-        // });
+        type_section.push(Type::Func {
+            params: vec![Type::I32, Type::I32, Type::I32, Type::I32],
+            result: Some(Box::new(Type::I32)),
+        });
 
         module.sections.push(Section::Type(type_section));
     }
 
     {
-        // let mut import_section = ImportSection::new();
+        let mut import_section = ImportSection::new();
 
-        // let entry =
-        //     ImportEntry::function("wasi_unstable".to_string(), "fd_write".to_string(), Var(1));
-        // import_section.push(entry);
+        let entry =
+            ImportEntry::function("wasi_unstable".to_string(), "fd_write".to_string(), Var(1));
+        import_section.push(entry);
 
-        // module.sections.push(Section::Import(import_section));
+        module.sections.push(Section::Import(import_section));
     }
 
     {
@@ -168,7 +168,7 @@ fn a() {
         let export_entry = ExportEntry {
             field: "_start".to_string(),
             kind: ExternalKind::Function,
-            index: Var(0),
+            index: Var(1),
         };
         export_section.push(export_entry);
 
