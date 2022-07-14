@@ -46,15 +46,16 @@ impl LocalEntry {
     }
 }
 
-enum Op {
+pub enum Op {
     Nop,
+    End,
 }
 
 impl Op {
-    fn write(&self, mut w: impl Write) -> io::Result<()> {
+    pub fn write(&self, mut w: impl Write) -> io::Result<()> {
         match self {
-            Op::Nop => w.write_all(&[0x01])?,
+            Op::Nop => w.write_all(&[0x01]),
+            Op::End => w.write_all(&[0x0b]),
         }
-        Ok(())
     }
 }
