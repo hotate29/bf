@@ -174,16 +174,16 @@ impl Block {
                         loop_stack.push(loop_count);
 
                         let loop_label = format!("loop_{loop_count}");
-                        let block_label = format!("block_{loop_count}");
+                        let exit_label = format!("exit_{loop_count}");
                         writeln!(
                             wat,
                             "
-                            (block ${block_label}
+                            (block ${exit_label}
                                     (loop ${loop_label}
                                         local.get $pointer
                                         i32.load8_u
 
-                                        (br_if ${block_label} (i32.eqz))\n
+                                        (br_if ${exit_label} (i32.eqz))\n
                             "
                         )
                         .unwrap();
@@ -250,7 +250,7 @@ pub fn bf_to_wat(bf: &str) -> String {
     opt::unwrap(&mut block);
     let block = opt::merge(block);
     let block = opt::clear(block);
-    let block = opt::mul(block);
+    // let block = opt::mul(block);
     let block = opt::merge(block);
     let body = block.to_wat(40);
 
