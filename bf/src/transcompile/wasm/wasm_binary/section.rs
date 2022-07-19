@@ -63,8 +63,9 @@ impl TypeSection {
     pub fn new() -> Self {
         Self { types: Vec::new() }
     }
-    pub fn push(&mut self, ty: Type) {
+    pub fn push(&mut self, ty: Type) -> usize {
         self.types.push(ty);
+        self.types.len() - 1
     }
     pub fn write(&self, mut w: impl Write) -> io::Result<()> {
         let type_count = Var(self.types.len() as u32);
@@ -79,7 +80,7 @@ impl TypeSection {
 }
 
 pub struct ImportSection {
-    import_entries: Vec<ImportEntry>,
+    pub import_entries: Vec<ImportEntry>,
 }
 impl ImportSection {
     pub fn new() -> Self {
@@ -165,8 +166,9 @@ impl FunctionSection {
     pub fn new() -> Self {
         Self { types: Vec::new() }
     }
-    pub fn push(&mut self, index: Var<u32>) {
-        self.types.push(index)
+    pub fn push(&mut self, index: Var<u32>) -> usize {
+        self.types.push(index);
+        self.types.len() - 1
     }
     fn write(&self, mut w: impl Write) -> io::Result<()> {
         let count = Var(self.types.len() as u32);
@@ -189,8 +191,9 @@ impl MemorySection {
             entries: Vec::new(),
         }
     }
-    pub fn push(&mut self, memory_type: MemoryType) {
-        self.entries.push(memory_type)
+    pub fn push(&mut self, memory_type: MemoryType) -> usize {
+        self.entries.push(memory_type);
+        self.entries.len() - 1
     }
     fn write(&self, mut w: impl Write) -> io::Result<()> {
         let count = Var(self.entries.len() as u32);
