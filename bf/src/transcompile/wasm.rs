@@ -260,7 +260,7 @@ pub fn bf_to_wat(bf: &str) -> String {
         r#"(module
     (import "wasi_unstable" "fd_write" (func $fd_write (param i32 i32 i32 i32) (result i32)))
     (import "wasi_unstable" "fd_read" (func $fd_read (param i32 i32 i32 i32) (result i32)))
-    (memory (export "memory") 1 1000)
+    (memory (export "memory") 1)
     (func $input_char (param $ptr i32)
         (i32.store (i32.const 4) (local.get $ptr))
         (i32.store (i32.const 8) (i32.const 1))
