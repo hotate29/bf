@@ -1,10 +1,10 @@
 const WASM_BINARY_MAGIC: u32 = 0x6d736100; // \0asm
 const WASM_BINARY_VERSION: u32 = 1;
 
-mod code;
-mod section;
-mod type_;
-mod var;
+pub mod code;
+pub mod section;
+pub mod type_;
+pub mod var;
 
 use std::io::{self, Write};
 
@@ -144,9 +144,9 @@ impl ModuleBuilder {
 }
 
 pub struct Function {
-    signature: Type,
-    body: FunctionBody,
-    export_name: Option<String>,
+    pub signature: Type,
+    pub body: FunctionBody,
+    pub export_name: Option<String>,
 }
 
 pub enum Import {
@@ -158,8 +158,8 @@ pub enum Import {
 }
 
 pub struct Memory {
-    mem_type: MemoryType,
-    export_name: Option<String>,
+    pub mem_type: MemoryType,
+    pub export_name: Option<String>,
 }
 
 #[test]
