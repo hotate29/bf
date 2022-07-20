@@ -165,7 +165,7 @@ pub struct Memory {
 #[test]
 fn a() {
     use crate::transcompile::wasm::wasm_binary::{
-        code::{FunctionBody, MemoryImmediate, Op},
+        code::{FunctionBody, MemoryImmediate, Op, OpSlice},
         section::{
             CodeSection, ExportEntry, ExportSection, ExternalKind, FunctionSection, ImportEntry,
             ImportSection, MemorySection, MemoryType, ResizableLimits, TypeSection,
@@ -202,41 +202,30 @@ fn a() {
 
     let mut print_char = FunctionBody::new();
 
-    Op::I32Const(Var(0)).write(&mut print_char.code).unwrap();
-    Op::GetLocal {
-        local_index: Var(0),
-    }
-    .write(&mut print_char.code)
-    .unwrap();
-    Op::I32Store8(MemoryImmediate::zero())
-        .write(&mut print_char.code)
-        .unwrap();
+    let print_char_ops = [
+        Op::I32Const(Var(0)),
+        Op::GetLocal {
+            local_index: Var(0),
+        },
+        Op::I32Store8(MemoryImmediate::zero()),
+        Op::I32Const(Var(4)),
+        Op::I32Const(Var(0)),
+        Op::I32Store(MemoryImmediate::i32()),
+        Op::I32Const(Var(8)),
+        Op::I32Const(Var(1)),
+        Op::I32Store(MemoryImmediate::i32()),
+        Op::I32Const(Var(1)),
+        Op::I32Const(Var(4)),
+        Op::I32Const(Var(1)),
+        Op::I32Const(Var(12)),
+        Op::Call {
+            function_index: Var(0),
+        },
+        Op::Drop,
+        Op::End,
+    ];
 
-    Op::I32Const(Var(4)).write(&mut print_char.code).unwrap();
-    Op::I32Const(Var(0)).write(&mut print_char.code).unwrap();
-    Op::I32Store(MemoryImmediate::i32())
-        .write(&mut print_char.code)
-        .unwrap();
-
-    Op::I32Const(Var(8)).write(&mut print_char.code).unwrap();
-    Op::I32Const(Var(1)).write(&mut print_char.code).unwrap();
-    Op::I32Store(MemoryImmediate::i32())
-        .write(&mut print_char.code)
-        .unwrap();
-
-    Op::I32Const(Var(1)).write(&mut print_char.code).unwrap();
-    Op::I32Const(Var(4)).write(&mut print_char.code).unwrap();
-    Op::I32Const(Var(1)).write(&mut print_char.code).unwrap();
-    Op::I32Const(Var(12)).write(&mut print_char.code).unwrap();
-
-    Op::Call {
-        function_index: Var(0),
-    }
-    .write(&mut print_char.code)
-    .unwrap();
-
-    Op::Drop.write(&mut print_char.code).unwrap();
-    Op::End.write(&mut print_char.code).unwrap();
+    print_char_ops.write(&mut print_char.code).unwrap();
 
     let print_char = Function {
         signature: Type::Func {
@@ -251,13 +240,15 @@ fn a() {
 
     let mut main = FunctionBody::new();
 
-    Op::I32Const(Var(97)).write(&mut main.code).unwrap();
-    Op::Call {
-        function_index: Var(1),
-    }
-    .write(&mut main.code)
-    .unwrap();
-    Op::End.write(&mut main.code).unwrap();
+    let main_ops = [
+        Op::I32Const(Var(97)),
+        Op::Call {
+            function_index: Var(1),
+        },
+        Op::End,
+    ];
+
+    main_ops.write(&mut main.code).unwrap();
 
     let main = Function {
         signature: Type::Func {
@@ -356,53 +347,44 @@ fn a() {
 
         let mut print_char = FunctionBody::new();
 
-        Op::I32Const(Var(0)).write(&mut print_char.code).unwrap();
-        Op::GetLocal {
-            local_index: Var(0),
-        }
-        .write(&mut print_char.code)
-        .unwrap();
-        Op::I32Store8(MemoryImmediate::zero())
-            .write(&mut print_char.code)
-            .unwrap();
+        let print_char_ops = [
+            Op::I32Const(Var(0)),
+            Op::GetLocal {
+                local_index: Var(0),
+            },
+            Op::I32Store8(MemoryImmediate::zero()),
+            Op::I32Const(Var(4)),
+            Op::I32Const(Var(0)),
+            Op::I32Store(MemoryImmediate::i32()),
+            Op::I32Const(Var(8)),
+            Op::I32Const(Var(1)),
+            Op::I32Store(MemoryImmediate::i32()),
+            Op::I32Const(Var(1)),
+            Op::I32Const(Var(4)),
+            Op::I32Const(Var(1)),
+            Op::I32Const(Var(12)),
+            Op::Call {
+                function_index: Var(0),
+            },
+            Op::Drop,
+            Op::End,
+        ];
 
-        Op::I32Const(Var(4)).write(&mut print_char.code).unwrap();
-        Op::I32Const(Var(0)).write(&mut print_char.code).unwrap();
-        Op::I32Store(MemoryImmediate::i32())
-            .write(&mut print_char.code)
-            .unwrap();
-
-        Op::I32Const(Var(8)).write(&mut print_char.code).unwrap();
-        Op::I32Const(Var(1)).write(&mut print_char.code).unwrap();
-        Op::I32Store(MemoryImmediate::i32())
-            .write(&mut print_char.code)
-            .unwrap();
-
-        Op::I32Const(Var(1)).write(&mut print_char.code).unwrap();
-        Op::I32Const(Var(4)).write(&mut print_char.code).unwrap();
-        Op::I32Const(Var(1)).write(&mut print_char.code).unwrap();
-        Op::I32Const(Var(12)).write(&mut print_char.code).unwrap();
-
-        Op::Call {
-            function_index: Var(0),
-        }
-        .write(&mut print_char.code)
-        .unwrap();
-
-        Op::Drop.write(&mut print_char.code).unwrap();
-        Op::End.write(&mut print_char.code).unwrap();
+        print_char_ops.write(&mut print_char.code).unwrap();
 
         code_section.push(print_char);
 
         let mut main = FunctionBody::new();
 
-        Op::I32Const(Var(97)).write(&mut main.code).unwrap();
-        Op::Call {
-            function_index: Var(1),
-        }
-        .write(&mut main.code)
-        .unwrap();
-        Op::End.write(&mut main.code).unwrap();
+        let main_ops = [
+            Op::I32Const(Var(97)),
+            Op::Call {
+                function_index: Var(1),
+            },
+            Op::End,
+        ];
+
+        main_ops.write(&mut main.code).unwrap();
 
         code_section.push(main);
 

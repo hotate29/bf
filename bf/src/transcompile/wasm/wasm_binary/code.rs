@@ -161,3 +161,16 @@ impl MemoryImmediate {
         self.offset.write(&mut w)
     }
 }
+
+pub trait OpSlice {
+    fn write(&self, w: impl Write) -> io::Result<()>;
+}
+
+impl OpSlice for [Op] {
+    fn write(&self, mut w: impl Write) -> io::Result<()> {
+        for op in self {
+            op.write(&mut w)?
+        }
+        Ok(())
+    }
+}

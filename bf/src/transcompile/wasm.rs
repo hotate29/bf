@@ -1,10 +1,9 @@
-use std::io;
 use std::{fmt::Write, str::Chars};
 
 mod opt;
 mod wasm_binary;
 
-use wasm_binary::code::Op as WOp;
+use wasm_binary::code::{Op as WOp, OpSlice};
 use wasm_binary::type_::Type;
 use wasm_binary::var::Var;
 use wasm_binary::{Function, Import};
@@ -230,226 +229,160 @@ impl Block {
                 match item {
                     BlockItem::Op(op) => match op {
                         Op::Add(value) => {
-                            WOp::GetLocal {
-                                local_index: Var(0),
-                            }
-                            .write(&mut buffer)
-                            .unwrap();
-                            WOp::GetLocal {
-                                local_index: Var(0),
-                            }
-                            .write(&mut buffer)
-                            .unwrap();
+                            let add_ops = [
+                                WOp::GetLocal {
+                                    local_index: Var(0),
+                                },
+                                WOp::GetLocal {
+                                    local_index: Var(0),
+                                },
+                                WOp::I32Load8U(MemoryImmediate::zero()),
+                                WOp::I32Const(Var(*value as i32)),
+                                WOp::I32Add,
+                                WOp::I32Store8(MemoryImmediate::zero()),
+                            ];
 
-                            WOp::I32Load8U(MemoryImmediate::zero())
-                                .write(&mut buffer)
-                                .unwrap();
-
-                            WOp::I32Const(Var(*value as i32))
-                                .write(&mut buffer)
-                                .unwrap();
-
-                            WOp::I32Add.write(&mut buffer).unwrap();
-
-                            WOp::I32Store8(MemoryImmediate::zero())
-                                .write(&mut buffer)
-                                .unwrap();
+                            add_ops.write(&mut buffer).unwrap();
                         }
                         Op::Sub(value) => {
                             // Addと大体おなじ
-                            WOp::GetLocal {
-                                local_index: Var(0),
-                            }
-                            .write(&mut buffer)
-                            .unwrap();
-                            WOp::GetLocal {
-                                local_index: Var(0),
-                            }
-                            .write(&mut buffer)
-                            .unwrap();
+                            let sub_ops = [
+                                WOp::GetLocal {
+                                    local_index: Var(0),
+                                },
+                                WOp::GetLocal {
+                                    local_index: Var(0),
+                                },
+                                WOp::I32Load8U(MemoryImmediate::zero()),
+                                WOp::I32Const(Var(*value as i32)),
+                                WOp::I32Sub,
+                                WOp::I32Store8(MemoryImmediate::zero()),
+                            ];
 
-                            WOp::I32Load8U(MemoryImmediate::zero())
-                                .write(&mut buffer)
-                                .unwrap();
-
-                            WOp::I32Const(Var(*value as i32))
-                                .write(&mut buffer)
-                                .unwrap();
-
-                            WOp::I32Sub.write(&mut buffer).unwrap();
-
-                            WOp::I32Store8(MemoryImmediate::zero())
-                                .write(&mut buffer)
-                                .unwrap();
+                            sub_ops.write(&mut buffer).unwrap();
                         }
                         Op::PtrAdd(value) => {
-                            WOp::GetLocal {
-                                local_index: Var(0),
-                            }
-                            .write(&mut buffer)
-                            .unwrap();
+                            let ptr_add_ops = [
+                                WOp::GetLocal {
+                                    local_index: Var(0),
+                                },
+                                WOp::I32Const(Var(*value as i32)),
+                                WOp::I32Add,
+                                WOp::SetLocal {
+                                    local_index: Var(0),
+                                },
+                            ];
 
-                            WOp::I32Const(Var(*value as i32))
-                                .write(&mut buffer)
-                                .unwrap();
-
-                            WOp::I32Add.write(&mut buffer).unwrap();
-
-                            WOp::SetLocal {
-                                local_index: Var(0),
-                            }
-                            .write(&mut buffer)
-                            .unwrap();
+                            ptr_add_ops.write(&mut buffer).unwrap();
                         }
                         Op::PtrSub(value) => {
-                            WOp::GetLocal {
-                                local_index: Var(0),
-                            }
-                            .write(&mut buffer)
-                            .unwrap();
+                            let ptr_sub_ops = [
+                                WOp::GetLocal {
+                                    local_index: Var(0),
+                                },
+                                WOp::I32Const(Var(*value as i32)),
+                                WOp::I32Sub,
+                                WOp::SetLocal {
+                                    local_index: Var(0),
+                                },
+                            ];
 
-                            WOp::I32Const(Var(*value as i32))
-                                .write(&mut buffer)
-                                .unwrap();
-
-                            WOp::I32Sub.write(&mut buffer).unwrap();
-
-                            WOp::SetLocal {
-                                local_index: Var(0),
-                            }
-                            .write(&mut buffer)
-                            .unwrap();
+                            ptr_sub_ops.write(&mut buffer).unwrap();
                         }
                         Op::Mul(of, x) => {
-                            WOp::GetLocal {
-                                local_index: Var(0),
-                            }
-                            .write(&mut buffer)
-                            .unwrap();
+                            let mul_ops = [
+                                WOp::GetLocal {
+                                    local_index: Var(0),
+                                },
+                                WOp::I32Load8U(MemoryImmediate::zero()),
+                                WOp::If {
+                                    block_type: Type::Void,
+                                },
+                                WOp::GetLocal {
+                                    local_index: Var(0),
+                                },
+                                WOp::I32Const(Var(*of as i32)),
+                                WOp::I32Add,
+                                WOp::SetLocal {
+                                    local_index: Var(1),
+                                },
+                                WOp::GetLocal {
+                                    local_index: Var(1),
+                                },
+                                WOp::GetLocal {
+                                    local_index: Var(1),
+                                },
+                                WOp::I32Load8U(MemoryImmediate::zero()),
+                                WOp::GetLocal {
+                                    local_index: Var(0),
+                                },
+                                WOp::I32Load8U(MemoryImmediate::zero()),
+                                WOp::I32Const(Var(*x as i32)),
+                                WOp::I32Mul,
+                                WOp::I32Add,
+                                WOp::I32Store8(MemoryImmediate::zero()),
+                                WOp::End,
+                            ];
 
-                            WOp::I32Load8U(MemoryImmediate::zero())
-                                .write(&mut buffer)
-                                .unwrap();
-
-                            WOp::If {
-                                block_type: Type::Void,
-                            }
-                            .write(&mut buffer)
-                            .unwrap();
-
-                            WOp::GetLocal {
-                                local_index: Var(0),
-                            }
-                            .write(&mut buffer)
-                            .unwrap();
-
-                            WOp::I32Const(Var(*of as i32)).write(&mut buffer).unwrap();
-                            WOp::I32Add.write(&mut buffer).unwrap();
-                            WOp::SetLocal {
-                                local_index: Var(1),
-                            }
-                            .write(&mut buffer)
-                            .unwrap();
-
-                            WOp::GetLocal {
-                                local_index: Var(1),
-                            }
-                            .write(&mut buffer)
-                            .unwrap();
-                            WOp::GetLocal {
-                                local_index: Var(1),
-                            }
-                            .write(&mut buffer)
-                            .unwrap();
-
-                            WOp::I32Load8U(MemoryImmediate::zero())
-                                .write(&mut buffer)
-                                .unwrap();
-
-                            WOp::GetLocal {
-                                local_index: Var(0),
-                            }
-                            .write(&mut buffer)
-                            .unwrap();
-                            WOp::I32Load8U(MemoryImmediate::zero())
-                                .write(&mut buffer)
-                                .unwrap();
-                            WOp::I32Const(Var(*x as i32)).write(&mut buffer).unwrap();
-                            WOp::I32Mul.write(&mut buffer).unwrap();
-
-                            WOp::I32Add.write(&mut buffer).unwrap();
-                            WOp::I32Store8(MemoryImmediate::zero())
-                                .write(&mut buffer)
-                                .unwrap();
-                            WOp::End.write(&mut buffer).unwrap()
+                            mul_ops.write(&mut buffer).unwrap();
                         }
                         Op::Clear => {
-                            WOp::GetLocal {
-                                local_index: Var(0),
-                            }
-                            .write(&mut buffer)
-                            .unwrap();
-                            WOp::I32Const(Var(0)).write(&mut buffer).unwrap();
-                            WOp::I32Store8(MemoryImmediate::zero())
-                                .write(&mut buffer)
-                                .unwrap();
+                            let clear_ops = [
+                                WOp::GetLocal {
+                                    local_index: Var(0),
+                                },
+                                WOp::I32Const(Var(0)),
+                                WOp::I32Store8(MemoryImmediate::zero()),
+                            ];
+
+                            clear_ops.write(&mut buffer).unwrap();
                         }
                         Op::Out => {
-                            WOp::GetLocal {
-                                local_index: Var(0),
-                            }
-                            .write(&mut buffer)
-                            .unwrap();
-                            WOp::I32Load8U(MemoryImmediate::zero())
-                                .write(&mut buffer)
-                                .unwrap();
-                            WOp::Call {
-                                function_index: Var(1),
-                            }
-                            .write(&mut buffer)
-                            .unwrap();
+                            let out_ops = [
+                                WOp::GetLocal {
+                                    local_index: Var(0),
+                                },
+                                WOp::I32Load8U(MemoryImmediate::zero()),
+                                WOp::Call {
+                                    function_index: Var(1),
+                                },
+                            ];
+
+                            out_ops.write(&mut buffer).unwrap();
                         }
                         Op::Input => todo!(),
                     },
                     BlockItem::Loop(loop_block) => {
-                        WOp::Block {
-                            block_type: Type::Void,
-                        }
-                        .write(&mut buffer)
-                        .unwrap();
+                        let loop_ops = [
+                            WOp::Block {
+                                block_type: Type::Void,
+                            },
+                            WOp::Loop {
+                                block_type: Type::Void,
+                            },
+                            WOp::GetLocal {
+                                local_index: Var(0),
+                            },
+                            WOp::I32Load8U(MemoryImmediate::zero()),
+                            WOp::I32Eqz,
+                            WOp::BrIf {
+                                relative_depth: Var(1),
+                            },
+                        ];
 
-                        WOp::Loop {
-                            block_type: Type::Void,
-                        }
-                        .write(&mut buffer)
-                        .unwrap();
-
-                        WOp::GetLocal {
-                            local_index: Var(0),
-                        }
-                        .write(&mut buffer)
-                        .unwrap();
-                        WOp::I32Load8U(MemoryImmediate::zero())
-                            .write(&mut buffer)
-                            .unwrap();
-                        WOp::I32Eqz.write(&mut buffer).unwrap();
-
-                        WOp::BrIf {
-                            relative_depth: Var(1),
-                        }
-                        .write(&mut buffer)
-                        .unwrap();
+                        loop_ops.write(&mut buffer).unwrap();
 
                         block_to_wasm(loop_block, buffer);
 
-                        WOp::Br {
-                            relative_depth: Var(0),
-                        }
-                        .write(&mut buffer)
-                        .unwrap();
+                        let loop_ops = [
+                            WOp::Br {
+                                relative_depth: Var(0),
+                            },
+                            WOp::End,
+                            WOp::End,
+                        ];
 
-                        WOp::End.write(&mut buffer).unwrap();
-                        WOp::End.write(&mut buffer).unwrap();
+                        loop_ops.write(&mut buffer).unwrap();
                     }
                 }
             }
@@ -479,41 +412,29 @@ impl Block {
 
         let mut print_char = FunctionBody::new();
 
-        WOp::I32Const(Var(0)).write(&mut print_char.code).unwrap();
-        WOp::GetLocal {
-            local_index: Var(0),
-        }
-        .write(&mut print_char.code)
-        .unwrap();
-        WOp::I32Store8(MemoryImmediate::zero())
-            .write(&mut print_char.code)
-            .unwrap();
-
-        WOp::I32Const(Var(4)).write(&mut print_char.code).unwrap();
-        WOp::I32Const(Var(0)).write(&mut print_char.code).unwrap();
-        WOp::I32Store(MemoryImmediate::i32())
-            .write(&mut print_char.code)
-            .unwrap();
-
-        WOp::I32Const(Var(8)).write(&mut print_char.code).unwrap();
-        WOp::I32Const(Var(1)).write(&mut print_char.code).unwrap();
-        WOp::I32Store(MemoryImmediate::i32())
-            .write(&mut print_char.code)
-            .unwrap();
-
-        WOp::I32Const(Var(1)).write(&mut print_char.code).unwrap();
-        WOp::I32Const(Var(4)).write(&mut print_char.code).unwrap();
-        WOp::I32Const(Var(1)).write(&mut print_char.code).unwrap();
-        WOp::I32Const(Var(12)).write(&mut print_char.code).unwrap();
-
-        WOp::Call {
-            function_index: Var(0),
-        }
-        .write(&mut print_char.code)
-        .unwrap();
-
-        WOp::Drop.write(&mut print_char.code).unwrap();
-        WOp::End.write(&mut print_char.code).unwrap();
+        let print_char_ops = [
+            WOp::I32Const(Var(0)),
+            WOp::GetLocal {
+                local_index: Var(0),
+            },
+            WOp::I32Store8(MemoryImmediate::zero()),
+            WOp::I32Const(Var(4)),
+            WOp::I32Const(Var(0)),
+            WOp::I32Store(MemoryImmediate::i32()),
+            WOp::I32Const(Var(8)),
+            WOp::I32Const(Var(1)),
+            WOp::I32Store(MemoryImmediate::i32()),
+            WOp::I32Const(Var(1)),
+            WOp::I32Const(Var(4)),
+            WOp::I32Const(Var(1)),
+            WOp::I32Const(Var(12)),
+            WOp::Call {
+                function_index: Var(0),
+            },
+            WOp::Drop,
+            WOp::End,
+        ];
+        print_char_ops.write(&mut print_char.code).unwrap();
 
         let print_char = Function {
             signature: Type::Func {
@@ -533,10 +454,12 @@ impl Block {
             type_: Type::I32,
         });
 
-        WOp::I32Const(Var(40)).write(&mut main.code).unwrap();
-        WOp::SetLocal {
-            local_index: Var(0),
-        }
+        [
+            WOp::I32Const(Var(40)),
+            WOp::SetLocal {
+                local_index: Var(0),
+            },
+        ]
         .write(&mut main.code)
         .unwrap();
 
