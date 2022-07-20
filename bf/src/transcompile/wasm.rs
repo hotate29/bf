@@ -570,12 +570,17 @@ pub fn bf_to_wasm(bf: &str) -> Vec<u8> {
     let mut block = bf_to_block(bf);
 
     block.items.insert(0, BlockItem::Op(Op::Clear));
+    // eprintln!("{block:?}");
 
     opt::unwrap(&mut block);
     let block = opt::merge(block);
+    // eprintln!("{block:?}");
     let block = opt::clear(block);
+    // eprintln!("{block:?}");
     let block = opt::mul(block);
-    let block = opt::merge(block);
+    // eprintln!("{block:?}");
+    // let block = opt::merge(block);
+    // eprintln!("{block:?}");
 
     block.to_wasm()
 }

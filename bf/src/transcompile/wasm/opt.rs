@@ -59,7 +59,7 @@ pub(super) fn clear(block: Block) -> Block {
 
     for item in block.items {
         if let BlockItem::Loop(block) = item {
-            if let [BlockItem::Op(Op::Sub(1))] = block.items.as_slice() {
+            if let [BlockItem::Op(Op::Add(1) | Op::Sub(1))] = block.items.as_slice() {
                 optimized_block.push_item(BlockItem::Op(Op::Clear));
             } else {
                 let item = clear(block);
@@ -113,7 +113,8 @@ pub(super) fn mul(block: Block) -> Block {
             let optimizable = loop_block.items.iter().any(|item| {
                 matches!(
                     item,
-                    BlockItem::Op(Op::Mul(_, _) | Op::Out | Op::Input) | BlockItem::Loop(_)
+                    BlockItem::Op(Op::Clear | Op::Mul(_, _) | Op::Out | Op::Input)
+                        | BlockItem::Loop(_)
                 )
             });
             !optimizable
@@ -151,24 +152,26 @@ pub(super) fn mul(block: Block) -> Block {
 
                                 Op::PtrAdd(of) => ptr_offset += *of as i32,
                                 Op::PtrSub(of) => ptr_offset -= *of as i32,
-                                Op::Clear => {
-                                    offset_op.insert(ptr_offset, OpType::Clear);
-                                }
-                                Op::Mul(_, _) | Op::Out | Op::Input => unreachable!(),
+                                // Op::Clear => {
+                                //     offset_op.insert(ptr_offset, OpType::Clear);
+                                // }
+                                Op::Clear | Op::Mul(_, _) | Op::Out | Op::Input => unreachable!(),
                             },
                         };
                     }
 
-                    let base_clear = offset_op.get(&0) != Some(&OpType::Mul(-1))
-                        || offset_op.get(&0) != Some(&OpType::Mul(1));
+                    // eprintln!("{offset_op:?}");
 
-                    let is_clear_loop = offset_op.len() == 1 && base_clear;
+                    let clear_plus = offset_op.get(&0) == Some(&OpType::Mul(1));
+                    let clear_minus = offset_op.get(&0) == Some(&OpType::Mul(-1));
+
+                    let is_clear_loop = offset_op.len() == 1 && (clear_minus || clear_plus);
 
                     if is_clear_loop {
                         optimized_block.push_item(BlockItem::Op(Op::Clear));
                         continue;
                     }
-                    if ptr_offset != 0 || !base_clear {
+                    if ptr_offset != 0 || !clear_minus {
                         eprintln!("失敗, {ptr_offset}, {offset_op:?}");
                         return block;
                     }
