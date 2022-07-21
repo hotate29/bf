@@ -56,7 +56,7 @@ impl Block {
 
         opt::unwrap(&mut block);
         let block = opt::clear(&block);
-        let block = opt::mul(block);
+        let block = opt::mul(&block);
         opt::merge(&block)
     }
     fn to_wat(&self, memory_base_address: i32) -> String {
@@ -631,8 +631,12 @@ pub fn bf_to_wasm(bf: &str) -> Vec<u8> {
     let mut block = bf_to_block(bf);
 
     block.items.insert(0, BlockItem::Op(Op::Clear));
+    // eprintln!("{block:?}");
+    // eprintln!();
 
     let block = block.optimize();
+
+    eprintln!("{block:?}");
 
     block.to_wasm()
 }

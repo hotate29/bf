@@ -16,8 +16,24 @@ impl Add for Op {
             (Op::Clear, Op::Clear) => Some(Op::Clear),
             (Op::Sub(_), Op::Add(_)) => rhs + self,
             (Op::PtrSub(_), Op::PtrAdd(_)) => rhs + self,
-            (Op::Add(_), Op::Sub(_)) => None,
-            (Op::PtrAdd(_), Op::PtrSub(_)) => None,
+            (Op::Add(x), Op::Sub(y)) => {
+                let z = x as i32 - y as i32;
+
+                if z.is_positive() {
+                    Some(Op::Add(z as u32))
+                } else {
+                    Some(Op::Sub(-z as u32))
+                }
+            }
+            (Op::PtrAdd(x), Op::PtrSub(y)) => {
+                let z = x as i32 - y as i32;
+
+                if z.is_positive() {
+                    Some(Op::PtrAdd(z as u32))
+                } else {
+                    Some(Op::PtrSub(-z as u32))
+                }
+            }
             (_, _) => None,
         }
     }
@@ -34,10 +50,7 @@ pub(super) fn merge(block: &Block) -> Block {
             // BlockItem::Opのコピーは軽いのでおｋ
             item => merged_block.push_item(item.clone()),
         };
-        loop {
-            if merged_block.items.len() < 2 {
-                break;
-            }
+        while merged_block.items.len() >= 2 {
             let last2 = merged_block.items.iter().nth_back(1).unwrap();
             let last = merged_block.items.last().unwrap();
 
@@ -94,7 +107,7 @@ pub(super) fn unwrap(block: &mut Block) {
     });
 }
 
-pub(super) fn mul(block: Block) -> Block {
+pub(super) fn mul(block: &Block) -> Block {
     #[derive(Debug, PartialEq, Eq)]
     enum OpType {
         Mul(i32),
@@ -109,109 +122,90 @@ pub(super) fn mul(block: Block) -> Block {
         }
     }
 
-    let is_optimizable = block.items.iter().all(|item| {
-        if let BlockItem::Loop(loop_block) = item {
-            let optimizable = loop_block.items.iter().any(|item| {
-                matches!(
-                    item,
-                    BlockItem::Op(Op::Clear | Op::Mul(_, _) | Op::Out | Op::Input)
-                        | BlockItem::Loop(_)
-                )
-            });
-            !optimizable
-        } else {
-            true
-        }
-    });
+    fn is_optimizable_loop(loop_block: &Block) -> Option<BTreeMap<i32, OpType>> {
+        let mut offset_op = BTreeMap::<_, OpType>::new();
+        let mut ptr_offset = 0;
 
-    if is_optimizable {
-        let mut optimized_block = Block::new();
-
-        for item in &block.items {
+        for item in &loop_block.items {
             match item {
-                // こっちだったら最適化
-                BlockItem::Loop(loop_block) => {
-                    let mut offset_op = BTreeMap::<_, OpType>::new();
-                    let mut ptr_offset = 0;
+                // 最適化できないものが混じっていたらreturn
+                BlockItem::Loop(_)
+                | BlockItem::Op(Op::Clear | Op::Mul(_, _) | Op::Out | Op::Input) => return None,
 
-                    for item in &loop_block.items {
-                        match item {
-                            BlockItem::Loop(_) => unreachable!(),
-                            BlockItem::Op(op) => match op {
-                                Op::Add(v) => {
-                                    offset_op
-                                        .entry(ptr_offset)
-                                        .and_modify(|x| x.mul(*v as i32))
-                                        .or_insert(OpType::Mul(*v as i32));
-                                }
-                                Op::Sub(v) => {
-                                    offset_op
-                                        .entry(ptr_offset)
-                                        .and_modify(|x| x.mul(-(*v as i32)))
-                                        .or_insert(OpType::Mul(-(*v as i32)));
-                                }
-
-                                Op::PtrAdd(of) => ptr_offset += *of as i32,
-                                Op::PtrSub(of) => ptr_offset -= *of as i32,
-                                // Op::Clear => {
-                                //     offset_op.insert(ptr_offset, OpType::Clear);
-                                // }
-                                Op::Clear | Op::Mul(_, _) | Op::Out | Op::Input => unreachable!(),
-                            },
-                        };
+                BlockItem::Op(op) => match op {
+                    Op::Add(v) => {
+                        offset_op
+                            .entry(ptr_offset)
+                            .and_modify(|x| x.mul(*v as i32))
+                            .or_insert(OpType::Mul(*v as i32));
+                    }
+                    Op::Sub(v) => {
+                        offset_op
+                            .entry(ptr_offset)
+                            .and_modify(|x| x.mul(-(*v as i32)))
+                            .or_insert(OpType::Mul(-(*v as i32)));
                     }
 
-                    // eprintln!("{offset_op:?}");
-
-                    let clear_plus = offset_op.get(&0) == Some(&OpType::Mul(1));
-                    let clear_minus = offset_op.get(&0) == Some(&OpType::Mul(-1));
-
-                    let is_clear_loop = offset_op.len() == 1 && (clear_minus || clear_plus);
-
-                    if is_clear_loop {
-                        optimized_block.push_item(BlockItem::Op(Op::Clear));
-                        continue;
-                    }
-                    if ptr_offset != 0 || !clear_minus {
-                        eprintln!("失敗, {ptr_offset}, {offset_op:?}");
-                        return block;
-                    }
-
-                    for (offset, value) in offset_op {
-                        // 0は後で処理
-                        if offset == 0 {
-                            continue;
-                        }
-                        match value {
-                            OpType::Mul(value) => {
-                                optimized_block.push_item(BlockItem::Op(Op::Mul(offset, value)))
-                            }
-                            OpType::Clear => {
-                                optimized_block.push_item(BlockItem::Op(Op::ptr(offset)));
-                                optimized_block.push_item(BlockItem::Op(Op::Clear));
-                                optimized_block.push_item(BlockItem::Op(Op::ptr(-offset)));
-                            }
-                        };
-                    }
-
-                    optimized_block.push_item(BlockItem::Op(Op::Clear))
-                }
-                BlockItem::Op(op) => optimized_block.push_item(BlockItem::Op(*op)),
+                    Op::PtrAdd(of) => ptr_offset += *of as i32,
+                    Op::PtrSub(of) => ptr_offset -= *of as i32,
+                    // Op::Clear => {
+                    //     offset_op.insert(ptr_offset, OpType::Clear);
+                    // }
+                    Op::Clear | Op::Mul(_, _) | Op::Out | Op::Input => unreachable!(),
+                },
             };
         }
 
-        optimized_block
-    } else {
-        let mut optimized_block = Block::new();
-        for item in block.items {
-            match item {
-                BlockItem::Loop(loop_block) => {
-                    optimized_block.push_item(BlockItem::Loop(mul(loop_block)))
-                }
-                item => optimized_block.push_item(item),
-            }
-        }
+        let clear_minus = offset_op.get(&0) == Some(&OpType::Mul(-1));
 
-        optimized_block
+        // bool.then_some()にできる
+        if ptr_offset == 0 && clear_minus {
+            Some(offset_op)
+        } else {
+            None
+        }
     }
+
+    let mut optimized_block = Block::new();
+
+    for item in &block.items {
+        match item {
+            BlockItem::Loop(loop_block) => {
+                let offset_ops = is_optimizable_loop(loop_block);
+
+                match offset_ops {
+                    // こっちだったら最適化
+                    Some(offset_ops) => {
+                        // eprintln!("最適化! {ptr_offset:?}, {offset_ops:?}");
+
+                        for (offset, value) in offset_ops {
+                            // 0は後で処理
+                            if offset == 0 {
+                                continue;
+                            }
+                            match value {
+                                OpType::Mul(value) => {
+                                    optimized_block.push_item(BlockItem::Op(Op::Mul(offset, value)))
+                                }
+                                OpType::Clear => {
+                                    optimized_block.push_item(BlockItem::Op(Op::ptr(offset)));
+                                    optimized_block.push_item(BlockItem::Op(Op::Clear));
+                                    optimized_block.push_item(BlockItem::Op(Op::ptr(-offset)));
+                                }
+                            };
+                        }
+
+                        optimized_block.push_item(BlockItem::Op(Op::Clear))
+                    }
+                    None => {
+                        let a = mul(loop_block);
+                        optimized_block.push_item(BlockItem::Loop(a));
+                    }
+                }
+            }
+            BlockItem::Op(op) => optimized_block.push_item(BlockItem::Op(*op)),
+        };
+    }
+
+    optimized_block
 }
