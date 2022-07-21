@@ -23,15 +23,16 @@ impl Add for Op {
     }
 }
 
-pub(super) fn merge(block: Block) -> Block {
+pub(super) fn merge(block: &Block) -> Block {
     let mut merged_block = Block::new();
 
-    for item in block.items {
+    for item in &block.items {
         match item {
             BlockItem::Loop(loop_block) => {
                 merged_block.push_item(BlockItem::Loop(merge(loop_block)))
             }
-            item => merged_block.push_item(item),
+            // BlockItem::Opのコピーは軽いのでおｋ
+            item => merged_block.push_item(item.clone()),
         };
         loop {
             if merged_block.items.len() < 2 {
@@ -54,10 +55,10 @@ pub(super) fn merge(block: Block) -> Block {
     merged_block
 }
 
-pub(super) fn clear(block: Block) -> Block {
+pub(super) fn clear(block: &Block) -> Block {
     let mut optimized_block = Block::new();
 
-    for item in block.items {
+    for item in &block.items {
         if let BlockItem::Loop(block) = item {
             if let [BlockItem::Op(Op::Add(1) | Op::Sub(1))] = block.items.as_slice() {
                 optimized_block.push_item(BlockItem::Op(Op::Clear));
@@ -66,7 +67,7 @@ pub(super) fn clear(block: Block) -> Block {
                 optimized_block.push_item(BlockItem::Loop(item));
             }
         } else {
-            optimized_block.push_item(item)
+            optimized_block.push_item(item.clone())
         }
     }
 

@@ -51,6 +51,14 @@ impl Block {
     fn push_item(&mut self, item: BlockItem) {
         self.items.push(item)
     }
+    pub fn optimize(&self) -> Block {
+        let mut block = opt::merge(self);
+
+        opt::unwrap(&mut block);
+        let block = opt::clear(&block);
+        let block = opt::mul(block);
+        opt::merge(&block)
+    }
     fn to_wat(&self, memory_base_address: i32) -> String {
         fn block_to_wat(
             block: &Block,
@@ -517,12 +525,9 @@ pub fn bf_to_wat(bf: &str) -> String {
     let mut block = bf_to_block(bf);
     block.items.insert(0, BlockItem::Op(Op::Clear));
 
-    opt::unwrap(&mut block);
-    let block = opt::merge(block);
-    let block = opt::clear(block);
-    let block = opt::mul(block);
-    let block = opt::merge(block);
-    let body = block.to_wat(40);
+    let optimized_block = block.optimize();
+
+    let body = optimized_block.to_wat(40);
 
     // Base Wasmer
     // https://github.com/wasmerio/wasmer/blob/75a98ab171bee010b9a7cd0f836919dc4519dcaf/lib/wasi/tests/stdio.rs
@@ -570,17 +575,8 @@ pub fn bf_to_wasm(bf: &str) -> Vec<u8> {
     let mut block = bf_to_block(bf);
 
     block.items.insert(0, BlockItem::Op(Op::Clear));
-    // eprintln!("{block:?}");
 
-    opt::unwrap(&mut block);
-    let block = opt::merge(block);
-    // eprintln!("{block:?}");
-    let block = opt::clear(block);
-    // eprintln!("{block:?}");
-    let block = opt::mul(block);
-    // eprintln!("{block:?}");
-    // let block = opt::merge(block);
-    // eprintln!("{block:?}");
+    let optimized_block = block.optimize();
 
-    block.to_wasm()
+    optimized_block.to_wasm()
 }
