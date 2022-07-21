@@ -11,10 +11,10 @@ pub enum Section {
     Memory(MemorySection),
     Export(ExportSection),
     Code(CodeSection),
-    Table,
-    Data,
-    Global,
-    Element,
+    // Table,
+    // Data,
+    // Global,
+    // Element,
 }
 impl Section {
     fn section_id(&self) -> Var<u8> {
@@ -22,13 +22,13 @@ impl Section {
             Section::Type(_) => Var(1u8),
             Section::Import(_) => Var(2u8),
             Section::Function(_) => Var(3u8),
-            Section::Table => todo!(),
+            // Section::Table => todo!(),
             Section::Memory(_) => Var(5u8),
-            Section::Global => todo!(),
+            // Section::Global => todo!(),
             Section::Export(_) => Var(7),
-            Section::Element => todo!(),
+            // Section::Element => todo!(),
             Section::Code(_) => Var(10),
-            Section::Data => todo!(),
+            // Section::Data => todo!(),
         }
     }
     pub fn write(&self, mut w: impl Write) -> io::Result<()> {
@@ -44,7 +44,7 @@ impl Section {
             Section::Memory(memory_section) => memory_section.write(&mut payload)?,
             Section::Export(export_section) => export_section.write(&mut payload)?,
             Section::Code(code_section) => code_section.write(&mut payload)?,
-            Section::Table | Section::Data | Section::Global | Section::Element => unimplemented!(),
+            // Section::Table | Section::Data | Section::Global | Section::Element => unimplemented!(),
         }
 
         let payload_size = Var(payload.len() as u32);

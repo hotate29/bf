@@ -576,7 +576,7 @@ pub fn bf_to_wasm(bf: &str) -> Vec<u8> {
 
     block.items.insert(0, BlockItem::Op(Op::Clear));
 
-    let optimized_block = block.optimize();
+    let block = block.optimize();
 
-    optimized_block.to_wasm()
+    block.to_wasm()
 }
