@@ -25,6 +25,9 @@ impl Add for Op {
                     Some(Op::Sub(-z as u32))
                 }
             }
+            // 0を足し引きするのは無駄なので、適当な機会に消滅してほしい。
+            (op, Op::Add(0) | Op::Sub(0)) => Some(op),
+            (op, Op::PtrAdd(0) | Op::PtrSub(0)) => Some(op),
             (Op::PtrAdd(x), Op::PtrSub(y)) => {
                 let z = x as i32 - y as i32;
 
