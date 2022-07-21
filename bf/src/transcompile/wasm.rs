@@ -352,13 +352,24 @@ impl Block {
                                 },
                                 WOp::I32Load8U(MemoryImmediate::zero()),
                                 WOp::Call {
-                                    function_index: Var(1),
+                                    function_index: Var(2),
                                 },
                             ];
 
                             out_ops.write(&mut buffer).unwrap();
                         }
-                        Op::Input => todo!(),
+                        Op::Input => {
+                            let input_ops = [
+                                WOp::GetLocal {
+                                    local_index: Var(0),
+                                },
+                                WOp::Call {
+                                    function_index: Var(3),
+                                },
+                            ];
+
+                            input_ops.write(&mut buffer).unwrap()
+                        }
                     },
                     BlockItem::Loop(loop_block) => {
                         let loop_ops = [
@@ -418,6 +429,17 @@ impl Block {
 
         module_builder.push_import(import_fd_write);
 
+        let import_fd_read = Import::Function {
+            module_name: "wasi_unstable".to_string(),
+            field_name: "fd_read".to_string(),
+            signature: Type::Func {
+                params: vec![Type::I32, Type::I32, Type::I32, Type::I32],
+                result: Some(Box::new(Type::I32)),
+            },
+        };
+
+        module_builder.push_import(import_fd_read);
+
         let mut print_char = FunctionBody::new();
 
         let print_char_ops = [
@@ -454,6 +476,40 @@ impl Block {
         };
 
         module_builder.push_function(print_char);
+
+        let mut input_char = FunctionBody::new();
+
+        let input_char_ops = [
+            WOp::I32Const(Var(4)),
+            WOp::GetLocal {
+                local_index: Var(0),
+            },
+            WOp::I32Store(MemoryImmediate::i32()),
+            WOp::I32Const(Var(8)),
+            WOp::I32Const(Var(1)),
+            WOp::I32Store8(MemoryImmediate::zero()),
+            WOp::I32Const(Var(0)),
+            WOp::I32Const(Var(4)),
+            WOp::I32Const(Var(1)),
+            WOp::I32Const(Var(12)),
+            WOp::Call {
+                function_index: Var(1),
+            },
+            WOp::Drop,
+            WOp::End,
+        ];
+        input_char_ops.write(&mut input_char.code).unwrap();
+
+        let input_char = Function {
+            signature: Type::Func {
+                params: vec![Type::I32],
+                result: None,
+            },
+            body: input_char,
+            export_name: None,
+        };
+
+        module_builder.push_function(input_char);
 
         let mut main = FunctionBody::new();
 
