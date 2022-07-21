@@ -176,10 +176,8 @@ pub(super) fn mul(block: &Block) -> Block {
                 match offset_ops {
                     // こっちだったら最適化
                     Some(offset_ops) => {
-                        // eprintln!("最適化! {ptr_offset:?}, {offset_ops:?}");
-
                         for (offset, value) in offset_ops {
-                            // 0は後で処理
+                            // 0は最後に処理
                             if offset == 0 {
                                 continue;
                             }
@@ -198,8 +196,8 @@ pub(super) fn mul(block: &Block) -> Block {
                         optimized_block.push_item(BlockItem::Op(Op::Clear))
                     }
                     None => {
-                        let a = mul(loop_block);
-                        optimized_block.push_item(BlockItem::Loop(a));
+                        let b = mul(loop_block);
+                        optimized_block.push_item(BlockItem::Loop(b));
                     }
                 }
             }
