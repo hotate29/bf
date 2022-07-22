@@ -92,8 +92,6 @@ impl ModuleBuilder {
                     let import_entry =
                         ImportEntry::function(module_name, field_name, Var(type_index as _));
                     import_section.push(import_entry);
-
-                    // function_section.push(Var(type_index as _));
                 }
             }
         }

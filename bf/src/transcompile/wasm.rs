@@ -3,14 +3,13 @@ use std::{fmt::Write, str::Chars};
 mod opt;
 mod wasm_binary;
 
-use wasm_binary::code::{Op as WOp, OpSlice};
-use wasm_binary::type_::Type;
-use wasm_binary::var::Var;
-use wasm_binary::{Function, Import};
-
-use crate::transcompile::wasm::wasm_binary::code::{FunctionBody, LocalEntry, MemoryImmediate};
-use crate::transcompile::wasm::wasm_binary::section::{MemoryType, ResizableLimits};
-use crate::transcompile::wasm::wasm_binary::{Memory, ModuleBuilder};
+use wasm_binary::{
+    code::{FunctionBody, LocalEntry, MemoryImmediate, Op as WOp, OpSlice},
+    section::{MemoryType, ResizableLimits},
+    type_::Type,
+    var::Var,
+    Function, Import, Memory, ModuleBuilder,
+};
 
 #[derive(Debug, Clone, Copy)]
 enum Op {
