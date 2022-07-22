@@ -24,10 +24,17 @@ enum Op {
 }
 impl Op {
     fn ptr(of: i32) -> Self {
-        if of <= 0 {
+        if of < 0 {
             Op::PtrSub(-of as u32)
         } else {
             Op::PtrAdd(of as u32)
+        }
+    }
+    fn add_sub(v: i32) -> Self {
+        if v < 0 {
+            Op::Sub(-v as u32)
+        } else {
+            Op::Add(v as u32)
         }
     }
 }

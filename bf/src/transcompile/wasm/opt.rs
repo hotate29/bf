@@ -115,12 +115,14 @@ pub(super) fn mul(block: &Block) -> Block {
     enum OpType {
         Mul(i32),
         Clear,
+        ClearSet(i32),
     }
     impl OpType {
         fn mul(&mut self, x: i32) {
             match self {
                 OpType::Mul(y) => *y += x,
-                OpType::Clear => *self = OpType::Mul(x),
+                OpType::Clear => *self = OpType::ClearSet(x),
+                OpType::ClearSet(y) => *y += x,
             }
         }
     }
@@ -134,7 +136,7 @@ pub(super) fn mul(block: &Block) -> Block {
                 // 最適化できないものが混じっていたらreturn
                 BlockItem::Loop(_)
                 | BlockItem::If(_)
-                | BlockItem::Op(Op::Clear | Op::Mul(_, _) | Op::Out | Op::Input) => return None,
+                | BlockItem::Op(Op::Mul(_, _) | Op::Out | Op::Input) => return None,
 
                 BlockItem::Op(op) => match op {
                     Op::Add(v) => {
@@ -152,10 +154,10 @@ pub(super) fn mul(block: &Block) -> Block {
 
                     Op::PtrAdd(of) => ptr_offset += *of as i32,
                     Op::PtrSub(of) => ptr_offset -= *of as i32,
-                    // Op::Clear => {
-                    //     offset_op.insert(ptr_offset, OpType::Clear);
-                    // }
-                    Op::Clear | Op::Mul(_, _) | Op::Out | Op::Input => unreachable!(),
+                    Op::Clear => {
+                        offset_op.insert(ptr_offset, OpType::Clear);
+                    }
+                    Op::Mul(_, _) | Op::Out | Op::Input => unreachable!(),
                 },
             };
         }
@@ -193,6 +195,12 @@ pub(super) fn mul(block: &Block) -> Block {
                                 OpType::Clear => {
                                     mul_ops.push_item(BlockItem::Op(Op::ptr(offset)));
                                     mul_ops.push_item(BlockItem::Op(Op::Clear));
+                                    mul_ops.push_item(BlockItem::Op(Op::ptr(-offset)));
+                                }
+                                OpType::ClearSet(value) => {
+                                    mul_ops.push_item(BlockItem::Op(Op::ptr(offset)));
+                                    mul_ops.push_item(BlockItem::Op(Op::Clear));
+                                    mul_ops.push_item(BlockItem::Op(Op::add_sub(value)));
                                     mul_ops.push_item(BlockItem::Op(Op::ptr(-offset)));
                                 }
                             };
