@@ -36,6 +36,7 @@ impl Op {
 enum BlockItem {
     Op(Op),
     Loop(Block),
+    If(Block),
 }
 
 #[derive(Debug, Clone, Default)]
@@ -126,29 +127,22 @@ impl Block {
                                 "
                                 ;; Mul
                                 local.get $pointer
+                                i32.const {of}
+                                i32.add
+                                local.set $ptr
+
+                                local.get $ptr
+
+                                local.get $ptr
                                 i32.load8_u
 
-                                (if (i32.ne (i32.const 0))
-                                    (then
-                                        local.get $pointer
-                                        i32.const {of}
-                                        i32.add
-                                        local.set $ptr
+                                local.get $pointer
+                                i32.load8_u
+                                i32.const {x}
+                                i32.mul
 
-                                        local.get $ptr
-
-                                        local.get $ptr
-                                        i32.load8_u
-
-                                        local.get $pointer
-                                        i32.load8_u
-                                        i32.const {x}
-                                        i32.mul
-
-                                        i32.add
-                                        i32.store8
-                                    )
-                                )
+                                i32.add
+                                i32.store8
                             "
                             )
                             .unwrap();
@@ -210,6 +204,31 @@ impl Block {
                         loop_stack.pop().unwrap();
 
                         writeln!(wat, "(br ${loop_label})))").unwrap();
+                    }
+                    BlockItem::If(if_block) => {
+                        writeln!(
+                            wat,
+                            "
+                        ;; If
+                        local.get $pointer
+                        i32.load8_u
+
+                        (if
+                            (then
+                        "
+                        )
+                        .unwrap();
+
+                        block_to_wat(if_block, wat, loop_stack, loop_count);
+
+                        writeln!(
+                            wat,
+                            "
+                            )
+                        )
+                        "
+                        )
+                        .unwrap();
                     }
                 }
             }
@@ -301,13 +320,6 @@ impl Block {
                                 WOp::GetLocal {
                                     local_index: Var(0),
                                 },
-                                WOp::I32Load8U(MemoryImmediate::zero()),
-                                WOp::If {
-                                    block_type: Type::Void,
-                                },
-                                WOp::GetLocal {
-                                    local_index: Var(0),
-                                },
                                 WOp::I32Const(Var(*of as i32)),
                                 WOp::I32Add,
                                 WOp::SetLocal {
@@ -328,7 +340,6 @@ impl Block {
                                 WOp::I32Mul,
                                 WOp::I32Add,
                                 WOp::I32Store8(MemoryImmediate::zero()),
-                                WOp::End,
                             ];
 
                             mul_ops.write(&mut buffer).unwrap();
@@ -401,6 +412,23 @@ impl Block {
                         ];
 
                         loop_ops.write(&mut buffer).unwrap();
+                    }
+                    BlockItem::If(if_block) => {
+                        let if_ops = [
+                            WOp::GetLocal {
+                                local_index: Var(0),
+                            },
+                            WOp::I32Load8U(MemoryImmediate::zero()),
+                            WOp::If {
+                                block_type: Type::Void,
+                            },
+                        ];
+
+                        if_ops.write(&mut buffer).unwrap();
+
+                        block_to_wasm(if_block, buffer);
+
+                        WOp::End.write(&mut buffer).unwrap();
                     }
                 }
             }

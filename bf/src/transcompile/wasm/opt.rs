@@ -133,6 +133,7 @@ pub(super) fn mul(block: &Block) -> Block {
             match item {
                 // 最適化できないものが混じっていたらreturn
                 BlockItem::Loop(_)
+                | BlockItem::If(_)
                 | BlockItem::Op(Op::Clear | Op::Mul(_, _) | Op::Out | Op::Input) => return None,
 
                 BlockItem::Op(op) => match op {
@@ -179,6 +180,7 @@ pub(super) fn mul(block: &Block) -> Block {
                 match offset_ops {
                     // こっちだったら最適化
                     Some(offset_ops) => {
+                        let mut mul_ops = Block::new();
                         for (offset, value) in offset_ops {
                             // 0は最後に処理
                             if offset == 0 {
@@ -186,17 +188,19 @@ pub(super) fn mul(block: &Block) -> Block {
                             }
                             match value {
                                 OpType::Mul(value) => {
-                                    optimized_block.push_item(BlockItem::Op(Op::Mul(offset, value)))
+                                    mul_ops.push_item(BlockItem::Op(Op::Mul(offset, value)))
                                 }
                                 OpType::Clear => {
-                                    optimized_block.push_item(BlockItem::Op(Op::ptr(offset)));
-                                    optimized_block.push_item(BlockItem::Op(Op::Clear));
-                                    optimized_block.push_item(BlockItem::Op(Op::ptr(-offset)));
+                                    mul_ops.push_item(BlockItem::Op(Op::ptr(offset)));
+                                    mul_ops.push_item(BlockItem::Op(Op::Clear));
+                                    mul_ops.push_item(BlockItem::Op(Op::ptr(-offset)));
                                 }
                             };
                         }
 
-                        optimized_block.push_item(BlockItem::Op(Op::Clear))
+                        mul_ops.push_item(BlockItem::Op(Op::Clear));
+
+                        optimized_block.push_item(BlockItem::If(mul_ops));
                     }
                     None => {
                         let b = mul(loop_block);
@@ -205,6 +209,8 @@ pub(super) fn mul(block: &Block) -> Block {
                 }
             }
             BlockItem::Op(op) => optimized_block.push_item(BlockItem::Op(*op)),
+            // うむむむむ...
+            BlockItem::If(if_block) => optimized_block.push_item(BlockItem::If(if_block.clone())),
         };
     }
 
