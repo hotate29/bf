@@ -11,10 +11,12 @@ impl Add for Op {
             (Op::Sub(n), Op::Sub(m)) => Some(Op::Sub(n + m)),
             (Op::PtrAdd(n), Op::PtrAdd(m)) => Some(Op::PtrAdd(n + m)),
             (Op::PtrSub(n), Op::PtrSub(m)) => Some(Op::PtrSub(n + m)),
-            (Op::Add(_) | Op::Sub(_), Op::Clear) => Some(Op::Clear),
-            (Op::Clear, Op::Mul(_, _)) => Some(Op::Clear),
-            (Op::Clear, Op::Clear) => Some(Op::Clear),
+            (Op::Add(_) | Op::Sub(_), Op::Set(_)) => Some(rhs),
+            (Op::Set(0), Op::Mul(_, _)) => Some(Op::Set(0)),
+            (Op::Set(_), Op::Set(_)) => Some(rhs),
             (Op::Sub(_), Op::Add(_)) => rhs + self,
+            (Op::Set(x), Op::Add(y)) => Some(Op::Set(x + y as i32)),
+            (Op::Set(x), Op::Sub(y)) => Some(Op::Set(x - y as i32)),
             (Op::PtrSub(_), Op::PtrAdd(_)) => rhs + self,
             (Op::Add(x), Op::Sub(y)) => {
                 let z = x as i32 - y as i32;
@@ -25,9 +27,6 @@ impl Add for Op {
                     Some(Op::Sub(-z as u32))
                 }
             }
-            // 0を足し引きするのは無駄なので、適当な機会に消滅してほしい。
-            (op, Op::Add(0) | Op::Sub(0)) => Some(op),
-            (op, Op::PtrAdd(0) | Op::PtrSub(0)) => Some(op),
             (Op::PtrAdd(x), Op::PtrSub(y)) => {
                 let z = x as i32 - y as i32;
 
@@ -37,6 +36,10 @@ impl Add for Op {
                     Some(Op::PtrSub(-z as u32))
                 }
             }
+            // 0を足し引きするのは無駄なので、適当な機会に消滅してほしい。
+            (op, Op::Add(0) | Op::Sub(0)) => Some(op),
+            (op, Op::PtrAdd(0) | Op::PtrSub(0)) => Some(op),
+            (op, Op::Mul(_, 0)) => Some(op),
             (_, _) => None,
         }
     }
@@ -77,7 +80,7 @@ pub(super) fn clear(block: &Block) -> Block {
     for item in &block.items {
         if let BlockItem::Loop(block) = item {
             if let [BlockItem::Op(Op::Add(1) | Op::Sub(1))] = block.items.as_slice() {
-                optimized_block.push_item(BlockItem::Op(Op::Clear));
+                optimized_block.push_item(BlockItem::Op(Op::Set(0)));
             } else {
                 let item = clear(block);
                 optimized_block.push_item(BlockItem::Loop(item));
@@ -114,15 +117,13 @@ pub(super) fn mul(block: &Block) -> Block {
     #[derive(Debug, PartialEq, Eq)]
     enum OpType {
         Mul(i32),
-        Clear,
-        ClearSet(i32),
+        Set(i32),
     }
     impl OpType {
         fn mul(&mut self, x: i32) {
             match self {
                 OpType::Mul(y) => *y += x,
-                OpType::Clear => *self = OpType::ClearSet(x),
-                OpType::ClearSet(y) => *y += x,
+                OpType::Set(y) => *y += x,
             }
         }
     }
@@ -154,8 +155,8 @@ pub(super) fn mul(block: &Block) -> Block {
 
                     Op::PtrAdd(of) => ptr_offset += *of as i32,
                     Op::PtrSub(of) => ptr_offset -= *of as i32,
-                    Op::Clear => {
-                        offset_op.insert(ptr_offset, OpType::Clear);
+                    Op::Set(v) => {
+                        offset_op.insert(ptr_offset, OpType::Set(*v));
                     }
                     Op::Mul(_, _) | Op::Out | Op::Input => unreachable!(),
                 },
@@ -192,21 +193,15 @@ pub(super) fn mul(block: &Block) -> Block {
                                 OpType::Mul(value) => {
                                     mul_ops.push_item(BlockItem::Op(Op::Mul(offset, value)))
                                 }
-                                OpType::Clear => {
+                                OpType::Set(value) => {
                                     mul_ops.push_item(BlockItem::Op(Op::ptr(offset)));
-                                    mul_ops.push_item(BlockItem::Op(Op::Clear));
-                                    mul_ops.push_item(BlockItem::Op(Op::ptr(-offset)));
-                                }
-                                OpType::ClearSet(value) => {
-                                    mul_ops.push_item(BlockItem::Op(Op::ptr(offset)));
-                                    mul_ops.push_item(BlockItem::Op(Op::Clear));
-                                    mul_ops.push_item(BlockItem::Op(Op::add_sub(value)));
+                                    mul_ops.push_item(BlockItem::Op(Op::set(value)));
                                     mul_ops.push_item(BlockItem::Op(Op::ptr(-offset)));
                                 }
                             };
                         }
 
-                        mul_ops.push_item(BlockItem::Op(Op::Clear));
+                        mul_ops.push_item(BlockItem::Op(Op::Set(0)));
 
                         optimized_block.push_item(BlockItem::If(mul_ops));
                     }

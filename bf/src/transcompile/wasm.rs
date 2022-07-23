@@ -18,7 +18,7 @@ enum Op {
     PtrAdd(u32),
     PtrSub(u32),
     Mul(i32, i32),
-    Clear,
+    Set(i32),
     Out,
     Input,
 }
@@ -30,12 +30,8 @@ impl Op {
             Op::PtrAdd(of as u32)
         }
     }
-    fn add_sub(v: i32) -> Self {
-        if v < 0 {
-            Op::Sub(-v as u32)
-        } else {
-            Op::Add(v as u32)
-        }
+    fn set(v: i32) -> Self {
+        Op::Set(v)
     }
 }
 
@@ -154,13 +150,13 @@ impl Block {
                             )
                             .unwrap();
                         }
-                        Op::Clear => {
+                        Op::Set(value) => {
                             writeln!(
                                 *wat,
                                 "
                                 ;; Clear
                                 local.get $pointer
-                                i32.const 0
+                                i32.const {value}
                                 i32.store8"
                             )
                             .unwrap();
@@ -351,12 +347,12 @@ impl Block {
 
                             mul_ops.write(&mut buffer).unwrap();
                         }
-                        Op::Clear => {
+                        Op::Set(value) => {
                             let clear_ops = [
                                 WOp::GetLocal {
                                     local_index: Var(0),
                                 },
-                                WOp::I32Const(Var(0)),
+                                WOp::I32Const(Var(*value)),
                                 WOp::I32Store8(MemoryImmediate::zero()),
                             ];
 
@@ -613,7 +609,7 @@ fn bf_to_block(bf: &str) -> Block {
 
 pub fn bf_to_wat(bf: &str) -> String {
     let mut block = bf_to_block(bf);
-    block.items.insert(0, BlockItem::Op(Op::Clear));
+    block.items.insert(0, BlockItem::Op(Op::Set(0)));
 
     let optimized_block = block.optimize();
 
@@ -664,7 +660,7 @@ pub fn bf_to_wat(bf: &str) -> String {
 pub fn bf_to_wasm(bf: &str) -> Vec<u8> {
     let mut block = bf_to_block(bf);
 
-    block.items.insert(0, BlockItem::Op(Op::Clear));
+    block.items.insert(0, BlockItem::Op(Op::Set(0)));
 
     let block = block.optimize();
 
