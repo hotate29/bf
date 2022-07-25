@@ -212,8 +212,7 @@ pub(super) fn mul(block: &Block) -> Block {
                 }
             }
             BlockItem::Op(op) => optimized_block.push_item(BlockItem::Op(*op)),
-            // うむむむむ...
-            BlockItem::If(if_block) => optimized_block.push_item(BlockItem::If(if_block.clone())),
+            BlockItem::If(if_block) => optimized_block.push_item(BlockItem::If(mul(if_block))),
         };
     }
 
