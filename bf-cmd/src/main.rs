@@ -1,6 +1,6 @@
 use std::{
     fs,
-    io::{self, Read},
+    io::{self, Read, Write},
     num::NonZeroUsize,
     path::PathBuf,
 };
@@ -54,6 +54,7 @@ struct TransArg {
 enum TransTarget {
     C,
     Wat,
+    Wasm,
 }
 
 macro_rules! time {
@@ -123,14 +124,18 @@ fn main() -> anyhow::Result<()> {
                         root_node = time!(optimize(&root_node))
                     }
 
-                    transcompile::c::to_c(&root_node, arg.memory_len)
+                    transcompile::c::to_c(&root_node, arg.memory_len).into_bytes()
                 }
-                TransTarget::Wat => transcompile::wasm::bf_to_wat(&code),
+                TransTarget::Wat => transcompile::wasm::bf_to_wat(&code).into_bytes(),
+                TransTarget::Wasm => transcompile::wasm::bf_to_wasm(&code),
             };
 
             match arg.out {
                 Some(path) => fs::write(path, output)?,
-                None => println!("{output}"),
+                None => {
+                    let mut stdin = io::stdout().lock();
+                    stdin.write_all(&output)?
+                }
             }
         }
     }
