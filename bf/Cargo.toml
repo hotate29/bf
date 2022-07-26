@@ -13,4 +13,4 @@ serde_json = "1.0.76"
 thiserror = "1.0.30"
 
 [dev-dependencies]
-rstest = "0.15.0"
+rstest = {version = "0.15.0", default-features = false}
