@@ -317,7 +317,6 @@ impl SimplifiedNodes {
     }
     fn into_nodes(self) -> Nodes {
         let mut nodes = merge_instruction(self.nodes);
-        // dbg!(&nodes);
 
         match self.pointer_offset.cmp(&0) {
             Ordering::Less => {
