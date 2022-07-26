@@ -4,7 +4,7 @@ use bf::{
     interpreter::InterPreter,
     optimize::optimize,
     parse::{tokenize, Node},
-    transcompile,
+    transpile,
 };
 use clap::{ArgEnum, StructOpt};
 use log::{info, Level};
@@ -104,25 +104,25 @@ fn main() -> anyhow::Result<()> {
                         root_node = time!(optimize(&root_node))
                     }
 
-                    transcompile::c::to_c(&root_node, arg.memory_len).into_bytes()
+                    transpile::c::to_c(&root_node, arg.memory_len).into_bytes()
                 }
                 TransTarget::Wat => {
-                    let mut block = transcompile::wasm::bf_to_block(&code);
+                    let mut block = transpile::wasm::bf_to_block(&code);
 
                     if arg.optimize {
                         block = time!(block.optimize());
                     }
 
-                    transcompile::wasm::to_wat(block).into_bytes()
+                    transpile::wasm::to_wat(block).into_bytes()
                 }
                 TransTarget::Wasm => {
-                    let mut block = transcompile::wasm::bf_to_block(&code);
+                    let mut block = transpile::wasm::bf_to_block(&code);
 
                     if arg.optimize {
                         block = time!(block.optimize());
                     }
 
-                    transcompile::wasm::to_wasm(block)
+                    transpile::wasm::to_wasm(block)
                 }
             };
 

@@ -162,7 +162,7 @@ pub struct Memory {
 
 #[test]
 fn a() {
-    use crate::transcompile::wasm::wasm_binary::{
+    use crate::transpile::wasm::wasm_binary::{
         code::{FunctionBody, MemoryImmediate, Op, OpSlice},
         section::{
             CodeSection, ExportEntry, ExportSection, ExternalKind, FunctionSection, ImportEntry,
