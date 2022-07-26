@@ -177,7 +177,6 @@ fn a() {
     let memory = Memory {
         mem_type: MemoryType {
             limits: ResizableLimits {
-                flags: Var(false),
                 initial: Var(1),
                 maximum: None,
             },
@@ -309,7 +308,6 @@ fn a() {
 
         let limits = MemoryType {
             limits: ResizableLimits {
-                flags: Var(true),
                 initial: Var(1),
                 maximum: Some(Var(2)),
             },

@@ -217,14 +217,16 @@ impl MemoryType {
 }
 
 pub struct ResizableLimits {
-    pub flags: Var<bool>,
     pub initial: Var<u32>,
     pub maximum: Option<Var<u32>>,
 }
 impl ResizableLimits {
     fn write(&self, mut w: impl Write) -> io::Result<()> {
-        self.flags.write(&mut w)?;
+        let flags = Var(self.maximum.is_some());
+        flags.write(&mut w)?;
+
         self.initial.write(&mut w)?;
+
         if let Some(maximum) = &self.maximum {
             maximum.write(&mut w)?;
         }

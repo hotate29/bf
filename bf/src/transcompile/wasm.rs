@@ -43,7 +43,7 @@ enum BlockItem {
 }
 
 #[derive(Debug, Clone, Default)]
-struct Block {
+pub struct Block {
     items: Vec<BlockItem>,
 }
 
@@ -440,7 +440,6 @@ impl Block {
         let mut module_builder = ModuleBuilder::new(Memory {
             mem_type: MemoryType {
                 limits: ResizableLimits {
-                    flags: Var(false),
                     initial: Var(1),
                     maximum: None,
                 },
@@ -579,7 +578,7 @@ impl Block {
     }
 }
 
-fn bf_to_block(bf: &str) -> Block {
+pub fn bf_to_block(bf: &str) -> Block {
     fn inner(block: &mut Block, chars: &mut Chars) {
         while let Some(char) = chars.next() {
             match char {
@@ -607,13 +606,8 @@ fn bf_to_block(bf: &str) -> Block {
     block
 }
 
-pub fn bf_to_wat(bf: &str) -> String {
-    let mut block = bf_to_block(bf);
-    block.items.insert(0, BlockItem::Op(Op::Set(0)));
-
-    let optimized_block = block.optimize();
-
-    let body = optimized_block.to_wat(40);
+pub fn to_wat(block: Block) -> String {
+    let body = block.to_wat(40);
 
     // Base Wasmer
     // https://github.com/wasmerio/wasmer/blob/75a98ab171bee010b9a7cd0f836919dc4519dcaf/lib/wasi/tests/stdio.rs
@@ -657,12 +651,6 @@ pub fn bf_to_wat(bf: &str) -> String {
     )
 }
 
-pub fn bf_to_wasm(bf: &str) -> Vec<u8> {
-    let mut block = bf_to_block(bf);
-
-    block.items.insert(0, BlockItem::Op(Op::Set(0)));
-
-    let block = block.optimize();
-
+pub fn to_wasm(block: Block) -> Vec<u8> {
     block.to_wasm()
 }

@@ -1,9 +1,4 @@
-use std::{
-    fs,
-    io::{self, Read, Write},
-    num::NonZeroUsize,
-    path::PathBuf,
-};
+use std::{fs, io, num::NonZeroUsize, path::PathBuf};
 
 use bf::{
     interpreter::InterPreter,
@@ -12,7 +7,7 @@ use bf::{
     transcompile,
 };
 use clap::{ArgEnum, StructOpt};
-use log::{info, warn, Level};
+use log::{info, Level};
 
 #[derive(Debug, clap::Parser)]
 struct Command {
@@ -42,7 +37,7 @@ struct TransArg {
     #[clap(arg_enum, value_parser)]
     target: TransTarget,
     #[clap(value_parser)]
-    file: Option<PathBuf>,
+    file: PathBuf,
     #[clap(short, long)]
     optimize: bool,
     out: Option<PathBuf>,
@@ -97,22 +92,7 @@ fn main() -> anyhow::Result<()> {
             info!("step: {step_count}");
         }
         SubCommand::Trans(arg) => {
-            let mut code = String::new();
-
-            match arg.file {
-                Some(path) => {
-                    let mut file = fs::File::open(path)?;
-                    file.read_to_string(&mut code)?;
-                }
-                None => {
-                    if atty::is(atty::Stream::Stdin) {
-                        warn!(
-                            r#"This is pipe mode. If you want to input from a file, use the "file" argument."#
-                        );
-                    }
-                    io::stdin().read_to_string(&mut code)?;
-                }
-            };
+            let code = fs::read_to_string(arg.file)?;
 
             let output = match arg.target {
                 TransTarget::C => {
@@ -126,15 +106,36 @@ fn main() -> anyhow::Result<()> {
 
                     transcompile::c::to_c(&root_node, arg.memory_len).into_bytes()
                 }
-                TransTarget::Wat => transcompile::wasm::bf_to_wat(&code).into_bytes(),
-                TransTarget::Wasm => transcompile::wasm::bf_to_wasm(&code),
+                TransTarget::Wat => {
+                    let mut block = transcompile::wasm::bf_to_block(&code);
+
+                    if arg.optimize {
+                        block = time!(block.optimize());
+                    }
+
+                    transcompile::wasm::to_wat(block).into_bytes()
+                }
+                TransTarget::Wasm => {
+                    let mut block = transcompile::wasm::bf_to_block(&code);
+
+                    if arg.optimize {
+                        block = time!(block.optimize());
+                    }
+
+                    transcompile::wasm::to_wasm(block)
+                }
             };
 
             match arg.out {
                 Some(path) => fs::write(path, output)?,
                 None => {
-                    let mut stdin = io::stdout().lock();
-                    stdin.write_all(&output)?
+                    let path = match arg.target {
+                        TransTarget::C => "a.c",
+                        TransTarget::Wat => "a.wat",
+                        TransTarget::Wasm => "a.wasm",
+                    };
+
+                    fs::write(path, output)?;
                 }
             }
         }
