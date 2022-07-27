@@ -8,15 +8,13 @@ pub mod var;
 
 use std::io::{self, Write};
 
-use section::Section;
-use type_::Type;
-
 use self::{
-    code::FunctionBody,
+    code::{FunctionBody, LocalEntry},
     section::{
         CodeSection, ExportEntry, ExportSection, ExternalKind, FunctionSection, ImportEntry,
-        ImportSection, MemorySection, MemoryType, TypeSection,
+        ImportSection, MemorySection, MemoryType, Section, TypeSection,
     },
+    type_::Type,
     var::Var,
 };
 
@@ -145,6 +143,11 @@ pub struct Function {
     pub signature: Type,
     pub body: FunctionBody,
     pub export_name: Option<String>,
+}
+impl Function {
+    pub fn push_local(&mut self, entry: LocalEntry) {
+        self.body.push_local(entry)
+    }
 }
 
 pub enum Import {

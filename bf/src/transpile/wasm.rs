@@ -251,330 +251,188 @@ impl Block {
 
         wat
     }
-    fn to_wasm(&self) -> Vec<u8> {
-        // ぐぬぬ
-        fn block_to_wasm(block: &Block, mut buffer: &mut Vec<u8>) {
-            for item in &block.items {
-                match item {
-                    BlockItem::Op(op) => match op {
-                        Op::Add(value) => {
-                            let add_ops = [
-                                WOp::GetLocal {
-                                    local_index: Var(0),
-                                },
-                                WOp::GetLocal {
-                                    local_index: Var(0),
-                                },
-                                WOp::I32Load8U(MemoryImmediate::zero()),
-                                WOp::I32Const(Var(*value as i32)),
-                                WOp::I32Add,
-                                WOp::I32Store8(MemoryImmediate::zero()),
-                            ];
-
-                            add_ops.write(&mut buffer).unwrap();
-                        }
-                        Op::Sub(value) => {
-                            // Addと大体おなじ
-                            let sub_ops = [
-                                WOp::GetLocal {
-                                    local_index: Var(0),
-                                },
-                                WOp::GetLocal {
-                                    local_index: Var(0),
-                                },
-                                WOp::I32Load8U(MemoryImmediate::zero()),
-                                WOp::I32Const(Var(*value as i32)),
-                                WOp::I32Sub,
-                                WOp::I32Store8(MemoryImmediate::zero()),
-                            ];
-
-                            sub_ops.write(&mut buffer).unwrap();
-                        }
-                        Op::PtrAdd(value) => {
-                            let ptr_add_ops = [
-                                WOp::GetLocal {
-                                    local_index: Var(0),
-                                },
-                                WOp::I32Const(Var(*value as i32)),
-                                WOp::I32Add,
-                                WOp::SetLocal {
-                                    local_index: Var(0),
-                                },
-                            ];
-
-                            ptr_add_ops.write(&mut buffer).unwrap();
-                        }
-                        Op::PtrSub(value) => {
-                            let ptr_sub_ops = [
-                                WOp::GetLocal {
-                                    local_index: Var(0),
-                                },
-                                WOp::I32Const(Var(*value as i32)),
-                                WOp::I32Sub,
-                                WOp::SetLocal {
-                                    local_index: Var(0),
-                                },
-                            ];
-
-                            ptr_sub_ops.write(&mut buffer).unwrap();
-                        }
-                        Op::Mul(of, x) => {
-                            let mul_ops = [
-                                WOp::GetLocal {
-                                    local_index: Var(0),
-                                },
-                                WOp::I32Const(Var(*of as i32)),
-                                WOp::I32Add,
-                                WOp::SetLocal {
-                                    local_index: Var(1),
-                                },
-                                WOp::GetLocal {
-                                    local_index: Var(1),
-                                },
-                                WOp::GetLocal {
-                                    local_index: Var(1),
-                                },
-                                WOp::I32Load8U(MemoryImmediate::zero()),
-                                WOp::GetLocal {
-                                    local_index: Var(0),
-                                },
-                                WOp::I32Load8U(MemoryImmediate::zero()),
-                                WOp::I32Const(Var(*x as i32)),
-                                WOp::I32Mul,
-                                WOp::I32Add,
-                                WOp::I32Store8(MemoryImmediate::zero()),
-                            ];
-
-                            mul_ops.write(&mut buffer).unwrap();
-                        }
-                        Op::Set(value) => {
-                            let clear_ops = [
-                                WOp::GetLocal {
-                                    local_index: Var(0),
-                                },
-                                WOp::I32Const(Var(*value)),
-                                WOp::I32Store8(MemoryImmediate::zero()),
-                            ];
-
-                            clear_ops.write(&mut buffer).unwrap();
-                        }
-                        Op::Out => {
-                            let out_ops = [
-                                WOp::GetLocal {
-                                    local_index: Var(0),
-                                },
-                                WOp::I32Load8U(MemoryImmediate::zero()),
-                                WOp::Call {
-                                    function_index: Var(2),
-                                },
-                            ];
-
-                            out_ops.write(&mut buffer).unwrap();
-                        }
-                        Op::Input => {
-                            let input_ops = [
-                                WOp::GetLocal {
-                                    local_index: Var(0),
-                                },
-                                WOp::Call {
-                                    function_index: Var(3),
-                                },
-                            ];
-
-                            input_ops.write(&mut buffer).unwrap()
-                        }
-                    },
-                    BlockItem::Loop(loop_block) => {
-                        let loop_ops = [
-                            WOp::Block {
-                                block_type: Type::Void,
-                            },
-                            WOp::Loop {
-                                block_type: Type::Void,
+    fn to_wasm_codes(&self, mut buffer: &mut Vec<u8>) {
+        for item in &self.items {
+            match item {
+                BlockItem::Op(op) => match op {
+                    Op::Add(value) => {
+                        let add_ops = [
+                            WOp::GetLocal {
+                                local_index: Var(0),
                             },
                             WOp::GetLocal {
                                 local_index: Var(0),
                             },
                             WOp::I32Load8U(MemoryImmediate::zero()),
-                            WOp::I32Eqz,
-                            WOp::BrIf {
-                                relative_depth: Var(1),
-                            },
+                            WOp::I32Const(Var(*value as i32)),
+                            WOp::I32Add,
+                            WOp::I32Store8(MemoryImmediate::zero()),
                         ];
 
-                        loop_ops.write(&mut buffer).unwrap();
-
-                        block_to_wasm(loop_block, buffer);
-
-                        let loop_ops = [
-                            WOp::Br {
-                                relative_depth: Var(0),
-                            },
-                            WOp::End,
-                            WOp::End,
-                        ];
-
-                        loop_ops.write(&mut buffer).unwrap();
+                        add_ops.write(&mut buffer).unwrap();
                     }
-                    BlockItem::If(if_block) => {
-                        let if_ops = [
+                    Op::Sub(value) => {
+                        // Addと大体おなじ
+                        let sub_ops = [
+                            WOp::GetLocal {
+                                local_index: Var(0),
+                            },
                             WOp::GetLocal {
                                 local_index: Var(0),
                             },
                             WOp::I32Load8U(MemoryImmediate::zero()),
-                            WOp::If {
-                                block_type: Type::Void,
+                            WOp::I32Const(Var(*value as i32)),
+                            WOp::I32Sub,
+                            WOp::I32Store8(MemoryImmediate::zero()),
+                        ];
+
+                        sub_ops.write(&mut buffer).unwrap();
+                    }
+                    Op::PtrAdd(value) => {
+                        let ptr_add_ops = [
+                            WOp::GetLocal {
+                                local_index: Var(0),
+                            },
+                            WOp::I32Const(Var(*value as i32)),
+                            WOp::I32Add,
+                            WOp::SetLocal {
+                                local_index: Var(0),
                             },
                         ];
 
-                        if_ops.write(&mut buffer).unwrap();
-
-                        block_to_wasm(if_block, buffer);
-
-                        WOp::End.write(&mut buffer).unwrap();
+                        ptr_add_ops.write(&mut buffer).unwrap();
                     }
+                    Op::PtrSub(value) => {
+                        let ptr_sub_ops = [
+                            WOp::GetLocal {
+                                local_index: Var(0),
+                            },
+                            WOp::I32Const(Var(*value as i32)),
+                            WOp::I32Sub,
+                            WOp::SetLocal {
+                                local_index: Var(0),
+                            },
+                        ];
+
+                        ptr_sub_ops.write(&mut buffer).unwrap();
+                    }
+                    Op::Mul(of, x) => {
+                        let mul_ops = [
+                            WOp::GetLocal {
+                                local_index: Var(0),
+                            },
+                            WOp::I32Const(Var(*of as i32)),
+                            WOp::I32Add,
+                            WOp::SetLocal {
+                                local_index: Var(1),
+                            },
+                            WOp::GetLocal {
+                                local_index: Var(1),
+                            },
+                            WOp::GetLocal {
+                                local_index: Var(1),
+                            },
+                            WOp::I32Load8U(MemoryImmediate::zero()),
+                            WOp::GetLocal {
+                                local_index: Var(0),
+                            },
+                            WOp::I32Load8U(MemoryImmediate::zero()),
+                            WOp::I32Const(Var(*x as i32)),
+                            WOp::I32Mul,
+                            WOp::I32Add,
+                            WOp::I32Store8(MemoryImmediate::zero()),
+                        ];
+
+                        mul_ops.write(&mut buffer).unwrap();
+                    }
+                    Op::Set(value) => {
+                        let clear_ops = [
+                            WOp::GetLocal {
+                                local_index: Var(0),
+                            },
+                            WOp::I32Const(Var(*value)),
+                            WOp::I32Store8(MemoryImmediate::zero()),
+                        ];
+
+                        clear_ops.write(&mut buffer).unwrap();
+                    }
+                    Op::Out => {
+                        let out_ops = [
+                            WOp::GetLocal {
+                                local_index: Var(0),
+                            },
+                            WOp::I32Load8U(MemoryImmediate::zero()),
+                            WOp::Call {
+                                function_index: Var(2),
+                            },
+                        ];
+
+                        out_ops.write(&mut buffer).unwrap();
+                    }
+                    Op::Input => {
+                        let input_ops = [
+                            WOp::GetLocal {
+                                local_index: Var(0),
+                            },
+                            WOp::Call {
+                                function_index: Var(3),
+                            },
+                        ];
+
+                        input_ops.write(&mut buffer).unwrap()
+                    }
+                },
+                BlockItem::Loop(loop_block) => {
+                    let loop_ops = [
+                        WOp::Block {
+                            block_type: Type::Void,
+                        },
+                        WOp::Loop {
+                            block_type: Type::Void,
+                        },
+                        WOp::GetLocal {
+                            local_index: Var(0),
+                        },
+                        WOp::I32Load8U(MemoryImmediate::zero()),
+                        WOp::I32Eqz,
+                        WOp::BrIf {
+                            relative_depth: Var(1),
+                        },
+                    ];
+
+                    loop_ops.write(&mut buffer).unwrap();
+
+                    loop_block.to_wasm_codes(buffer);
+
+                    let loop_ops = [
+                        WOp::Br {
+                            relative_depth: Var(0),
+                        },
+                        WOp::End,
+                        WOp::End,
+                    ];
+
+                    loop_ops.write(&mut buffer).unwrap();
+                }
+                BlockItem::If(if_block) => {
+                    let if_ops = [
+                        WOp::GetLocal {
+                            local_index: Var(0),
+                        },
+                        WOp::I32Load8U(MemoryImmediate::zero()),
+                        WOp::If {
+                            block_type: Type::Void,
+                        },
+                    ];
+
+                    if_ops.write(&mut buffer).unwrap();
+
+                    if_block.to_wasm_codes(buffer);
+
+                    WOp::End.write(&mut buffer).unwrap();
                 }
             }
         }
-
-        let mut module_builder = ModuleBuilder::new(Memory {
-            mem_type: MemoryType {
-                limits: ResizableLimits {
-                    initial: Var(1),
-                    maximum: None,
-                },
-            },
-            export_name: Some("memory".to_string()),
-        });
-
-        let import_fd_write = Import::Function {
-            module_name: "wasi_unstable".to_string(),
-            field_name: "fd_write".to_string(),
-            signature: Type::Func {
-                params: vec![Type::I32, Type::I32, Type::I32, Type::I32],
-                result: Some(Box::new(Type::I32)),
-            },
-        };
-
-        module_builder.push_import(import_fd_write);
-
-        let import_fd_read = Import::Function {
-            module_name: "wasi_unstable".to_string(),
-            field_name: "fd_read".to_string(),
-            signature: Type::Func {
-                params: vec![Type::I32, Type::I32, Type::I32, Type::I32],
-                result: Some(Box::new(Type::I32)),
-            },
-        };
-
-        module_builder.push_import(import_fd_read);
-
-        let mut print_char = FunctionBody::new();
-
-        let print_char_ops = [
-            WOp::I32Const(Var(0)),
-            WOp::GetLocal {
-                local_index: Var(0),
-            },
-            WOp::I32Store8(MemoryImmediate::zero()),
-            WOp::I32Const(Var(4)),
-            WOp::I32Const(Var(0)),
-            WOp::I32Store(MemoryImmediate::i32()),
-            WOp::I32Const(Var(8)),
-            WOp::I32Const(Var(1)),
-            WOp::I32Store(MemoryImmediate::i32()),
-            WOp::I32Const(Var(1)),
-            WOp::I32Const(Var(4)),
-            WOp::I32Const(Var(1)),
-            WOp::I32Const(Var(12)),
-            WOp::Call {
-                function_index: Var(0),
-            },
-            WOp::Drop,
-            WOp::End,
-        ];
-        print_char_ops.write(&mut print_char.code).unwrap();
-
-        let print_char = Function {
-            signature: Type::Func {
-                params: vec![Type::I32],
-                result: None,
-            },
-            body: print_char,
-            export_name: None,
-        };
-
-        module_builder.push_function(print_char);
-
-        let mut input_char = FunctionBody::new();
-
-        let input_char_ops = [
-            WOp::I32Const(Var(4)),
-            WOp::GetLocal {
-                local_index: Var(0),
-            },
-            WOp::I32Store(MemoryImmediate::i32()),
-            WOp::I32Const(Var(8)),
-            WOp::I32Const(Var(1)),
-            WOp::I32Store8(MemoryImmediate::zero()),
-            WOp::I32Const(Var(0)),
-            WOp::I32Const(Var(4)),
-            WOp::I32Const(Var(1)),
-            WOp::I32Const(Var(12)),
-            WOp::Call {
-                function_index: Var(1),
-            },
-            WOp::Drop,
-            WOp::End,
-        ];
-        input_char_ops.write(&mut input_char.code).unwrap();
-
-        let input_char = Function {
-            signature: Type::Func {
-                params: vec![Type::I32],
-                result: None,
-            },
-            body: input_char,
-            export_name: None,
-        };
-
-        module_builder.push_function(input_char);
-
-        let mut main = FunctionBody::new();
-
-        main.push_local(LocalEntry {
-            count: Var(2),
-            type_: Type::I32,
-        });
-
-        [
-            WOp::I32Const(Var(40)),
-            WOp::SetLocal {
-                local_index: Var(0),
-            },
-        ]
-        .write(&mut main.code)
-        .unwrap();
-
-        block_to_wasm(self, &mut main.code);
-
-        WOp::End.write(&mut main.code).unwrap();
-
-        let main = Function {
-            signature: Type::Func {
-                params: vec![],
-                result: None,
-            },
-            body: main,
-            export_name: Some("_start".to_string()),
-        };
-
-        module_builder.push_function(main);
-
-        let mut wasm = Vec::new();
-        let module = module_builder.into_module();
-        module.write(&mut wasm).unwrap();
-        wasm
     }
 }
 
@@ -652,5 +510,137 @@ pub fn to_wat(block: Block) -> String {
 }
 
 pub fn to_wasm(block: Block) -> Vec<u8> {
-    block.to_wasm()
+    let mut module_builder = ModuleBuilder::new(Memory {
+        mem_type: MemoryType {
+            limits: ResizableLimits {
+                initial: Var(1),
+                maximum: None,
+            },
+        },
+        export_name: Some("memory".to_string()),
+    });
+
+    let import_fd_write = Import::Function {
+        module_name: "wasi_unstable".to_string(),
+        field_name: "fd_write".to_string(),
+        signature: Type::Func {
+            params: vec![Type::I32, Type::I32, Type::I32, Type::I32],
+            result: Some(Box::new(Type::I32)),
+        },
+    };
+
+    module_builder.push_import(import_fd_write);
+
+    let import_fd_read = Import::Function {
+        module_name: "wasi_unstable".to_string(),
+        field_name: "fd_read".to_string(),
+        signature: Type::Func {
+            params: vec![Type::I32, Type::I32, Type::I32, Type::I32],
+            result: Some(Box::new(Type::I32)),
+        },
+    };
+
+    module_builder.push_import(import_fd_read);
+
+    let mut print_char = Function {
+        signature: Type::Func {
+            params: vec![Type::I32],
+            result: None,
+        },
+        body: FunctionBody::new(),
+        export_name: None,
+    };
+
+    let print_char_ops = [
+        WOp::I32Const(Var(0)),
+        WOp::GetLocal {
+            local_index: Var(0),
+        },
+        WOp::I32Store8(MemoryImmediate::zero()),
+        WOp::I32Const(Var(4)),
+        WOp::I32Const(Var(0)),
+        WOp::I32Store(MemoryImmediate::i32()),
+        WOp::I32Const(Var(8)),
+        WOp::I32Const(Var(1)),
+        WOp::I32Store(MemoryImmediate::i32()),
+        WOp::I32Const(Var(1)),
+        WOp::I32Const(Var(4)),
+        WOp::I32Const(Var(1)),
+        WOp::I32Const(Var(12)),
+        WOp::Call {
+            function_index: Var(0),
+        },
+        WOp::Drop,
+        WOp::End,
+    ];
+    print_char_ops.write(&mut print_char.body.code).unwrap();
+
+    module_builder.push_function(print_char);
+
+    let mut input_char = Function {
+        signature: Type::Func {
+            params: vec![Type::I32],
+            result: None,
+        },
+        body: FunctionBody::new(),
+        export_name: None,
+    };
+
+    let input_char_ops = [
+        WOp::I32Const(Var(4)),
+        WOp::GetLocal {
+            local_index: Var(0),
+        },
+        WOp::I32Store(MemoryImmediate::i32()),
+        WOp::I32Const(Var(8)),
+        WOp::I32Const(Var(1)),
+        WOp::I32Store8(MemoryImmediate::zero()),
+        WOp::I32Const(Var(0)),
+        WOp::I32Const(Var(4)),
+        WOp::I32Const(Var(1)),
+        WOp::I32Const(Var(12)),
+        WOp::Call {
+            function_index: Var(1),
+        },
+        WOp::Drop,
+        WOp::End,
+    ];
+    input_char_ops.write(&mut input_char.body.code).unwrap();
+
+    module_builder.push_function(input_char);
+
+    let mut main = Function {
+        signature: Type::Func {
+            params: vec![],
+            result: None,
+        },
+        body: FunctionBody::new(),
+        export_name: Some("_start".to_string()),
+    };
+
+    main.push_local(LocalEntry {
+        count: Var(2),
+        type_: Type::I32,
+    });
+
+    [
+        WOp::I32Const(Var(40)),
+        WOp::SetLocal {
+            local_index: Var(0),
+        },
+    ]
+    .write(&mut main.body.code)
+    .unwrap();
+
+    block.to_wasm_codes(&mut main.body.code);
+
+    WOp::End.write(&mut main.body.code).unwrap();
+
+    module_builder.push_function(main);
+
+    let mut wasm = Vec::new();
+    let module = module_builder.into_module();
+    module.write(&mut wasm).unwrap();
+
+    wasm
 }
