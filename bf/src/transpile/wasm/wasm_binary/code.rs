@@ -144,16 +144,16 @@ pub struct MemoryImmediate {
     offset: Var<u32>,
 }
 impl MemoryImmediate {
-    pub fn zero() -> Self {
+    pub fn zero(offset: u32) -> Self {
         Self {
             flags: Var(0),
-            offset: Var(0),
+            offset: Var(offset),
         }
     }
-    pub fn i32() -> Self {
+    pub fn i32(offset: u32) -> Self {
         Self {
             flags: Var(2),
-            offset: Var(0),
+            offset: Var(offset),
         }
     }
     fn write(&self, mut w: impl Write) -> io::Result<()> {
