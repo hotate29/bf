@@ -18,7 +18,7 @@ enum Op {
     PtrAdd(u32),
     PtrSub(u32),
     Mul(i32, i32),
-    Set(i32),
+    Set(i32, u32),
     Out,
     Input,
 }
@@ -30,8 +30,8 @@ impl Op {
             Op::PtrAdd(of as u32)
         }
     }
-    fn set(v: i32) -> Self {
-        Op::Set(v)
+    fn set(v: i32, offset: u32) -> Self {
+        Op::Set(v, offset)
     }
 }
 
@@ -150,14 +150,14 @@ impl Block {
                             )
                             .unwrap();
                         }
-                        Op::Set(value) => {
+                        Op::Set(value, offset) => {
                             writeln!(
                                 *wat,
                                 "
                                 ;; Clear
                                 local.get $pointer
                                 i32.const {value}
-                                i32.store8"
+                                i32.store8 offset={offset}"
                             )
                             .unwrap();
                         }
@@ -345,13 +345,13 @@ impl Block {
 
                         mul_ops.write(&mut buffer).unwrap();
                     }
-                    Op::Set(value) => {
+                    Op::Set(value, offset) => {
                         let clear_ops = [
                             WOp::GetLocal {
                                 local_index: Var(0),
                             },
                             WOp::I32Const(Var(*value)),
-                            WOp::I32Store8(MemoryImmediate::zero(0)),
+                            WOp::I32Store8(MemoryImmediate::zero(*offset)),
                         ];
 
                         clear_ops.write(&mut buffer).unwrap();
