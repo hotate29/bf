@@ -21,5 +21,5 @@ fn bench_optimizing_transpile_mandelbrot(bencher: &mut test::Bencher) {
 
     let block = transpile::wasm::bf_to_block(source);
 
-    bencher.iter(|| block.optimize())
+    bencher.iter(|| block.optimize(true))
 }

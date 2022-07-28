@@ -110,7 +110,7 @@ fn main() -> anyhow::Result<()> {
                     let mut block = transpile::wasm::bf_to_block(&code);
 
                     if arg.optimize {
-                        block = time!(block.optimize());
+                        block = time!(block.optimize(true));
                     }
 
                     transpile::wasm::to_wat(block).into_bytes()
@@ -119,7 +119,7 @@ fn main() -> anyhow::Result<()> {
                     let mut block = transpile::wasm::bf_to_block(&code);
 
                     if arg.optimize {
-                        block = time!(block.optimize());
+                        block = time!(block.optimize(true));
                     }
 
                     transpile::wasm::to_wasm(block)

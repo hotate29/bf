@@ -12,7 +12,7 @@ impl Add for Op<u32> {
             (Op::PtrAdd(n), Op::PtrAdd(m)) => Some(Op::PtrAdd(n + m)),
             (Op::PtrSub(n), Op::PtrSub(m)) => Some(Op::PtrSub(n + m)),
             (Op::Add(_, o) | Op::Sub(_, o), Op::Set(_, f)) if o == f => Some(rhs),
-            (Op::Set(0, 0), Op::Mul(_, _)) => Some(Op::Set(0, 0)),
+            (Op::Set(0, o), Op::Mul(_, _, f)) if o == f => Some(Op::Set(0, o)),
             (Op::Set(_, o), Op::Set(_, f)) if o == f => Some(rhs),
             (Op::Sub(_, _), Op::Add(_, _)) => rhs + self,
             (Op::PtrSub(_), Op::PtrAdd(_)) => rhs + self,
@@ -39,7 +39,7 @@ impl Add for Op<u32> {
             // 0を足し引きするのは無駄なので、適当な機会に消滅してほしい。
             (op, Op::Add(0, _) | Op::Sub(0, _)) => Some(op),
             (op, Op::PtrAdd(0) | Op::PtrSub(0)) => Some(op),
-            (op, Op::Mul(_, 0)) => Some(op),
+            (op, Op::Mul(_, 0, _)) => Some(op),
             (_, _) => None,
         }
     }
@@ -138,7 +138,11 @@ pub(super) fn mul(block: &Block) -> Block {
                 BlockItem::Loop(_)
                 | BlockItem::If(_)
                 | BlockItem::Op(
-                    Op::Add(_, 1..) | Op::Sub(_, 1..) | Op::Mul(_, _) | Op::Out(_) | Op::Input(_),
+                    Op::Add(_, 1..)
+                    | Op::Sub(_, 1..)
+                    | Op::Mul(_, _, _)
+                    | Op::Out(_)
+                    | Op::Input(_),
                 ) => return None,
 
                 BlockItem::Op(op) => match op {
@@ -162,7 +166,7 @@ pub(super) fn mul(block: &Block) -> Block {
                     }
                     Op::Add(_, 1..)
                     | Op::Sub(_, 1..)
-                    | Op::Mul(_, _)
+                    | Op::Mul(_, _, _)
                     | Op::Out(_)
                     | Op::Input(_) => {
                         unreachable!()
@@ -199,7 +203,7 @@ pub(super) fn mul(block: &Block) -> Block {
                             }
                             match value {
                                 OpType::Mul(value) => {
-                                    mul_ops.push_item(BlockItem::Op(Op::Mul(offset, value)))
+                                    mul_ops.push_item(BlockItem::Op(Op::Mul(offset, value, 0)))
                                 }
                                 OpType::Set(value) => {
                                     mul_ops.push_item(BlockItem::Op(Op::ptr(offset)));
@@ -208,6 +212,7 @@ pub(super) fn mul(block: &Block) -> Block {
                                 }
                             };
                         }
+                        mul_ops.push_item(BlockItem::Op(Op::Set(0, 0)));
 
                         optimized_block.push_item(BlockItem::If(mul_ops));
                     }
@@ -235,7 +240,7 @@ pub(crate) fn offset_opt(block: &Block) -> Block {
         .items
         .split(|item| matches!(item, BlockItem::Loop(_) | BlockItem::If(_)))
     {
-        eprintln!("{item_slice:?}");
+        // eprintln!("{item_slice:?}");
 
         let mut offset_ops = Vec::new();
         let mut offset = 0;
@@ -247,7 +252,7 @@ pub(crate) fn offset_opt(block: &Block) -> Block {
                     Op::Sub(value, of) => offset_ops.push(Op::Sub(*value, offset + *of as i32)),
                     Op::PtrAdd(x) => offset += *x as i32,
                     Op::PtrSub(x) => offset -= *x as i32,
-                    Op::Mul(_, _) => todo!(),
+                    Op::Mul(x, y, of) => offset_ops.push(Op::Mul(*x, *y, offset + *of as i32)),
                     Op::Set(value, of) => offset_ops.push(Op::Set(*value, offset + *of as i32)),
                     Op::Out(of) => offset_ops.push(Op::Out(offset + *of as i32)),
                     Op::Input(of) => offset_ops.push(Op::Input(offset + *of as i32)),
@@ -264,10 +269,10 @@ pub(crate) fn offset_opt(block: &Block) -> Block {
                 | Op::Sub(_, offset)
                 | Op::Out(offset)
                 | Op::Input(offset)
-                | Op::Set(_, offset) => Some(*offset),
+                | Op::Set(_, offset)
+                | Op::Mul(_, _, offset) => Some(*offset),
                 Op::PtrAdd(_) => todo!(),
                 Op::PtrSub(_) => todo!(),
-                Op::Mul(_, _) => todo!(),
             })
             .min();
 
@@ -286,7 +291,7 @@ pub(crate) fn offset_opt(block: &Block) -> Block {
                         Op::Sub(value, offset) => Op::Sub(value, (offset - min_offset) as u32),
                         Op::PtrAdd(_) => todo!(),
                         Op::PtrSub(_) => todo!(),
-                        Op::Mul(_, _) => todo!(),
+                        Op::Mul(x, y, offset) => Op::Mul(x, y, (offset - min_offset) as u32),
                         Op::Set(value, offset) => Op::Set(value, dbg!(offset - min_offset) as u32),
                         Op::Out(offset) => Op::Out((offset - min_offset) as u32),
                         Op::Input(offset) => Op::Input((offset - min_offset) as u32),
@@ -319,8 +324,8 @@ pub(crate) fn offset_opt(block: &Block) -> Block {
         })
         .collect::<Vec<_>>();
 
-    eprintln!("{optimized_ops:?}");
-    eprintln!("{optimized_loops:?}");
+    // eprintln!("{optimized_ops:?}");
+    // eprintln!("{optimized_loops:?}");
 
     let mut optimized_block = Block::new();
 
@@ -340,7 +345,7 @@ pub(crate) fn offset_opt(block: &Block) -> Block {
         }
     }
 
-    eprintln!("{optimized_block:?}");
+    // eprintln!("{optimized_block:?}");
 
     optimized_block
 }

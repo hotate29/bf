@@ -17,7 +17,8 @@ enum Op<T = u32> {
     Sub(u32, T),
     PtrAdd(u32),
     PtrSub(u32),
-    Mul(i32, i32),
+    /// [p+x+off] += [p+off]*y
+    Mul(i32, i32, T),
     Set(i32, T),
     Out(T),
     Input(T),
@@ -51,12 +52,18 @@ impl Block {
     fn push_item(&mut self, item: BlockItem) {
         self.items.push(item)
     }
-    pub fn optimize(&self) -> Block {
-        let mut block = opt::merge(self);
+    pub fn optimize(&self, top_level: bool) -> Block {
+        let mut block = self.clone();
+
+        if top_level {
+            block.items.insert(0, BlockItem::Op(Op::Set(0, 0)));
+        }
+
+        let mut block = opt::merge(&block);
 
         opt::unwrap(&mut block);
         let block = opt::clear(&block);
-        // let block = opt::mul(&block);
+        let block = opt::mul(&block);
         let block = opt::merge(&block);
         opt::offset_opt(&block)
     }
@@ -122,28 +129,28 @@ impl Block {
                             )
                             .unwrap();
                         }
-                        Op::Mul(of, x) => {
+                        Op::Mul(x, y, offset) => {
                             writeln!(
                                 wat,
                                 "
                                 ;; Mul
                                 local.get $pointer
-                                i32.const {of}
+                                i32.const {x}
                                 i32.add
                                 local.set $ptr
 
                                 local.get $ptr
 
                                 local.get $ptr
-                                i32.load8_u
+                                i32.load8_u offset={offset}
 
                                 local.get $pointer
-                                i32.load8_u
-                                i32.const {x}
+                                i32.load8_u offset={offset}
+                                i32.const {y}
                                 i32.mul
 
                                 i32.add
-                                i32.store8
+                                i32.store8 offset={offset}
                             "
                             )
                             .unwrap();
@@ -315,12 +322,12 @@ impl Block {
 
                         ptr_sub_ops.write(&mut buffer).unwrap();
                     }
-                    Op::Mul(of, x) => {
+                    Op::Mul(x, y, offset) => {
                         let mul_ops = [
                             WOp::GetLocal {
                                 local_index: Var(0),
                             },
-                            WOp::I32Const(Var(*of as i32)),
+                            WOp::I32Const(Var(*x as i32)),
                             WOp::I32Add,
                             WOp::SetLocal {
                                 local_index: Var(1),
@@ -331,15 +338,15 @@ impl Block {
                             WOp::GetLocal {
                                 local_index: Var(1),
                             },
-                            WOp::I32Load8U(MemoryImmediate::zero(0)),
+                            WOp::I32Load8U(MemoryImmediate::zero(*offset)),
                             WOp::GetLocal {
                                 local_index: Var(0),
                             },
-                            WOp::I32Load8U(MemoryImmediate::zero(0)),
-                            WOp::I32Const(Var(*x as i32)),
+                            WOp::I32Load8U(MemoryImmediate::zero(*offset)),
+                            WOp::I32Const(Var(*y as i32)),
                             WOp::I32Mul,
                             WOp::I32Add,
-                            WOp::I32Store8(MemoryImmediate::zero(0)),
+                            WOp::I32Store8(MemoryImmediate::zero(*offset)),
                         ];
 
                         mul_ops.write(&mut buffer).unwrap();
