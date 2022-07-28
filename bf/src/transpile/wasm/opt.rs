@@ -313,24 +313,19 @@ pub(crate) fn offset_opt(block: &Block) -> Block {
         optimized_ops.push(ops);
     }
 
-    // Loop | Ifを処理する
-    let optimized_loops = block
-        .items
-        .iter()
-        .filter_map(|item| match item {
-            BlockItem::Op(_) => None,
-            BlockItem::Loop(b) => Some(BlockItem::Loop(offset_opt(b))),
-            BlockItem::If(b) => Some(BlockItem::If(offset_opt(b))),
-        })
-        .collect::<Vec<_>>();
-
-    // eprintln!("{optimized_ops:?}");
-    // eprintln!("{optimized_loops:?}");
-
     let mut optimized_block = Block::new();
 
     let mut optimized_ops = optimized_ops.into_iter();
-    let mut optimized_loops = optimized_loops.into_iter();
+
+    // Loop | Ifを処理する
+    let mut optimized_loops = block.items.iter().filter_map(|item| match item {
+        BlockItem::Op(_) => None,
+        BlockItem::Loop(b) => Some(BlockItem::Loop(offset_opt(b))),
+        BlockItem::If(b) => Some(BlockItem::If(offset_opt(b))),
+    });
+
+    // eprintln!("{optimized_ops:?}");
+    // eprintln!("{optimized_loops:?}");
 
     loop {
         match (optimized_ops.next(), optimized_loops.next()) {
@@ -344,8 +339,6 @@ pub(crate) fn offset_opt(block: &Block) -> Block {
             (_, _) => break,
         }
     }
-
-    // eprintln!("{optimized_block:?}");
 
     optimized_block
 }
