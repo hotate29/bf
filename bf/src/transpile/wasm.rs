@@ -12,26 +12,23 @@ use wasm_binary::{
 };
 
 #[derive(Debug, Clone, Copy)]
-enum Op {
-    Add(u32),
-    Sub(u32),
+enum Op<T = u32> {
+    Add(u32, T),
+    Sub(u32, T),
     PtrAdd(u32),
     PtrSub(u32),
     Mul(i32, i32),
-    Set(i32, u32),
-    Out,
-    Input,
+    Set(i32, T),
+    Out(T),
+    Input(T),
 }
-impl Op {
+impl<T> Op<T> {
     fn ptr(of: i32) -> Self {
         if of < 0 {
             Op::PtrSub(-of as u32)
         } else {
             Op::PtrAdd(of as u32)
         }
-    }
-    fn set(v: i32, offset: u32) -> Self {
-        Op::Set(v, offset)
     }
 }
 
@@ -59,8 +56,9 @@ impl Block {
 
         opt::unwrap(&mut block);
         let block = opt::clear(&block);
-        let block = opt::mul(&block);
-        opt::merge(&block)
+        // let block = opt::mul(&block);
+        let block = opt::merge(&block);
+        opt::offset_opt(&block)
     }
     fn to_wat(&self, memory_base_address: i32) -> String {
         fn block_to_wat(
@@ -72,31 +70,31 @@ impl Block {
             for item in &block.items {
                 match item {
                     BlockItem::Op(op) => match op {
-                        Op::Add(n) => {
+                        Op::Add(n, offset) => {
                             writeln!(
                                 wat,
                                 "
                                 ;; Add
                                 local.get $pointer
                                 local.get $pointer
-                                i32.load8_u
+                                i32.load8_u offset={offset}
                                 i32.const {n}
                                 i32.add
-                                i32.store8"
+                                i32.store8 offset={offset}"
                             )
                             .unwrap();
                         }
-                        Op::Sub(n) => {
+                        Op::Sub(n, offset) => {
                             writeln!(
                                 wat,
                                 "
                                 ;; Sub
                                 local.get $pointer
                                 local.get $pointer
-                                i32.load8_u
+                                i32.load8_u offset={offset}
                                 i32.const {n}
                                 i32.sub
-                                i32.store8"
+                                i32.store8 offset={offset}"
                             )
                             .unwrap();
                         }
@@ -161,24 +159,25 @@ impl Block {
                             )
                             .unwrap();
                         }
-                        Op::Out => {
+                        Op::Out(offset) => {
                             writeln!(
                                 wat,
                                 "
                                 ;; Out
                                 local.get $pointer
-                                i32.load8_u
+                                i32.load8_u offset={offset}
                                 call $print_char"
                             )
                             .unwrap();
                         }
-                        Op::Input => {
+                        Op::Input(offset) => {
                             writeln!(
                                 wat,
                                 "
                                 ;; Input
                                 local.get $pointer
-                                call $input_char"
+                                call $input_char
+                                i32.store8 offset={offset}"
                             )
                             .unwrap();
                         }
@@ -255,7 +254,7 @@ impl Block {
         for item in &self.items {
             match item {
                 BlockItem::Op(op) => match op {
-                    Op::Add(value) => {
+                    Op::Add(value, offset) => {
                         let add_ops = [
                             WOp::GetLocal {
                                 local_index: Var(0),
@@ -263,15 +262,15 @@ impl Block {
                             WOp::GetLocal {
                                 local_index: Var(0),
                             },
-                            WOp::I32Load8U(MemoryImmediate::zero(0)),
+                            WOp::I32Load8U(MemoryImmediate::zero(*offset)),
                             WOp::I32Const(Var(*value as i32)),
                             WOp::I32Add,
-                            WOp::I32Store8(MemoryImmediate::zero(0)),
+                            WOp::I32Store8(MemoryImmediate::zero(*offset)),
                         ];
 
                         add_ops.write(&mut buffer).unwrap();
                     }
-                    Op::Sub(value) => {
+                    Op::Sub(value, offset) => {
                         // Addと大体おなじ
                         let sub_ops = [
                             WOp::GetLocal {
@@ -280,10 +279,10 @@ impl Block {
                             WOp::GetLocal {
                                 local_index: Var(0),
                             },
-                            WOp::I32Load8U(MemoryImmediate::zero(0)),
+                            WOp::I32Load8U(MemoryImmediate::zero(*offset)),
                             WOp::I32Const(Var(*value as i32)),
                             WOp::I32Sub,
-                            WOp::I32Store8(MemoryImmediate::zero(0)),
+                            WOp::I32Store8(MemoryImmediate::zero(*offset)),
                         ];
 
                         sub_ops.write(&mut buffer).unwrap();
@@ -356,12 +355,12 @@ impl Block {
 
                         clear_ops.write(&mut buffer).unwrap();
                     }
-                    Op::Out => {
+                    Op::Out(offset) => {
                         let out_ops = [
                             WOp::GetLocal {
                                 local_index: Var(0),
                             },
-                            WOp::I32Load8U(MemoryImmediate::zero(0)),
+                            WOp::I32Load8U(MemoryImmediate::zero(*offset)),
                             WOp::Call {
                                 function_index: Var(2),
                             },
@@ -369,7 +368,7 @@ impl Block {
 
                         out_ops.write(&mut buffer).unwrap();
                     }
-                    Op::Input => {
+                    Op::Input(offset) => {
                         let input_ops = [
                             WOp::GetLocal {
                                 local_index: Var(0),
@@ -377,6 +376,7 @@ impl Block {
                             WOp::Call {
                                 function_index: Var(3),
                             },
+                            WOp::I32Store8(MemoryImmediate::zero(*offset)),
                         ];
 
                         input_ops.write(&mut buffer).unwrap()
@@ -440,12 +440,12 @@ pub fn bf_to_block(bf: &str) -> Block {
     fn inner(block: &mut Block, chars: &mut Chars) {
         while let Some(char) = chars.next() {
             match char {
-                '+' => block.push_item(BlockItem::Op(Op::Add(1))),
-                '-' => block.push_item(BlockItem::Op(Op::Sub(1))),
+                '+' => block.push_item(BlockItem::Op(Op::Add(1, 0))),
+                '-' => block.push_item(BlockItem::Op(Op::Sub(1, 0))),
                 '>' => block.push_item(BlockItem::Op(Op::PtrAdd(1))),
                 '<' => block.push_item(BlockItem::Op(Op::PtrSub(1))),
-                '.' => block.push_item(BlockItem::Op(Op::Out)),
-                ',' => block.push_item(BlockItem::Op(Op::Input)),
+                '.' => block.push_item(BlockItem::Op(Op::Out(0))),
+                ',' => block.push_item(BlockItem::Op(Op::Input(0))),
                 '[' => {
                     let mut b = Block::new();
                     inner(&mut b, chars);
@@ -474,8 +474,8 @@ pub fn to_wat(block: Block) -> String {
     (import "wasi_unstable" "fd_write" (func $fd_write (param i32 i32 i32 i32) (result i32)))
     (import "wasi_unstable" "fd_read" (func $fd_read (param i32 i32 i32 i32) (result i32)))
     (memory (export "memory") 1)
-    (func $input_char (param $ptr i32)
-        (i32.store (i32.const 4) (local.get $ptr))
+    (func $input_char (result i32)
+        (i32.store (i32.const 4) (i32.const 0))
         (i32.store (i32.const 8) (i32.const 1))
 
         (call $fd_read
@@ -485,6 +485,9 @@ pub fn to_wat(block: Block) -> String {
             (i32.const 12)
         )
         drop
+
+        i32.const 0
+        i32.load8_u
     )
     (func $print_char (param $char i32)
         i32.const 0
@@ -579,8 +582,8 @@ pub fn to_wasm(block: Block) -> Vec<u8> {
 
     let mut input_char = Function {
         signature: Type::Func {
-            params: vec![Type::I32],
-            result: None,
+            params: vec![],
+            result: Some(Box::new(Type::I32)),
         },
         body: FunctionBody::new(),
         export_name: None,
@@ -588,9 +591,7 @@ pub fn to_wasm(block: Block) -> Vec<u8> {
 
     let input_char_ops = [
         WOp::I32Const(Var(4)),
-        WOp::GetLocal {
-            local_index: Var(0),
-        },
+        WOp::I32Const(Var(0)),
         WOp::I32Store(MemoryImmediate::i32(0)),
         WOp::I32Const(Var(8)),
         WOp::I32Const(Var(1)),
@@ -603,6 +604,8 @@ pub fn to_wasm(block: Block) -> Vec<u8> {
             function_index: Var(1),
         },
         WOp::Drop,
+        WOp::I32Const(Var(0)),
+        WOp::I32Load8U(MemoryImmediate::zero(0)),
         WOp::End,
     ];
     input_char_ops.write(&mut input_char.body.code).unwrap();

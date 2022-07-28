@@ -2,29 +2,29 @@ use std::{collections::BTreeMap, ops::Add};
 
 use super::{Block, BlockItem, Op};
 
-impl Add for Op {
-    type Output = Option<Op>;
+impl Add for Op<u32> {
+    type Output = Option<Self>;
 
     fn add(self, rhs: Self) -> Self::Output {
         match (self, rhs) {
-            (Op::Add(n), Op::Add(m)) => Some(Op::Add(n + m)),
-            (Op::Sub(n), Op::Sub(m)) => Some(Op::Sub(n + m)),
+            (Op::Add(n, o), Op::Add(m, f)) if o == f => Some(Op::Add(n + m, o)),
+            (Op::Sub(n, o), Op::Sub(m, f)) if o == f => Some(Op::Sub(n + m, o)),
             (Op::PtrAdd(n), Op::PtrAdd(m)) => Some(Op::PtrAdd(n + m)),
             (Op::PtrSub(n), Op::PtrSub(m)) => Some(Op::PtrSub(n + m)),
-            (Op::Add(_) | Op::Sub(_), Op::Set(_, 0)) => Some(rhs),
+            (Op::Add(_, o) | Op::Sub(_, o), Op::Set(_, f)) if o == f => Some(rhs),
             (Op::Set(0, 0), Op::Mul(_, _)) => Some(Op::Set(0, 0)),
             (Op::Set(_, o), Op::Set(_, f)) if o == f => Some(rhs),
-            (Op::Sub(_), Op::Add(_)) => rhs + self,
-            (Op::Set(x, 0), Op::Add(y)) => Some(Op::Set(x + y as i32, 0)),
-            (Op::Set(x, 0), Op::Sub(y)) => Some(Op::Set(x - y as i32, 0)),
+            (Op::Sub(_, _), Op::Add(_, _)) => rhs + self,
             (Op::PtrSub(_), Op::PtrAdd(_)) => rhs + self,
-            (Op::Add(x), Op::Sub(y)) => {
+            (Op::Set(x, o), Op::Add(y, f)) if o == f => Some(Op::Set(x + y as i32, o)),
+            (Op::Set(x, o), Op::Sub(y, f)) if o == f => Some(Op::Set(x - y as i32, o)),
+            (Op::Add(x, o), Op::Sub(y, f)) if o == f => {
                 let z = x as i32 - y as i32;
 
                 if z.is_positive() {
-                    Some(Op::Add(z as u32))
+                    Some(Op::Add(z as u32, o))
                 } else {
-                    Some(Op::Sub(-z as u32))
+                    Some(Op::Sub(-z as u32, o))
                 }
             }
             (Op::PtrAdd(x), Op::PtrSub(y)) => {
@@ -37,7 +37,7 @@ impl Add for Op {
                 }
             }
             // 0を足し引きするのは無駄なので、適当な機会に消滅してほしい。
-            (op, Op::Add(0) | Op::Sub(0)) => Some(op),
+            (op, Op::Add(0, _) | Op::Sub(0, _)) => Some(op),
             (op, Op::PtrAdd(0) | Op::PtrSub(0)) => Some(op),
             (op, Op::Mul(_, 0)) => Some(op),
             (_, _) => None,
@@ -79,7 +79,7 @@ pub(super) fn clear(block: &Block) -> Block {
 
     for item in &block.items {
         if let BlockItem::Loop(block) = item {
-            if let [BlockItem::Op(Op::Add(1) | Op::Sub(1))] = block.items.as_slice() {
+            if let [BlockItem::Op(Op::Add(1, 0) | Op::Sub(1, 0))] = block.items.as_slice() {
                 optimized_block.push_item(BlockItem::Op(Op::Set(0, 0)));
             } else {
                 let item = clear(block);
@@ -137,16 +137,18 @@ pub(super) fn mul(block: &Block) -> Block {
                 // 最適化できないものが混じっていたらreturn
                 BlockItem::Loop(_)
                 | BlockItem::If(_)
-                | BlockItem::Op(Op::Mul(_, _) | Op::Out | Op::Input) => return None,
+                | BlockItem::Op(
+                    Op::Add(_, 1..) | Op::Sub(_, 1..) | Op::Mul(_, _) | Op::Out(_) | Op::Input(_),
+                ) => return None,
 
                 BlockItem::Op(op) => match op {
-                    Op::Add(v) => {
+                    Op::Add(v, 0) => {
                         offset_op
                             .entry(ptr_offset)
                             .and_modify(|x| x.mul(*v as i32))
                             .or_insert(OpType::Mul(*v as i32));
                     }
-                    Op::Sub(v) => {
+                    Op::Sub(v, 0) => {
                         offset_op
                             .entry(ptr_offset)
                             .and_modify(|x| x.mul(-(*v as i32)))
@@ -158,7 +160,13 @@ pub(super) fn mul(block: &Block) -> Block {
                     Op::Set(v, offset) => {
                         offset_op.insert(ptr_offset + *offset as i32, OpType::Set(*v));
                     }
-                    Op::Mul(_, _) | Op::Out | Op::Input => unreachable!(),
+                    Op::Add(_, 1..)
+                    | Op::Sub(_, 1..)
+                    | Op::Mul(_, _)
+                    | Op::Out(_)
+                    | Op::Input(_) => {
+                        unreachable!()
+                    }
                 },
             };
         }
@@ -195,7 +203,7 @@ pub(super) fn mul(block: &Block) -> Block {
                                 }
                                 OpType::Set(value) => {
                                     mul_ops.push_item(BlockItem::Op(Op::ptr(offset)));
-                                    mul_ops.push_item(BlockItem::Op(Op::set(value, 0)));
+                                    mul_ops.push_item(BlockItem::Op(Op::Set(value, 0)));
                                     mul_ops.push_item(BlockItem::Op(Op::ptr(-offset)));
                                 }
                             };
@@ -213,6 +221,126 @@ pub(super) fn mul(block: &Block) -> Block {
             BlockItem::If(if_block) => optimized_block.push_item(BlockItem::If(mul(if_block))),
         };
     }
+
+    optimized_block
+}
+
+pub(crate) fn offset_opt(block: &Block) -> Block {
+    // 先に命令列の固まりから処理する
+    // Loop | Ifでsplitする事によって、命令列を良い感じに抽出する事ができる。
+    // Loop | Ifは後々処理することが可能
+    let mut optimized_ops = Vec::new();
+
+    for item_slice in block
+        .items
+        .split(|item| matches!(item, BlockItem::Loop(_) | BlockItem::If(_)))
+    {
+        eprintln!("{item_slice:?}");
+
+        let mut offset_ops = Vec::new();
+        let mut offset = 0;
+
+        for item in item_slice {
+            match item {
+                BlockItem::Op(op) => match op {
+                    Op::Add(value, of) => offset_ops.push(Op::Add(*value, offset + *of as i32)),
+                    Op::Sub(value, of) => offset_ops.push(Op::Sub(*value, offset + *of as i32)),
+                    Op::PtrAdd(x) => offset += *x as i32,
+                    Op::PtrSub(x) => offset -= *x as i32,
+                    Op::Mul(_, _) => todo!(),
+                    Op::Set(value, of) => offset_ops.push(Op::Set(*value, offset + *of as i32)),
+                    Op::Out(of) => offset_ops.push(Op::Out(offset + *of as i32)),
+                    Op::Input(of) => offset_ops.push(Op::Input(offset + *of as i32)),
+                },
+                BlockItem::Loop(_) | BlockItem::If(_) => unreachable!(),
+            }
+        }
+
+        // offsetの最小値を計算
+        let min_offset = offset_ops
+            .iter()
+            .filter_map(|op| match op {
+                Op::Add(_, offset)
+                | Op::Sub(_, offset)
+                | Op::Out(offset)
+                | Op::Input(offset)
+                | Op::Set(_, offset) => Some(*offset),
+                Op::PtrAdd(_) => todo!(),
+                Op::PtrSub(_) => todo!(),
+                Op::Mul(_, _) => todo!(),
+            })
+            .min();
+
+        let mut ops = Vec::new();
+
+        if let Some(min_offset) = min_offset {
+            if min_offset != 0 {
+                ops.push(BlockItem::Op(Op::ptr(min_offset)));
+            }
+
+            ops.extend(
+                offset_ops
+                    .into_iter()
+                    .map(|op| match op {
+                        Op::Add(value, offset) => Op::Add(value, (offset - min_offset) as u32),
+                        Op::Sub(value, offset) => Op::Sub(value, (offset - min_offset) as u32),
+                        Op::PtrAdd(_) => todo!(),
+                        Op::PtrSub(_) => todo!(),
+                        Op::Mul(_, _) => todo!(),
+                        Op::Set(value, offset) => Op::Set(value, dbg!(offset - min_offset) as u32),
+                        Op::Out(offset) => Op::Out((offset - min_offset) as u32),
+                        Op::Input(offset) => Op::Input((offset - min_offset) as u32),
+                    })
+                    .map(BlockItem::Op),
+            );
+
+            // 謎の命名
+            let of = dbg!(offset - min_offset);
+            if of != 0 {
+                ops.push(BlockItem::Op(Op::ptr(of)));
+            }
+
+            eprintln!("{ops:?}");
+        } else if offset != 0 {
+            ops.push(BlockItem::Op(Op::ptr(offset)));
+        }
+
+        optimized_ops.push(ops);
+    }
+
+    // Loop | Ifを処理する
+    let optimized_loops = block
+        .items
+        .iter()
+        .filter_map(|item| match item {
+            BlockItem::Op(_) => None,
+            BlockItem::Loop(b) => Some(BlockItem::Loop(offset_opt(b))),
+            BlockItem::If(b) => Some(BlockItem::If(offset_opt(b))),
+        })
+        .collect::<Vec<_>>();
+
+    eprintln!("{optimized_ops:?}");
+    eprintln!("{optimized_loops:?}");
+
+    let mut optimized_block = Block::new();
+
+    let mut optimized_ops = optimized_ops.into_iter();
+    let mut optimized_loops = optimized_loops.into_iter();
+
+    loop {
+        match (optimized_ops.next(), optimized_loops.next()) {
+            (Some(mut ops), Some(loops)) => {
+                optimized_block.items.append(&mut ops);
+                optimized_block.push_item(loops);
+            }
+            (Some(mut ops), None) => {
+                optimized_block.items.append(&mut ops);
+            }
+            (_, _) => break,
+        }
+    }
+
+    eprintln!("{optimized_block:?}");
 
     optimized_block
 }
