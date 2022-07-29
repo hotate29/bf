@@ -63,7 +63,7 @@ impl Block {
 
         opt::unwrap(&mut block);
         opt::clear(&mut block);
-        let block = opt::mul(&block);
+        opt::mul(&mut block);
         let block = opt::merge(&block);
         opt::offset_opt(&block)
     }
@@ -257,7 +257,7 @@ impl Block {
 
         wat
     }
-    fn to_wasm_codes(&self, mut buffer: &mut Vec<u8>) {
+    fn to_wasm_codes(&self, mut buffer: &mut Vec<u8>) -> io::Result<()> {
         for item in &self.items {
             match item {
                 BlockItem::Op(op) => match op {
@@ -275,7 +275,7 @@ impl Block {
                             WOp::I32Store8(MemoryImmediate::zero(*offset)),
                         ];
 
-                        add_ops.write(&mut buffer).unwrap();
+                        add_ops.write(&mut buffer)?;
                     }
                     Op::Sub(value, offset) => {
                         // Addと大体おなじ
@@ -292,7 +292,7 @@ impl Block {
                             WOp::I32Store8(MemoryImmediate::zero(*offset)),
                         ];
 
-                        sub_ops.write(&mut buffer).unwrap();
+                        sub_ops.write(&mut buffer)?;
                     }
                     Op::PtrAdd(value) => {
                         let ptr_add_ops = [
@@ -306,7 +306,7 @@ impl Block {
                             },
                         ];
 
-                        ptr_add_ops.write(&mut buffer).unwrap();
+                        ptr_add_ops.write(&mut buffer)?;
                     }
                     Op::PtrSub(value) => {
                         let ptr_sub_ops = [
@@ -320,7 +320,7 @@ impl Block {
                             },
                         ];
 
-                        ptr_sub_ops.write(&mut buffer).unwrap();
+                        ptr_sub_ops.write(&mut buffer)?;
                     }
                     Op::Mul(x, y, offset) => {
                         let mul_ops = [
@@ -349,7 +349,7 @@ impl Block {
                             WOp::I32Store8(MemoryImmediate::zero(*offset)),
                         ];
 
-                        mul_ops.write(&mut buffer).unwrap();
+                        mul_ops.write(&mut buffer)?;
                     }
                     Op::Set(value, offset) => {
                         let clear_ops = [
@@ -360,7 +360,7 @@ impl Block {
                             WOp::I32Store8(MemoryImmediate::zero(*offset)),
                         ];
 
-                        clear_ops.write(&mut buffer).unwrap();
+                        clear_ops.write(&mut buffer)?;
                     }
                     Op::Out(offset) => {
                         let out_ops = [
@@ -373,7 +373,7 @@ impl Block {
                             },
                         ];
 
-                        out_ops.write(&mut buffer).unwrap();
+                        out_ops.write(&mut buffer)?;
                     }
                     Op::Input(offset) => {
                         let input_ops = [
@@ -386,7 +386,7 @@ impl Block {
                             WOp::I32Store8(MemoryImmediate::zero(*offset)),
                         ];
 
-                        input_ops.write(&mut buffer).unwrap()
+                        input_ops.write(&mut buffer)?
                     }
                 },
                 BlockItem::Loop(loop_block) => {
@@ -407,9 +407,9 @@ impl Block {
                         },
                     ];
 
-                    loop_ops.write(&mut buffer).unwrap();
+                    loop_ops.write(&mut buffer)?;
 
-                    loop_block.to_wasm_codes(buffer);
+                    loop_block.to_wasm_codes(buffer)?;
 
                     let loop_ops = [
                         WOp::Br {
@@ -419,7 +419,7 @@ impl Block {
                         WOp::End,
                     ];
 
-                    loop_ops.write(&mut buffer).unwrap();
+                    loop_ops.write(&mut buffer)?;
                 }
                 BlockItem::If(if_block) => {
                     let if_ops = [
@@ -432,14 +432,15 @@ impl Block {
                         },
                     ];
 
-                    if_ops.write(&mut buffer).unwrap();
+                    if_ops.write(&mut buffer)?;
 
-                    if_block.to_wasm_codes(buffer);
+                    if_block.to_wasm_codes(buffer)?;
 
-                    WOp::End.write(&mut buffer).unwrap();
+                    WOp::End.write(&mut buffer)?;
                 }
             }
         }
+        Ok(())
     }
 }
 
@@ -584,7 +585,7 @@ pub fn to_wasm(block: Block, mut buffer: impl io::Write) -> io::Result<()> {
         WOp::Drop,
         WOp::End,
     ];
-    print_char_ops.write(&mut print_char.body.code).unwrap();
+    print_char_ops.write(&mut print_char.body.code)?;
 
     module_builder.push_function(print_char);
 
@@ -616,7 +617,7 @@ pub fn to_wasm(block: Block, mut buffer: impl io::Write) -> io::Result<()> {
         WOp::I32Load8U(MemoryImmediate::zero(0)),
         WOp::End,
     ];
-    input_char_ops.write(&mut input_char.body.code).unwrap();
+    input_char_ops.write(&mut input_char.body.code)?;
 
     module_builder.push_function(input_char);
 
@@ -640,12 +641,11 @@ pub fn to_wasm(block: Block, mut buffer: impl io::Write) -> io::Result<()> {
             local_index: Var(0),
         },
     ]
-    .write(&mut main.body.code)
-    .unwrap();
+    .write(&mut main.body.code)?;
 
-    block.to_wasm_codes(&mut main.body.code);
+    block.to_wasm_codes(&mut main.body.code)?;
 
-    WOp::End.write(&mut main.body.code).unwrap();
+    WOp::End.write(&mut main.body.code)?;
 
     module_builder.push_function(main);
 

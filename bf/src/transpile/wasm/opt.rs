@@ -53,6 +53,7 @@ pub(super) fn merge(block: &Block) -> Block {
             BlockItem::Loop(loop_block) => {
                 merged_block.push_item(BlockItem::Loop(merge(loop_block)))
             }
+            BlockItem::If(if_block) => merged_block.push_item(BlockItem::If(merge(if_block))),
             // BlockItem::Opのコピーは軽いのでおｋ
             item => merged_block.push_item(item.clone()),
         };
@@ -118,8 +119,7 @@ pub(super) fn mul(block: &mut Block) {
     impl OpType {
         fn mul(&mut self, x: i32) {
             match self {
-                OpType::Mul(y) => *y += x,
-                OpType::Set(y) => *y += x,
+                OpType::Mul(y) | OpType::Set(y) => *y += x,
             }
         }
     }
@@ -221,8 +221,6 @@ pub(crate) fn offset_opt(block: &Block) -> Block {
         .items
         .split(|item| matches!(item, BlockItem::Loop(_) | BlockItem::If(_)))
     {
-        // eprintln!("{item_slice:?}");
-
         let mut offset_ops = Vec::new();
         let mut offset = 0;
 
@@ -273,7 +271,7 @@ pub(crate) fn offset_opt(block: &Block) -> Block {
                         Op::PtrAdd(_) => todo!(),
                         Op::PtrSub(_) => todo!(),
                         Op::Mul(x, y, offset) => Op::Mul(x, y, (offset - min_offset) as u32),
-                        Op::Set(value, offset) => Op::Set(value, dbg!(offset - min_offset) as u32),
+                        Op::Set(value, offset) => Op::Set(value, (offset - min_offset) as u32),
                         Op::Out(offset) => Op::Out((offset - min_offset) as u32),
                         Op::Input(offset) => Op::Input((offset - min_offset) as u32),
                     })
@@ -281,12 +279,12 @@ pub(crate) fn offset_opt(block: &Block) -> Block {
             );
 
             // 謎の命名
-            let of = dbg!(offset - min_offset);
+            let of = offset - min_offset;
             if of != 0 {
                 ops.push(BlockItem::Op(Op::ptr(of)));
             }
 
-            eprintln!("{ops:?}");
+            // eprintln!("{ops:?}");
         } else if offset != 0 {
             ops.push(BlockItem::Op(Op::ptr(offset)));
         }
