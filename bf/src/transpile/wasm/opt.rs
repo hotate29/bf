@@ -109,7 +109,7 @@ pub(super) fn unwrap(block: &mut Block) {
     });
 }
 
-pub(super) fn mul(block: &Block) -> Block {
+pub(super) fn mul(block: &mut Block) {
     #[derive(Debug, PartialEq, Eq)]
     enum OpType {
         Mul(i32),
@@ -133,24 +133,18 @@ pub(super) fn mul(block: &Block) -> Block {
                 // 最適化できないものが混じっていたらreturn
                 BlockItem::Loop(_)
                 | BlockItem::If(_)
-                | BlockItem::Op(
-                    Op::Add(_, 1..)
-                    | Op::Sub(_, 1..)
-                    | Op::Mul(_, _, _)
-                    | Op::Out(_)
-                    | Op::Input(_),
-                ) => return None,
+                | BlockItem::Op(Op::Mul(_, _, _) | Op::Out(_) | Op::Input(_)) => return None,
 
                 BlockItem::Op(op) => match op {
-                    Op::Add(v, 0) => {
+                    Op::Add(v, of) => {
                         offset_op
-                            .entry(ptr_offset)
+                            .entry(ptr_offset + *of as i32)
                             .and_modify(|x| x.mul(*v as i32))
                             .or_insert(OpType::Mul(*v as i32));
                     }
-                    Op::Sub(v, 0) => {
+                    Op::Sub(v, of) => {
                         offset_op
-                            .entry(ptr_offset)
+                            .entry(ptr_offset - *of as i32)
                             .and_modify(|x| x.mul(-(*v as i32)))
                             .or_insert(OpType::Mul(-(*v as i32)));
                     }
@@ -160,11 +154,7 @@ pub(super) fn mul(block: &Block) -> Block {
                     Op::Set(v, offset) => {
                         offset_op.insert(ptr_offset + *offset as i32, OpType::Set(*v));
                     }
-                    Op::Add(_, 1..)
-                    | Op::Sub(_, 1..)
-                    | Op::Mul(_, _, _)
-                    | Op::Out(_)
-                    | Op::Input(_) => {
+                    Op::Mul(_, _, _) | Op::Out(_) | Op::Input(_) => {
                         unreachable!()
                     }
                 },
@@ -181,9 +171,7 @@ pub(super) fn mul(block: &Block) -> Block {
         }
     }
 
-    let mut optimized_block = Block::new();
-
-    for item in &block.items {
+    for item in &mut block.items {
         match item {
             BlockItem::Loop(loop_block) => {
                 let offset_ops = is_optimizable_loop(loop_block);
@@ -210,20 +198,17 @@ pub(super) fn mul(block: &Block) -> Block {
                         }
                         mul_ops.push_item(BlockItem::Op(Op::Set(0, 0)));
 
-                        optimized_block.push_item(BlockItem::If(mul_ops));
+                        *item = BlockItem::If(mul_ops);
                     }
                     None => {
-                        let b = mul(loop_block);
-                        optimized_block.push_item(BlockItem::Loop(b));
+                        mul(loop_block);
                     }
                 }
             }
-            BlockItem::Op(op) => optimized_block.push_item(BlockItem::Op(*op)),
-            BlockItem::If(if_block) => optimized_block.push_item(BlockItem::If(mul(if_block))),
+            BlockItem::If(if_block) => mul(if_block),
+            BlockItem::Op(_) => (),
         };
     }
-
-    optimized_block
 }
 
 pub(crate) fn offset_opt(block: &Block) -> Block {
