@@ -74,23 +74,16 @@ pub(super) fn merge(block: &Block) -> Block {
     merged_block
 }
 
-pub(super) fn clear(block: &Block) -> Block {
-    let mut optimized_block = Block::new();
-
-    for item in &block.items {
+pub(super) fn clear(block: &mut Block) {
+    for item in &mut block.items {
         if let BlockItem::Loop(block) = item {
             if let [BlockItem::Op(Op::Add(1, 0) | Op::Sub(1, 0))] = block.items.as_slice() {
-                optimized_block.push_item(BlockItem::Op(Op::Set(0, 0)));
+                *item = BlockItem::Op(Op::Set(0, 0));
             } else {
-                let item = clear(block);
-                optimized_block.push_item(BlockItem::Loop(item));
+                clear(block);
             }
-        } else {
-            optimized_block.push_item(item.clone())
         }
     }
-
-    optimized_block
 }
 
 pub(super) fn unwrap(block: &mut Block) {

@@ -62,7 +62,7 @@ impl Block {
         let mut block = opt::merge(&block);
 
         opt::unwrap(&mut block);
-        let block = opt::clear(&block);
+        opt::clear(&mut block);
         let block = opt::mul(&block);
         let block = opt::merge(&block);
         opt::offset_opt(&block)
