@@ -1,4 +1,4 @@
-use std::{fmt::Write, str::Chars};
+use std::{fmt::Write, io, str::Chars};
 
 mod opt;
 mod wasm_binary;
@@ -471,12 +471,13 @@ pub fn bf_to_block(bf: &str) -> Block {
     block
 }
 
-pub fn to_wat(block: Block) -> String {
+pub fn to_wat(block: Block, mut out: impl io::Write) -> io::Result<()> {
     let body = block.to_wat(40);
 
     // Base Wasmer
     // https://github.com/wasmerio/wasmer/blob/75a98ab171bee010b9a7cd0f836919dc4519dcaf/lib/wasi/tests/stdio.rs
-    format!(
+    writeln!(
+        out,
         r#"(module
     (import "wasi_unstable" "fd_write" (func $fd_write (param i32 i32 i32 i32) (result i32)))
     (import "wasi_unstable" "fd_read" (func $fd_read (param i32 i32 i32 i32) (result i32)))
@@ -519,7 +520,7 @@ pub fn to_wat(block: Block) -> String {
     )
 }
 
-pub fn to_wasm(block: Block) -> Vec<u8> {
+pub fn to_wasm(block: Block, mut buffer: impl io::Write) -> io::Result<()> {
     let mut module_builder = ModuleBuilder::new(Memory {
         mem_type: MemoryType {
             limits: ResizableLimits {
@@ -648,9 +649,6 @@ pub fn to_wasm(block: Block) -> Vec<u8> {
 
     module_builder.push_function(main);
 
-    let mut wasm = Vec::new();
     let module = module_builder.into_module();
-    module.write(&mut wasm).unwrap();
-
-    wasm
+    module.write(&mut buffer)
 }

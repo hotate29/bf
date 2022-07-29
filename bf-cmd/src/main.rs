@@ -1,4 +1,9 @@
-use std::{fs, io, num::NonZeroUsize, path::PathBuf};
+use std::{
+    fs::{self, File},
+    io::{self, Write},
+    num::NonZeroUsize,
+    path::PathBuf,
+};
 
 use bf::{
     interpreter::InterPreter,
@@ -94,7 +99,20 @@ fn main() -> anyhow::Result<()> {
         SubCommand::Trans(arg) => {
             let code = fs::read_to_string(arg.file)?;
 
-            let output = match arg.target {
+            let mut output = match arg.out {
+                Some(path) => File::create(path)?,
+                None => {
+                    let path = match arg.target {
+                        TransTarget::C => "a.c",
+                        TransTarget::Wat => "a.wat",
+                        TransTarget::Wasm => "a.wasm",
+                    };
+
+                    File::create(path)?
+                }
+            };
+
+            match arg.target {
                 TransTarget::C => {
                     let tokens = tokenize(&code);
 
@@ -104,7 +122,8 @@ fn main() -> anyhow::Result<()> {
                         root_node = time!(optimize(&root_node))
                     }
 
-                    transpile::c::to_c(&root_node, arg.memory_len).into_bytes()
+                    let c_code = transpile::c::to_c(&root_node, arg.memory_len);
+                    output.write_all(c_code.as_bytes())?;
                 }
                 TransTarget::Wat => {
                     let mut block = transpile::wasm::bf_to_block(&code);
@@ -113,7 +132,7 @@ fn main() -> anyhow::Result<()> {
                         block = time!(block.optimize(true));
                     }
 
-                    transpile::wasm::to_wat(block).into_bytes()
+                    transpile::wasm::to_wat(block, output)?;
                 }
                 TransTarget::Wasm => {
                     let mut block = transpile::wasm::bf_to_block(&code);
@@ -122,22 +141,9 @@ fn main() -> anyhow::Result<()> {
                         block = time!(block.optimize(true));
                     }
 
-                    transpile::wasm::to_wasm(block)
+                    transpile::wasm::to_wasm(block, output)?;
                 }
             };
-
-            match arg.out {
-                Some(path) => fs::write(path, output)?,
-                None => {
-                    let path = match arg.target {
-                        TransTarget::C => "a.c",
-                        TransTarget::Wat => "a.wat",
-                        TransTarget::Wasm => "a.wasm",
-                    };
-
-                    fs::write(path, output)?;
-                }
-            }
         }
     }
     Ok(())
