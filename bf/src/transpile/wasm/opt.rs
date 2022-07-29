@@ -91,7 +91,10 @@ pub(super) fn unwrap(block: &mut Block) {
         if let BlockItem::Loop(loop_block) = item {
             if loop_block.items.len() == 1 {
                 match loop_block.items.pop().unwrap() {
-                    BlockItem::Loop(deep_loop_block) => *loop_block = deep_loop_block,
+                    BlockItem::Loop(deep_loop_block) => {
+                        *loop_block = deep_loop_block;
+                        return true;
+                    }
                     item => loop_block.push_item(item),
                 }
             }
