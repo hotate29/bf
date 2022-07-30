@@ -144,7 +144,7 @@ pub struct MemoryImmediate {
     offset: Var<u32>,
 }
 impl MemoryImmediate {
-    pub fn zero(offset: u32) -> Self {
+    pub fn i8(offset: u32) -> Self {
         Self {
             flags: Var(0),
             offset: Var(offset),

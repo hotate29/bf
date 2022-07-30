@@ -269,10 +269,10 @@ impl Block {
                             WOp::GetLocal {
                                 local_index: Var(0),
                             },
-                            WOp::I32Load8U(MemoryImmediate::zero(*offset)),
+                            WOp::I32Load8U(MemoryImmediate::i8(*offset)),
                             WOp::I32Const(Var(*value as i32)),
                             WOp::I32Add,
-                            WOp::I32Store8(MemoryImmediate::zero(*offset)),
+                            WOp::I32Store8(MemoryImmediate::i8(*offset)),
                         ];
 
                         add_ops.write(&mut buffer)?;
@@ -286,10 +286,10 @@ impl Block {
                             WOp::GetLocal {
                                 local_index: Var(0),
                             },
-                            WOp::I32Load8U(MemoryImmediate::zero(*offset)),
+                            WOp::I32Load8U(MemoryImmediate::i8(*offset)),
                             WOp::I32Const(Var(*value as i32)),
                             WOp::I32Sub,
-                            WOp::I32Store8(MemoryImmediate::zero(*offset)),
+                            WOp::I32Store8(MemoryImmediate::i8(*offset)),
                         ];
 
                         sub_ops.write(&mut buffer)?;
@@ -338,15 +338,15 @@ impl Block {
                             WOp::GetLocal {
                                 local_index: Var(1),
                             },
-                            WOp::I32Load8U(MemoryImmediate::zero(*offset)),
+                            WOp::I32Load8U(MemoryImmediate::i8(*offset)),
                             WOp::GetLocal {
                                 local_index: Var(0),
                             },
-                            WOp::I32Load8U(MemoryImmediate::zero(*offset)),
+                            WOp::I32Load8U(MemoryImmediate::i8(*offset)),
                             WOp::I32Const(Var(*y as i32)),
                             WOp::I32Mul,
                             WOp::I32Add,
-                            WOp::I32Store8(MemoryImmediate::zero(*offset)),
+                            WOp::I32Store8(MemoryImmediate::i8(*offset)),
                         ];
 
                         mul_ops.write(&mut buffer)?;
@@ -357,7 +357,7 @@ impl Block {
                                 local_index: Var(0),
                             },
                             WOp::I32Const(Var(*value)),
-                            WOp::I32Store8(MemoryImmediate::zero(*offset)),
+                            WOp::I32Store8(MemoryImmediate::i8(*offset)),
                         ];
 
                         clear_ops.write(&mut buffer)?;
@@ -367,7 +367,7 @@ impl Block {
                             WOp::GetLocal {
                                 local_index: Var(0),
                             },
-                            WOp::I32Load8U(MemoryImmediate::zero(*offset)),
+                            WOp::I32Load8U(MemoryImmediate::i8(*offset)),
                             WOp::Call {
                                 function_index: Var(2),
                             },
@@ -383,7 +383,7 @@ impl Block {
                             WOp::Call {
                                 function_index: Var(3),
                             },
-                            WOp::I32Store8(MemoryImmediate::zero(*offset)),
+                            WOp::I32Store8(MemoryImmediate::i8(*offset)),
                         ];
 
                         input_ops.write(&mut buffer)?
@@ -400,7 +400,7 @@ impl Block {
                         WOp::GetLocal {
                             local_index: Var(0),
                         },
-                        WOp::I32Load8U(MemoryImmediate::zero(0)),
+                        WOp::I32Load8U(MemoryImmediate::i8(0)),
                         WOp::I32Eqz,
                         WOp::BrIf {
                             relative_depth: Var(1),
@@ -426,7 +426,7 @@ impl Block {
                         WOp::GetLocal {
                             local_index: Var(0),
                         },
-                        WOp::I32Load8U(MemoryImmediate::zero(0)),
+                        WOp::I32Load8U(MemoryImmediate::i8(0)),
                         WOp::If {
                             block_type: Type::Void,
                         },
@@ -568,7 +568,7 @@ pub fn to_wasm(block: Block, mut buffer: impl io::Write) -> io::Result<()> {
         WOp::GetLocal {
             local_index: Var(0),
         },
-        WOp::I32Store8(MemoryImmediate::zero(0)),
+        WOp::I32Store8(MemoryImmediate::i8(0)),
         WOp::I32Const(Var(4)),
         WOp::I32Const(Var(0)),
         WOp::I32Store(MemoryImmediate::i32(0)),
@@ -604,7 +604,7 @@ pub fn to_wasm(block: Block, mut buffer: impl io::Write) -> io::Result<()> {
         WOp::I32Store(MemoryImmediate::i32(0)),
         WOp::I32Const(Var(8)),
         WOp::I32Const(Var(1)),
-        WOp::I32Store8(MemoryImmediate::zero(0)),
+        WOp::I32Store8(MemoryImmediate::i8(0)),
         WOp::I32Const(Var(0)),
         WOp::I32Const(Var(4)),
         WOp::I32Const(Var(1)),
@@ -614,7 +614,7 @@ pub fn to_wasm(block: Block, mut buffer: impl io::Write) -> io::Result<()> {
         },
         WOp::Drop,
         WOp::I32Const(Var(0)),
-        WOp::I32Load8U(MemoryImmediate::zero(0)),
+        WOp::I32Load8U(MemoryImmediate::i8(0)),
         WOp::End,
     ];
     input_char_ops.write(&mut input_char.body.code)?;
