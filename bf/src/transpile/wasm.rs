@@ -3,6 +3,7 @@ use std::{fmt::Write, io, str::Chars};
 mod opt;
 mod wasm_binary;
 
+use anyhow::ensure;
 use wasm_binary::{
     code::{FunctionBody, LocalEntry, MemoryImmediate, Op as WOp, OpSlice},
     section::{MemoryType, ResizableLimits},
@@ -222,22 +223,13 @@ impl Block {
                         local.get $pointer
                         i32.load8_u
 
-                        (if
-                            (then
-                        "
+                        if"
                         )
                         .unwrap();
 
                         block_to_wat(if_block, wat, loop_stack, loop_count);
 
-                        writeln!(
-                            wat,
-                            "
-                            )
-                        )
-                        "
-                        )
-                        .unwrap();
+                        writeln!(wat, "end").unwrap();
                     }
                 }
             }
@@ -444,7 +436,26 @@ impl Block {
     }
 }
 
-pub fn bf_to_block(bf: &str) -> Block {
+fn validate_bf(bf: &str) -> anyhow::Result<()> {
+    // バリテーション
+    let mut loop_depth = 0;
+
+    for ci in bf.chars() {
+        match ci {
+            '[' => {
+                loop_depth += 1;
+            }
+            ']' => loop_depth -= 1,
+            _ => (),
+        }
+
+        ensure!(loop_depth >= 0, "`]` not corresponding to `[`")
+    }
+    ensure!(loop_depth == 0, "`[` not corresponding to `]`");
+    Ok(())
+}
+
+pub fn bf_to_block(bf: &str) -> anyhow::Result<Block> {
     fn inner(block: &mut Block, chars: &mut Chars) {
         while let Some(char) = chars.next() {
             match char {
@@ -464,12 +475,15 @@ pub fn bf_to_block(bf: &str) -> Block {
             }
         }
     }
+
+    validate_bf(bf)?;
+
     let mut block = Block::new();
     let mut bf_chars = bf.chars();
 
     inner(&mut block, &mut bf_chars);
 
-    block
+    Ok(block)
 }
 
 pub fn to_wat(block: Block, mut out: impl io::Write) -> io::Result<()> {
