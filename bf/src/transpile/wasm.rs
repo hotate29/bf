@@ -535,7 +535,7 @@ pub fn to_wat(block: Block, mut out: impl io::Write) -> io::Result<()> {
     )
 }
 
-pub fn to_wasm(block: Block, mut buffer: impl io::Write) -> io::Result<()> {
+pub fn to_wasm(block: &Block, mut buffer: impl io::Write) -> io::Result<()> {
     let mut module_builder = ModuleBuilder::new(Memory {
         mem_type: MemoryType {
             limits: ResizableLimits {
@@ -665,4 +665,21 @@ pub fn to_wasm(block: Block, mut buffer: impl io::Write) -> io::Result<()> {
 
     let module = module_builder.into_module();
     module.write(&mut buffer)
+}
+
+pub mod w {
+    use super::*;
+    use wasm_bindgen::prelude::*;
+
+    #[wasm_bindgen]
+    pub fn bf_to_wasm(bf: &str) -> Vec<u8> {
+        let block = bf_to_block(bf);
+        let block = block.unwrap().optimize(true);
+
+        let mut buffer = Vec::new();
+
+        to_wasm(&block, &mut buffer).unwrap();
+
+        buffer
+    }
 }

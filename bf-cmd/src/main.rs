@@ -141,7 +141,7 @@ fn main() -> anyhow::Result<()> {
                         block = time!(block.optimize(true));
                     }
 
-                    transpile::wasm::to_wasm(block, output)?;
+                    transpile::wasm::to_wasm(&block, output)?;
                 }
             };
         }
