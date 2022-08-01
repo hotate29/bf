@@ -5,8 +5,8 @@ const start_button = document.querySelector('button[id="start"]');
 start_button.addEventListener('click', run);
 
 // まだ
-const abort_button = document.querySelector('button[id="abort"]');
-abort_button.addEventListener('click', run);
+// const abort_button = document.querySelector('button[id="abort"]');
+// abort_button.addEventListener('click', run);
 
 async function run() {
     const startWasiTask = async (wasm, stdin) => {
