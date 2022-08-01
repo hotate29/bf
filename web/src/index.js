@@ -1,8 +1,12 @@
 import { init, WASI } from '@wasmer/wasi';
 import { bf_to_wasm } from '@hotate29/bf';
 
-const button = document.querySelector('button');
-button.addEventListener('click', run);
+const start_button = document.querySelector('button[id="start"]');
+start_button.addEventListener('click', run);
+
+// まだ
+const abort_button = document.querySelector('button[id="abort"]');
+abort_button.addEventListener('click', run);
 
 async function run() {
     const startWasiTask = async (wasm, stdin) => {
@@ -28,7 +32,7 @@ async function run() {
     const stdin_element = document.querySelector('textarea[id="stdin"]');
     const stdin = stdin_element.value;
 
-    const span = document.querySelector('textarea[id="stdout"]');
+    const stdout_textarea = document.querySelector('textarea[id="stdout"]');
 
     const start_transpile = performance.now();
 
@@ -41,7 +45,7 @@ async function run() {
     const end_transpile = performance.now();
     const transpile_time = end_transpile - start_transpile;
 
-    span.innerHTML = ""
+    stdout_textarea.innerHTML = ""
 
     const start_exec = performance.now();
     let stdout = await startWasiTask(wasm, stdin)
@@ -52,6 +56,6 @@ async function run() {
     const p = document.querySelector('p');
     p.textContent = `Transpile: ${transpile_time}ms Execution: ${exec_time}ms`;
 
-    span.textContent = stdout
+    stdout_textarea.textContent = stdout
 }
 
