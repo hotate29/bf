@@ -672,14 +672,14 @@ pub mod w {
     use wasm_bindgen::prelude::*;
 
     #[wasm_bindgen]
-    pub fn bf_to_wasm(bf: &str) -> Vec<u8> {
-        let block = bf_to_block(bf);
-        let block = block.unwrap().optimize(true);
+    pub fn bf_to_wasm(bf: &str) -> Result<Vec<u8>, String> {
+        let block = bf_to_block(bf).map_err(|e| e.to_string())?;
+        let block = block.optimize(true);
 
         let mut buffer = Vec::new();
 
         to_wasm(&block, &mut buffer).unwrap();
 
-        buffer
+        Ok(buffer)
     }
 }
