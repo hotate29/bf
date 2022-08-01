@@ -2,6 +2,7 @@
 /** @type {import('webpack').Configuration} */
 
 const webpack = require('webpack');
+const html_plugin = require("html-webpack-plugin");
 
 module.exports = {
     mode: "development",
@@ -19,6 +20,10 @@ module.exports = {
                 // ローダーの指定
                 loader: "babel-loader",
             },
+            {
+                test: /\.html$/,
+                loader: "html-loader"
+            }
         ],
     },
     plugins: [
@@ -27,9 +32,7 @@ module.exports = {
         new webpack.ProvidePlugin({
             Buffer: ['buffer', 'Buffer'],
         }),
-        // new webpack.ProvidePlugin({
-        //     process: 'process/browser',
-        // }),
+        new html_plugin({ template: "./src/html/index.html" }),
     ],
     resolve: {
         fallback: {

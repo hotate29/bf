@@ -1,7 +1,7 @@
 import { init, WASI } from '@wasmer/wasi';
 import { bf_to_wasm } from '@hotate29/bf';
 
-const button = document.querySelector('input[type="button"]');
+const button = document.querySelector('button');
 button.addEventListener('click', run);
 
 async function run() {
