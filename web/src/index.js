@@ -31,7 +31,13 @@ async function run() {
     const span = document.querySelector('textarea[id="stdout"]');
 
     const start_transpile = performance.now();
-    const wasm = bf_to_wasm(bf);
+
+    let wasm;
+    try { wasm = bf_to_wasm(bf); } catch (e) {
+        alert(e);
+        return
+    }
+
     const end_transpile = performance.now();
     const transpile_time = end_transpile - start_transpile;
 
