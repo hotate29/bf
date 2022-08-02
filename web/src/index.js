@@ -32,7 +32,7 @@ async function run() {
     const stdin_element = document.querySelector('textarea[id="stdin"]');
     const stdin = stdin_element.value;
 
-    const stdout_textarea = document.querySelector('textarea[id="stdout"]');
+    const stdout_pre = document.querySelector('pre');
 
     const start_transpile = performance.now();
 
@@ -45,7 +45,7 @@ async function run() {
     const end_transpile = performance.now();
     const transpile_time = end_transpile - start_transpile;
 
-    stdout_textarea.innerHTML = ""
+    stdout_pre.textContent = ""
 
     const start_exec = performance.now();
     let stdout = await startWasiTask(wasm, stdin)
@@ -56,6 +56,6 @@ async function run() {
     const p = document.querySelector('p');
     p.textContent = `Transpile: ${transpile_time}ms Execution: ${exec_time}ms`;
 
-    stdout_textarea.textContent = stdout
+    stdout_pre.textContent = stdout
 }
 
