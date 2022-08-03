@@ -40,8 +40,5 @@ module.exports = {
             "buffer": require.resolve("buffer")
         }
     },
-    externals: {
-        'wasmer_wasi_js_bg.wasm': true
-    },
     experiments: { 'asyncWebAssembly': true }
 };
