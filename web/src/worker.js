@@ -3,15 +3,12 @@ onmessage = async function ({ data: data }) {
         wasi_unstable: {
             fd_read: function (fd, iov, len, _) {
                 // めっちゃ怪しい実装
-                let a
                 if (stdin.length == stdin_count) {
-                    a = 255
+                    memory[0] = 255
                 } else {
-                    a = stdin.charCodeAt(stdin_count)
+                    memory[0] = stdin.charCodeAt(stdin_count)
                     stdin_count += 1
                 }
-                memory[0] = a
-                console.log(a, stdin.length, stdin_count, fd, iov, len, _);
             },
             fd_write: function (fd, iov, len, _) {
                 const c = memory[0];
