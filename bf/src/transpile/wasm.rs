@@ -198,16 +198,15 @@ impl Block {
                         loop_stack.push(loop_count);
 
                         let loop_label = format!("loop_{loop_count}");
-                        let exit_label = format!("exit_{loop_count}");
+
                         writeln!(
                             wat,
                             "
-                            (block ${exit_label}
-                                    (loop ${loop_label}
+                            loop ${loop_label}
                                         local.get $pointer
                                         i32.load8_u
 
-                                        (br_if ${exit_label} (i32.eqz))\n
+                                        if\n
                             "
                         )
                         .unwrap();
@@ -217,7 +216,7 @@ impl Block {
 
                         loop_stack.pop().unwrap();
 
-                        writeln!(wat, "(br ${loop_label})))").unwrap();
+                        writeln!(wat, "br ${loop_label}\nend\nend").unwrap();
                     }
                     BlockItem::If(if_block) => {
                         writeln!(
@@ -387,9 +386,6 @@ impl Block {
                 },
                 BlockItem::Loop(loop_block) => {
                     let loop_ops = [
-                        WOp::Block {
-                            block_type: Type::Void,
-                        },
                         WOp::Loop {
                             block_type: Type::Void,
                         },
@@ -397,10 +393,7 @@ impl Block {
                             local_index: Var(0),
                         },
                         WOp::I32Load8U(MemoryImmediate::i8(0)),
-                        WOp::I32Eqz,
-                        WOp::BrIf {
-                            relative_depth: Var(1),
-                        },
+                        WOp::If { block_type: Type::Void },
                     ];
 
                     loop_ops.write(&mut buffer)?;
@@ -409,7 +402,7 @@ impl Block {
 
                     let loop_ops = [
                         WOp::Br {
-                            relative_depth: Var(0),
+                            relative_depth: Var(1),
                         },
                         WOp::End,
                         WOp::End,
