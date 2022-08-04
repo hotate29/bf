@@ -12,7 +12,7 @@ use wasm_binary::{
     Function, Import, Memory, ModuleBuilder,
 };
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Op<T = u32> {
     Add(u32, T),
     Sub(u32, T),
@@ -34,14 +34,14 @@ impl<T> Op<T> {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 enum BlockItem {
     Op(Op),
     Loop(Block),
     If(Block),
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct Block {
     items: Vec<BlockItem>,
 }
@@ -49,6 +49,9 @@ pub struct Block {
 impl Block {
     fn new() -> Self {
         Self::default()
+    }
+    fn from_items(items: Vec<BlockItem>) -> Self {
+        Self { items }
     }
     fn push_item(&mut self, item: BlockItem) {
         self.items.push(item)
@@ -65,7 +68,8 @@ impl Block {
         opt::unwrap(&mut block);
         opt::clear(&mut block);
         opt::mul(&mut block);
-        let block = opt::merge(&block);
+        let mut block = opt::merge(&block);
+        opt::if_opt(&mut block);
         opt::offset_opt(&block)
     }
     fn to_wat(&self, memory_base_address: i32) -> String {

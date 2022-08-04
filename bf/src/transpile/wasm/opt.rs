@@ -321,3 +321,27 @@ pub(crate) fn offset_opt(block: &Block) -> Block {
 
     optimized_block
 }
+
+pub fn if_opt(block: &mut Block) {
+    fn inner(loop_item: &mut BlockItem) {
+        match loop_item {
+            BlockItem::Loop(block) => {
+                if Some(&BlockItem::Op(Op::Set(0, 0))) == block.items.last() {
+                    if block.items.len() == 1 {
+                        *loop_item = BlockItem::Op(Op::Set(0, 0));
+                    } else {
+                        let if_items = block.items.clone();
+                        let mut if_block = Block::from_items(if_items);
+                        if_opt(&mut if_block);
+                        *loop_item = BlockItem::If(if_block);
+                    }
+                } else {
+                    if_opt(block);
+                }
+            }
+            BlockItem::If(block) => if_opt(block),
+            BlockItem::Op(_) => (),
+        }
+    }
+    block.items.iter_mut().for_each(inner);
+}
