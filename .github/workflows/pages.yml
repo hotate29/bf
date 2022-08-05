@@ -14,6 +14,14 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-node@v1
+
+      - run: npm install -g wasm-pack
+
+      - uses: Swatinem/rust-cache@v2.0.0
+
+      - run: wasm-pack build --scope hotate29
+        working-directory: bf
+
       - run: npm install
       - run: npx webpack --mode production
       - uses: actions/upload-pages-artifact@v1
