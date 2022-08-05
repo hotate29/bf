@@ -19,7 +19,7 @@ fn bench_optimizing_mandelbrot(bencher: &mut test::Bencher) {
 fn bench_optimizing_transpile_mandelbrot(bencher: &mut test::Bencher) {
     let source = include_str!("../../bf_codes/mandelbrot.bf");
 
-    let block = transpile::wasm::bf_to_block(source);
+    let block = transpile::wasm::bf_to_block(source).unwrap();
 
     bencher.iter(|| block.optimize(true))
 }
