@@ -4,15 +4,33 @@
 <head>
     <meta charset="UTF-8" />
     <title>Hota Brainfuck</title>
+
+    <style>
+        span {
+            display: flex;
+        }
+
+        p {
+            padding: 5px;
+        }
+    </style>
+
 </head>
 
 <body>
-    <textarea id="bf" placeholder="Enter the Brainfuck"></textarea>
-    <textarea id="stdin" placeholder="stdin"></textarea>
-    <button id="start">start</button>
-    <button id="abort">abort</button>
-    <a href="https://github.com/hotate29/bf">Repository</a>
-    <p></p>
+    <span>
+        <textarea id="bf" placeholder="Enter the Brainfuck"></textarea>
+        <textarea id="stdin" placeholder="stdin"></textarea>
+        <button id="start">start</button>
+        <button id="abort">abort</button>
+
+        <p id="commit-hash"></p>
+        <a href="https://github.com/hotate29/bf">
+            <p>Repository</p>
+        </a>
+    </span>
+
+    <p id="status"></p>
     <pre id="stdout" placeholder="stdout"></pre>
 </body>
 

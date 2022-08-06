@@ -8,7 +8,10 @@ const abort_button = document.querySelector('button[id="abort"]');
 abort_button.disabled = true;
 abort_button.addEventListener('click', abort);
 
-const p = document.querySelector('p');
+const commit_id = document.querySelector('p[id="commit-hash"]');
+commit_id.textContent = "Commit hash: " + __COMMIT_HASH__
+
+const status = document.querySelector('p[id="status"]');
 
 async function run() {
     start_button.disabled = true;
@@ -40,7 +43,7 @@ async function run() {
     worker.postMessage({ module: module, stdin: stdin })
     abort_button.disabled = false;
 
-    p.textContent = "Running..."
+    status.textContent = "Running..."
 
     stdout_pre.textContent = ""
 
@@ -52,7 +55,7 @@ async function run() {
         }
         else if (typeof msg.exec_time === 'number') {
             const exec_time = msg.exec_time
-            p.textContent = `Transpile: ${transpile_time}ms Execution: ${exec_time}ms`;
+            status.textContent = `Transpile: ${transpile_time}ms Execution: ${exec_time}ms`;
             start_button.disabled = false;
             abort_button.disabled = true;
         }
@@ -63,5 +66,5 @@ async function abort() {
     window.worker.terminate();
     abort_button.disabled = true;
     start_button.disabled = false;
-    p.textContent = "Aborted"
+    status.textContent = "Aborted"
 }

@@ -1,7 +1,13 @@
 /** ↓ エディタで補完を効かせるための JSDoc */
 /** @type {import('webpack').Configuration} */
 
+const webpack = require('webpack');
 const html_plugin = require("html-webpack-plugin");
+const commitHash = require('child_process')
+    .execSync('git rev-parse --short HEAD')
+    .toString()
+    .trim();
+
 
 module.exports = {
     mode: "development",
@@ -27,6 +33,9 @@ module.exports = {
     },
     plugins: [
         new html_plugin({ template: "./src/html/index.html" }),
+        new webpack.DefinePlugin({
+            __COMMIT_HASH__: JSON.stringify(commitHash)
+        })
     ],
     experiments: { 'asyncWebAssembly': true }
 };
