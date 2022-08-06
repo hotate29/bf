@@ -50,7 +50,7 @@ async function run() {
         if (typeof msg.out === 'number') {
             stdout_pre.textContent += String.fromCharCode(msg.out)
         }
-        if (typeof msg.exec_time === 'number') {
+        else if (typeof msg.exec_time === 'number') {
             const exec_time = msg.exec_time
             p.textContent = `Transpile: ${transpile_time}ms Execution: ${exec_time}ms`;
             start_button.disabled = false;

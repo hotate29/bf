@@ -24,7 +24,6 @@ onmessage = async function ({ data: data }) {
     let stdin_count = 0
 
     const instance = await WebAssembly.instantiate(module, imports);
-    console.log(stdin)
 
     const memory = new Uint32Array(instance.exports.memory.buffer)
 
