@@ -142,9 +142,7 @@ impl Block {
                                 local.get $pointer
                                 i32.const {x}
                                 i32.add
-                                local.set $ptr
-
-                                local.get $ptr
+                                local.tee $ptr ;; = local.set $ptr local.get $ptr
 
                                 local.get $ptr
                                 i32.load8_u offset={offset}
@@ -324,10 +322,7 @@ impl Block {
                             },
                             WOp::I32Const(Var(*x as i32)),
                             WOp::I32Add,
-                            WOp::SetLocal {
-                                local_index: Var(1),
-                            },
-                            WOp::GetLocal {
+                            WOp::TeeLocal {
                                 local_index: Var(1),
                             },
                             WOp::GetLocal {

@@ -61,6 +61,7 @@ pub enum Op {
 
     GetLocal { local_index: Var<u32> },
     SetLocal { local_index: Var<u32> },
+    TeeLocal { local_index: Var<u32> },
 
     I32Load8U(MemoryImmediate),
     I32Store(MemoryImmediate),
@@ -112,6 +113,10 @@ impl Op {
             }
             Op::SetLocal { local_index } => {
                 w.write_all(&[0x21])?;
+                local_index.write(w)
+            }
+            Op::TeeLocal { local_index } => {
+                w.write_all(&[0x22])?;
                 local_index.write(w)
             }
             Op::I32Load8U(memory_immediate) => {
