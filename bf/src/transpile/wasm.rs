@@ -393,7 +393,9 @@ impl Block {
                             local_index: Var(0),
                         },
                         WOp::I32Load8U(MemoryImmediate::i8(0)),
-                        WOp::If { block_type: Type::Void },
+                        WOp::If {
+                            block_type: Type::Void,
+                        },
                     ];
 
                     loop_ops.write(&mut buffer)?;
@@ -664,6 +666,7 @@ pub fn to_wasm(block: &Block, mut buffer: impl io::Write) -> io::Result<()> {
     module.write(&mut buffer)
 }
 
+#[cfg(feature = "wasm-bindgen")]
 pub mod w {
     use super::*;
     use wasm_bindgen::prelude::*;
