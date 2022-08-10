@@ -106,8 +106,9 @@ impl State {
 #[derive(Debug)]
 enum CInstruction {
     Instruction(Instruction),
-    WhileBegin,
-    WhileEnd,
+    // 行き先
+    WhileBegin(usize),
+    WhileEnd(usize),
 }
 impl CInstruction {
     fn from_instruction(instruction: Instruction) -> Self {
@@ -120,9 +121,16 @@ fn node_to_c_instructions(nodes: &Nodes) -> Vec<CInstruction> {
         for node in nodes {
             match node {
                 crate::parse::Node::Loop(loop_nodes) => {
-                    c_instruction.push(CInstruction::WhileBegin);
+                    let instructions_len = c_instruction.len();
+                    c_instruction.push(CInstruction::WhileBegin(0));
+                    let begin_index = c_instruction.len() - 1;
+
                     inner(c_instruction, loop_nodes);
-                    c_instruction.push(CInstruction::WhileEnd);
+
+                    // これまでの長さ + ループ内の長さ
+                    c_instruction[begin_index] = CInstruction::WhileBegin(c_instruction.len() + 1);
+
+                    c_instruction.push(CInstruction::WhileEnd(instructions_len));
                 }
                 crate::parse::Node::Instruction(instruction) => {
                     c_instruction.push(CInstruction::from_instruction(*instruction))
@@ -150,8 +158,6 @@ pub struct InterPreter<R: Read, W: Write> {
     output: W,
     instructions: Vec<CInstruction>,
     now: usize,
-    while_begin_jump_table: Vec<usize>,
-    while_end_jump_table: Vec<usize>,
 }
 impl<R: Read, W: Write> InterPreter<R, W> {
     pub fn builder<'a>() -> InterPreterBuilder<'a, R, W> {
@@ -165,31 +171,9 @@ impl<R: Read, W: Write> InterPreter<R, W> {
 
         let instructions = node_to_c_instructions(root_node);
 
-        let mut while_stack = vec![0];
-        let mut while_begin_jump_table = vec![0; instructions.len()];
-        for (i, instruction) in instructions.iter().enumerate() {
-            match instruction {
-                CInstruction::Instruction(_) => (),
-                CInstruction::WhileBegin => while_stack.push(i),
-                CInstruction::WhileEnd => while_begin_jump_table[i] = while_stack.pop().unwrap(),
-            }
-        }
-
-        let mut while_stack = vec![0];
-        let mut while_end_jump_table = vec![0; instructions.len()];
-        for (i, instruction) in instructions.iter().enumerate().rev() {
-            match instruction {
-                CInstruction::Instruction(_) => (),
-                CInstruction::WhileBegin => while_end_jump_table[i] = while_stack.pop().unwrap(),
-                CInstruction::WhileEnd => while_stack.push(i + 1),
-            }
-        }
-
         Self {
             state,
             instructions,
-            while_begin_jump_table,
-            while_end_jump_table,
             now: 0,
             input,
             output,
@@ -261,11 +245,9 @@ impl<R: Read, W: Write> InterPreter<R, W> {
                     };
                     self.now += 1
                 }
-                CInstruction::WhileBegin if self.state.at() == 0 => {
-                    self.now = self.while_end_jump_table[self.now]
-                }
-                CInstruction::WhileBegin => self.now += 1,
-                CInstruction::WhileEnd => self.now = self.while_begin_jump_table[self.now],
+                CInstruction::WhileBegin(to) if self.state.at() == 0 => self.now = to,
+                CInstruction::WhileBegin(_) => self.now += 1,
+                CInstruction::WhileEnd(to) => self.now = to,
             }
         }
 
