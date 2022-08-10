@@ -6,19 +6,17 @@ use bf::{
     transpile::wasm::Block,
 };
 
+const MANDELBROT: &str = include_str!("../../bf_codes/mandelbrot.bf");
+
 #[bench]
 fn bench_parse_mandelbrot(bencher: &mut test::Bencher) {
-    let source = include_str!("../../bf_codes/mandelbrot.bf");
-
     bencher.iter(|| {
-        let source = tokenize(source);
+        let source = tokenize(MANDELBROT);
         Node::from_tokens(source).unwrap()
     })
 }
 
 #[bench]
 fn bench_parse_transpile_mandelbrot(bencher: &mut test::Bencher) {
-    let source = include_str!("../../bf_codes/mandelbrot.bf");
-
-    bencher.iter(|| Block::from_bf(source).unwrap())
+    bencher.iter(|| Block::from_bf(MANDELBROT).unwrap())
 }
