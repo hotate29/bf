@@ -126,7 +126,7 @@ fn main() -> anyhow::Result<()> {
                     output.write_all(c_code.as_bytes())?;
                 }
                 TransTarget::Wat => {
-                    let mut block = transpile::wasm::bf_to_block(&code)?;
+                    let mut block = transpile::wasm::Block::from_bf(&code)?;
 
                     if arg.optimize {
                         block = time!(block.optimize(true));
@@ -135,7 +135,7 @@ fn main() -> anyhow::Result<()> {
                     transpile::wasm::to_wat(block, output)?;
                 }
                 TransTarget::Wasm => {
-                    let mut block = transpile::wasm::bf_to_block(&code)?;
+                    let mut block = transpile::wasm::Block::from_bf(&code)?;
 
                     if arg.optimize {
                         block = time!(block.optimize(true));

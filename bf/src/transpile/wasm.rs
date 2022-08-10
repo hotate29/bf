@@ -50,6 +50,36 @@ impl Block {
     fn new() -> Self {
         Self::default()
     }
+    pub fn from_bf(bf: &str) -> anyhow::Result<Self> {
+        fn inner(block: &mut Block, chars: &mut Chars) {
+            while let Some(char) = chars.next() {
+                match char {
+                    '+' => block.push_item(BlockItem::Op(Op::Add(1, 0))),
+                    '-' => block.push_item(BlockItem::Op(Op::Sub(1, 0))),
+                    '>' => block.push_item(BlockItem::Op(Op::PtrAdd(1))),
+                    '<' => block.push_item(BlockItem::Op(Op::PtrSub(1))),
+                    '.' => block.push_item(BlockItem::Op(Op::Out(0))),
+                    ',' => block.push_item(BlockItem::Op(Op::Input(0))),
+                    '[' => {
+                        let mut b = Block::new();
+                        inner(&mut b, chars);
+                        block.push_item(BlockItem::Loop(b));
+                    }
+                    ']' => return,
+                    _ => (),
+                }
+            }
+        }
+
+        validate_bf(bf)?;
+
+        let mut block = Block::new();
+        let mut bf_chars = bf.chars();
+
+        inner(&mut block, &mut bf_chars);
+
+        Ok(block)
+    }
     fn from_items(items: Vec<BlockItem>) -> Self {
         Self { items }
     }
@@ -443,41 +473,16 @@ fn validate_bf(bf: &str) -> anyhow::Result<()> {
             _ => (),
         }
 
-        ensure!(loop_depth >= 0, "`]` not corresponding to `[`")
+        ensure!(
+            loop_depth >= 0,
+            "invalid syntax: `]` not corresponding to `[`"
+        )
     }
-    ensure!(loop_depth == 0, "`[` not corresponding to `]`");
+    ensure!(
+        loop_depth == 0,
+        "invalid syntax: `[` not corresponding to `]`"
+    );
     Ok(())
-}
-
-pub fn bf_to_block(bf: &str) -> anyhow::Result<Block> {
-    fn inner(block: &mut Block, chars: &mut Chars) {
-        while let Some(char) = chars.next() {
-            match char {
-                '+' => block.push_item(BlockItem::Op(Op::Add(1, 0))),
-                '-' => block.push_item(BlockItem::Op(Op::Sub(1, 0))),
-                '>' => block.push_item(BlockItem::Op(Op::PtrAdd(1))),
-                '<' => block.push_item(BlockItem::Op(Op::PtrSub(1))),
-                '.' => block.push_item(BlockItem::Op(Op::Out(0))),
-                ',' => block.push_item(BlockItem::Op(Op::Input(0))),
-                '[' => {
-                    let mut b = Block::new();
-                    inner(&mut b, chars);
-                    block.push_item(BlockItem::Loop(b));
-                }
-                ']' => return,
-                _ => (),
-            }
-        }
-    }
-
-    validate_bf(bf)?;
-
-    let mut block = Block::new();
-    let mut bf_chars = bf.chars();
-
-    inner(&mut block, &mut bf_chars);
-
-    Ok(block)
 }
 
 pub fn to_wat(block: Block, mut out: impl io::Write) -> io::Result<()> {
@@ -668,7 +673,7 @@ pub mod w {
 
     #[wasm_bindgen]
     pub fn bf_to_wasm(bf: &str) -> Result<Vec<u8>, String> {
-        let block = bf_to_block(bf).map_err(|e| e.to_string())?;
+        let block = Block::from_bf(bf).map_err(|e| e.to_string())?;
         let block = block.optimize(true);
 
         let mut buffer = Vec::new();
