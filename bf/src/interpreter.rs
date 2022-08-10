@@ -104,36 +104,38 @@ impl State {
 }
 
 #[derive(Debug)]
-enum CInstruction {
+enum FlatInstruction {
     Instruction(Instruction),
     // 行き先
     WhileBegin(usize),
     WhileEnd(usize),
 }
-impl CInstruction {
+impl FlatInstruction {
     fn from_instruction(instruction: Instruction) -> Self {
         Self::Instruction(instruction)
     }
 }
 
-fn node_to_c_instructions(nodes: &Nodes) -> Vec<CInstruction> {
-    fn inner(c_instruction: &mut Vec<CInstruction>, nodes: &Nodes) {
+fn node_to_flat_instructions(nodes: &Nodes) -> Vec<FlatInstruction> {
+    fn inner(flat_instructions: &mut Vec<FlatInstruction>, nodes: &Nodes) {
         for node in nodes {
             match node {
                 crate::parse::Node::Loop(loop_nodes) => {
-                    let instructions_len = c_instruction.len();
-                    c_instruction.push(CInstruction::WhileBegin(0));
-                    let begin_index = c_instruction.len() - 1;
+                    let loop_first = flat_instructions.len();
 
-                    inner(c_instruction, loop_nodes);
+                    flat_instructions.push(FlatInstruction::WhileBegin(0));
+                    let begin_index = flat_instructions.len() - 1;
 
-                    // これまでの長さ + ループ内の長さ
-                    c_instruction[begin_index] = CInstruction::WhileBegin(c_instruction.len() + 1);
+                    inner(flat_instructions, loop_nodes);
 
-                    c_instruction.push(CInstruction::WhileEnd(instructions_len));
+                    // これまでの長さ + ループ内の長さ + Begin + End
+                    flat_instructions[begin_index] =
+                        FlatInstruction::WhileBegin(flat_instructions.len() + 1);
+
+                    flat_instructions.push(FlatInstruction::WhileEnd(loop_first));
                 }
                 crate::parse::Node::Instruction(instruction) => {
-                    c_instruction.push(CInstruction::from_instruction(*instruction))
+                    flat_instructions.push(FlatInstruction::from_instruction(*instruction))
                 }
             }
         }
@@ -156,7 +158,7 @@ pub struct InterPreter<R: Read, W: Write> {
     state: State,
     input: R,
     output: W,
-    instructions: Vec<CInstruction>,
+    instructions: Vec<FlatInstruction>,
     now: usize,
 }
 impl<R: Read, W: Write> InterPreter<R, W> {
@@ -169,7 +171,7 @@ impl<R: Read, W: Write> InterPreter<R, W> {
             memory: Memory(vec![0; memory_len]),
         };
 
-        let instructions = node_to_c_instructions(root_node);
+        let instructions = node_to_flat_instructions(root_node);
 
         Self {
             state,
@@ -195,7 +197,7 @@ impl<R: Read, W: Write> InterPreter<R, W> {
     fn step(&mut self) -> Result<()> {
         if let Some(ins) = self.instructions.get(self.now) {
             match *ins {
-                CInstruction::Instruction(instruction) => {
+                FlatInstruction::Instruction(instruction) => {
                     match instruction {
                         Instruction::PtrIncrement(n) => self.state.pointer_add(n),
                         Instruction::PtrDecrement(n) => self.state.pointer_sub(n)?,
@@ -245,9 +247,9 @@ impl<R: Read, W: Write> InterPreter<R, W> {
                     };
                     self.now += 1
                 }
-                CInstruction::WhileBegin(to) if self.state.at() == 0 => self.now = to,
-                CInstruction::WhileBegin(_) => self.now += 1,
-                CInstruction::WhileEnd(to) => self.now = to,
+                FlatInstruction::WhileBegin(to) if self.state.at() == 0 => self.now = to,
+                FlatInstruction::WhileBegin(_) => self.now += 1,
+                FlatInstruction::WhileEnd(to) => self.now = to,
             }
         }
 
