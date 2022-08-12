@@ -1,5 +1,4 @@
-use crate::instruction::Instruction;
-use crate::parse::Nodes;
+use crate::transpile::wasm::{Block, BlockItem, Op};
 
 use std::io::{self, Read, Write};
 
@@ -8,6 +7,7 @@ use thiserror::Error;
 
 type Result<T> = std::result::Result<T, Error>;
 
+#[derive(Debug)]
 struct Memory(Vec<u8>);
 
 impl Memory {
@@ -35,6 +35,7 @@ impl Memory {
     }
 }
 
+#[derive(Debug)]
 struct State {
     pointer: usize,
     memory: Memory,
@@ -105,22 +106,17 @@ impl State {
 
 #[derive(Debug)]
 enum FlatInstruction {
-    Instruction(Instruction),
+    Instruction(Op),
     // 行き先
     WhileBegin(usize),
     WhileEnd(usize),
 }
-impl FlatInstruction {
-    fn from_instruction(instruction: Instruction) -> Self {
-        Self::Instruction(instruction)
-    }
-}
 
-fn node_to_flat_instructions(nodes: &Nodes) -> Vec<FlatInstruction> {
-    fn inner(flat_instructions: &mut Vec<FlatInstruction>, nodes: &Nodes) {
-        for node in nodes {
+fn block_to_flat_instructions(nodes: &Block) -> Vec<FlatInstruction> {
+    fn inner(flat_instructions: &mut Vec<FlatInstruction>, nodes: &Block) {
+        for node in &nodes.items {
             match node {
-                crate::parse::Node::Loop(loop_nodes) => {
+                BlockItem::Loop(loop_nodes) => {
                     let loop_first = flat_instructions.len();
 
                     flat_instructions.push(FlatInstruction::WhileBegin(0));
@@ -134,8 +130,12 @@ fn node_to_flat_instructions(nodes: &Nodes) -> Vec<FlatInstruction> {
 
                     flat_instructions.push(FlatInstruction::WhileEnd(loop_first));
                 }
-                crate::parse::Node::Instruction(instruction) => {
-                    flat_instructions.push(FlatInstruction::from_instruction(*instruction))
+                BlockItem::Op(op) => flat_instructions.push(FlatInstruction::Instruction(*op)),
+                BlockItem::If(if_block) => {
+                    let begin_index = flat_instructions.len() + if_block.items.len() + 1;
+                    flat_instructions.push(FlatInstruction::WhileBegin(begin_index));
+
+                    inner(flat_instructions, if_block);
                 }
             }
         }
@@ -143,6 +143,7 @@ fn node_to_flat_instructions(nodes: &Nodes) -> Vec<FlatInstruction> {
 
     let mut instructions = vec![];
     inner(&mut instructions, nodes);
+
     instructions
 }
 
@@ -152,6 +153,10 @@ pub enum Error {
     IoError(#[from] io::Error),
     #[error("{0}")]
     NegativePointer(isize),
+}
+
+fn u32_mod256(value: u32) -> u8 {
+    (value % 256) as u8
 }
 
 pub struct InterPreter<R: Read, W: Write> {
@@ -165,13 +170,13 @@ impl<R: Read, W: Write> InterPreter<R, W> {
     pub fn builder<'a>() -> InterPreterBuilder<'a, R, W> {
         InterPreterBuilder::default()
     }
-    fn new(root_node: &Nodes, memory_len: usize, input: R, output: W) -> Self {
+    fn new(block: &Block, memory_len: usize, input: R, output: W) -> Self {
         let state = State {
             pointer: 0,
             memory: Memory(vec![0; memory_len]),
         };
 
-        let instructions = node_to_flat_instructions(root_node);
+        let instructions = block_to_flat_instructions(block);
 
         Self {
             state,
@@ -196,53 +201,38 @@ impl<R: Read, W: Write> InterPreter<R, W> {
     #[inline]
     fn step(&mut self) -> Result<()> {
         if let Some(ins) = self.instructions.get(self.now) {
+            // eprintln!("{ins:?}, {:?}", self.state);
             match *ins {
                 FlatInstruction::Instruction(instruction) => {
                     match instruction {
-                        Instruction::PtrIncrement(n) => self.state.pointer_add(n),
-                        Instruction::PtrDecrement(n) => self.state.pointer_sub(n)?,
-                        Instruction::Add(to_offset, value) => {
-                            let value =
-                                value.get_or(|offset| self.state.at_offset(offset).unwrap());
-                            if value != 0 {
-                                self.state.add(to_offset, value)?;
+                        Op::PtrAdd(n) => self.state.pointer_add(n as usize),
+                        Op::PtrSub(n) => self.state.pointer_sub(n as usize)?,
+                        Op::Add(value, to_offset) => {
+                            self.state.add(to_offset as isize, u32_mod256(value))?;
+                        }
+                        Op::Sub(value, to_offset) => {
+                            self.state.sub(to_offset as isize, u32_mod256(value))?;
+                        }
+                        Op::Mul(to, x, offset) => {
+                            let a = self.state.at_offset(offset as isize)? as i32;
+                            let a = a.wrapping_mul(x);
+
+                            // eprintln!("{to}, {x}, {offset}, {a}");
+
+                            let v = self.state.at_offset_mut(to as isize + offset as isize)?;
+                            if a < 0 {
+                                *v -= u32_mod256(a.unsigned_abs())
+                            } else {
+                                *v += u32_mod256(a.unsigned_abs())
                             }
                         }
-                        Instruction::Sub(to_offset, value) => {
-                            let value =
-                                value.get_or(|offset| self.state.at_offset(offset).unwrap());
-                            if value != 0 {
-                                self.state.sub(to_offset, value)?;
-                            }
+                        Op::Out(offset) => self.state.output(offset as isize, &mut self.output)?,
+                        Op::Input(offset) => {
+                            self.state.input(offset as isize, &mut self.input)?;
                         }
-                        Instruction::MulAdd(to_offset, lhs, rhs) => {
-                            let n = lhs.get_or(|offset| self.state.at_offset(offset).unwrap());
-                            // 後ろを参照するので、ここはちゃんと確認
-                            if n != 0 {
-                                let value =
-                                    rhs.get_or(|offset| self.state.at_offset(offset).unwrap());
-                                self.state.add(to_offset, n.wrapping_mul(value))?;
-                            }
-                        }
-                        Instruction::MulSub(to_offset, lhs, rhs) => {
-                            let n = lhs.get_or(|offset| self.state.at_offset(offset).unwrap());
-                            // 後ろを参照するので、ここはちゃんと確認
-                            if n != 0 {
-                                let value =
-                                    rhs.get_or(|offset| self.state.at_offset(offset).unwrap());
-                                self.state.sub(to_offset, n.wrapping_mul(value))?;
-                            }
-                        }
-                        Instruction::Output(offset) => {
-                            self.state.output(offset, &mut self.output)?
-                        }
-                        Instruction::Input(offset) => {
-                            self.state.input(offset, &mut self.input)?;
-                        }
-                        Instruction::SetValue(offset, value) => {
-                            let value =
-                                value.get_or(|offset| self.state.at_offset(offset).unwrap());
-                            *self.state.at_offset_mut(offset)? = value;
+                        Op::Set(value, offset) => {
+                            *self.state.at_offset_mut(offset as isize)? =
+                                u32_mod256(value.try_into().unwrap());
                         }
                     };
                     self.now += 1
@@ -252,7 +242,6 @@ impl<R: Read, W: Write> InterPreter<R, W> {
                 FlatInstruction::WhileEnd(to) => self.now = to,
             }
         }
-
         Ok(())
     }
 }
@@ -271,7 +260,7 @@ impl<R: Read, W: Write> Iterator for InterPreterIter<'_, R, W> {
 }
 
 pub struct InterPreterBuilder<'a, R: Read, W: Write> {
-    root_node: Option<&'a Nodes>,
+    root_node: Option<&'a Block>,
     memory_len: usize,
     input: Option<R>,
     output: Option<W>,
@@ -287,7 +276,7 @@ impl<'a, R: Read, W: Write> Default for InterPreterBuilder<'a, R, W> {
     }
 }
 impl<'a, R: Read, W: Write> InterPreterBuilder<'a, R, W> {
-    pub fn root_node(self, root_node: &'a Nodes) -> Self {
+    pub fn root_node(self, root_node: &'a Block) -> Self {
         Self {
             root_node: Some(root_node),
             ..self
@@ -331,22 +320,15 @@ pub struct InterPreterIter<'a, R: Read, W: Write>(&'a mut InterPreter<R, W>);
 mod test {
     use std::io;
 
-    use crate::{
-        interpreter::Memory,
-        optimize::optimize,
-        parse::{tokenize, Node, Nodes},
-    };
+    use crate::{interpreter::Memory, transpile::wasm::Block};
 
     use super::InterPreter;
 
-    fn node_from_source(source: &str) -> Nodes {
-        let tokens = tokenize(source);
-        Node::from_tokens(tokens).unwrap()
+    fn node_from_source(source: &str) -> Block {
+        Block::from_bf(source).unwrap()
     }
-    fn node_from_source_optimized(source: &str) -> Nodes {
-        let tokens = tokenize(source);
-        let nodes = Node::from_tokens(tokens).unwrap();
-        optimize(&nodes)
+    fn node_from_source_optimized(source: &str) -> Block {
+        Block::from_bf(source).unwrap().optimize(true)
     }
 
     #[test]

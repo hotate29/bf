@@ -13,12 +13,14 @@ use wasm_binary::{
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum Op<T = u32> {
+pub enum Op<T = u32> {
     Add(u32, T),
     Sub(u32, T),
     PtrAdd(u32),
     PtrSub(u32),
-    /// [p+x+off] += [p+off]*y
+    /// Mul(to, x, offset)
+    ///
+    /// [ptr + to + off] += [ptr + off]*x
     Mul(i32, i32, T),
     Set(i32, T),
     Out(T),
@@ -35,7 +37,7 @@ impl<T> Op<T> {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-enum BlockItem {
+pub enum BlockItem {
     Op(Op),
     Loop(Block),
     If(Block),
@@ -43,7 +45,7 @@ enum BlockItem {
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct Block {
-    items: Vec<BlockItem>,
+    pub items: Vec<BlockItem>,
 }
 
 impl Block {

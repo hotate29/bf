@@ -3,17 +3,13 @@ extern crate test;
 
 use std::io;
 
-use bf::interpreter::InterPreter;
-use bf::optimize::optimize;
-use bf::parse::tokenize;
-use bf::parse::Node;
+use bf::{interpreter::InterPreter, transpile::wasm::Block};
 
 const MANDELBROT: &str = include_str!("../../bf_codes/mandelbrot.bf");
 
 #[bench]
 fn bench_not_optimize_mandelbrot(bencher: &mut test::Bencher) {
-    let tokens = tokenize(MANDELBROT);
-    let root_node = Node::from_tokens(tokens).unwrap();
+    let root_node = Block::from_bf(MANDELBROT).unwrap();
 
     bencher.iter(|| {
         InterPreter::builder()
@@ -28,14 +24,11 @@ fn bench_not_optimize_mandelbrot(bencher: &mut test::Bencher) {
 
 #[bench]
 fn bench_optimized_mandelbrot(bencher: &mut test::Bencher) {
-    let tokens = tokenize(MANDELBROT);
-    let root_node = Node::from_tokens(tokens).unwrap();
-
-    let optimized_node = optimize(&root_node);
+    let root_node = Block::from_bf(MANDELBROT).unwrap().optimize(true);
 
     bencher.iter(|| {
         InterPreter::builder()
-            .root_node(&optimized_node)
+            .root_node(&root_node)
             .input(io::empty())
             .output(io::sink())
             .build()
@@ -48,8 +41,7 @@ fn bench_optimized_mandelbrot(bencher: &mut test::Bencher) {
 fn bench_hello_world(bencher: &mut test::Bencher) {
     let hello_world = include_str!("../../bf_codes/hello_world.bf");
 
-    let tokens = tokenize(hello_world);
-    let root_node = Node::from_tokens(tokens).unwrap();
+    let root_node = Block::from_bf(hello_world).unwrap();
 
     bencher.iter(|| {
         InterPreter::builder()
@@ -66,10 +58,7 @@ fn bench_hello_world(bencher: &mut test::Bencher) {
 fn bench_optimized_hello_world(bencher: &mut test::Bencher) {
     let hello_world = include_str!("../../bf_codes/hello_world.bf");
 
-    let tokens = tokenize(hello_world);
-    let root_node = Node::from_tokens(tokens).unwrap();
-
-    let optimized_node = optimize(&root_node);
+    let optimized_node = Block::from_bf(hello_world).unwrap().optimize(true);
 
     bencher.iter(|| {
         InterPreter::builder()
@@ -84,16 +73,13 @@ fn bench_optimized_hello_world(bencher: &mut test::Bencher) {
 
 #[bench]
 fn bench_optimized_pi16(bencher: &mut test::Bencher) {
-    let hello_world = include_str!("../../bf_codes/pi16.bf");
+    let pi16 = include_str!("../../bf_codes/pi16.bf");
 
-    let tokens = tokenize(hello_world);
-    let root_node = Node::from_tokens(tokens).unwrap();
-
-    let optimized_node = optimize(&root_node);
+    let root_node = Block::from_bf(pi16).unwrap().optimize(true);
 
     bencher.iter(|| {
         InterPreter::builder()
-            .root_node(&optimized_node)
+            .root_node(&root_node)
             .input(io::empty())
             .output(io::sink())
             .build()

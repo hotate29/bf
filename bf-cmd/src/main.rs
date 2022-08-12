@@ -5,12 +5,7 @@ use std::{
     path::PathBuf,
 };
 
-use bf::{
-    interpreter::InterPreter,
-    optimize::optimize,
-    parse::{tokenize, Node},
-    transpile,
-};
+use bf::{interpreter::InterPreter, transpile};
 use clap::{ArgEnum, StructOpt};
 use log::{info, Level};
 
@@ -78,18 +73,16 @@ fn main() -> anyhow::Result<()> {
         SubCommand::Run(arg) => {
             let code = fs::read_to_string(arg.file)?;
 
-            let tokens = tokenize(&code);
-
-            let mut root_node = Node::from_tokens(tokens)?;
+            let mut block = transpile::wasm::Block::from_bf(&code)?;
 
             if arg.optimize {
-                root_node = time!(optimize(&root_node))
+                block = block.optimize(true);
             }
 
             let mut interpreter = InterPreter::builder()
                 .input(io::stdin())
                 .output(io::stdout())
-                .root_node(&root_node)
+                .root_node(&block)
                 .memory_len(arg.initial_memory_len.get())
                 .build();
 
@@ -114,15 +107,13 @@ fn main() -> anyhow::Result<()> {
 
             match arg.target {
                 TransTarget::C => {
-                    let tokens = tokenize(&code);
-
-                    let mut root_node = Node::from_tokens(tokens)?;
+                    let mut block = transpile::wasm::Block::from_bf(&code)?;
 
                     if arg.optimize {
-                        root_node = time!(optimize(&root_node))
+                        block = block.optimize(true);
                     }
 
-                    let c_code = transpile::c::to_c(&root_node, arg.memory_len);
+                    let c_code = transpile::c::to_c(&block, arg.memory_len);
                     output.write_all(c_code.as_bytes())?;
                 }
                 TransTarget::Wat => {
