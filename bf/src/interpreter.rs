@@ -112,17 +112,17 @@ enum FlatInstruction {
     WhileEnd(usize),
 }
 
-fn block_to_flat_instructions(nodes: &Block) -> Vec<FlatInstruction> {
-    fn inner(flat_instructions: &mut Vec<FlatInstruction>, nodes: &Block) {
-        for node in &nodes.items {
-            match node {
-                BlockItem::Loop(loop_nodes) => {
+fn block_to_flat_instructions(block: &Block) -> Vec<FlatInstruction> {
+    fn inner(flat_instructions: &mut Vec<FlatInstruction>, block: &Block) {
+        for item in &block.items {
+            match item {
+                BlockItem::Loop(loop_block) => {
                     let loop_first = flat_instructions.len();
 
                     flat_instructions.push(FlatInstruction::WhileBegin(0));
                     let begin_index = flat_instructions.len() - 1;
 
-                    inner(flat_instructions, loop_nodes);
+                    inner(flat_instructions, loop_block);
 
                     // これまでの長さ + ループ内の長さ + Begin + End
                     flat_instructions[begin_index] =
@@ -142,7 +142,7 @@ fn block_to_flat_instructions(nodes: &Block) -> Vec<FlatInstruction> {
     }
 
     let mut instructions = vec![];
-    inner(&mut instructions, nodes);
+    inner(&mut instructions, block);
 
     instructions
 }
@@ -324,10 +324,10 @@ mod test {
 
     use super::InterPreter;
 
-    fn node_from_source(source: &str) -> Block {
+    fn block(source: &str) -> Block {
         Block::from_bf(source).unwrap()
     }
-    fn node_from_source_optimized(source: &str) -> Block {
+    fn block_opt(source: &str) -> Block {
         Block::from_bf(source).unwrap().optimize(true)
     }
 
@@ -356,12 +356,12 @@ mod test {
         let mandelbrot_source = include_str!("../../bf_codes/mandelbrot.bf");
         let assert_mandelbrot = include_str!("../../bf_codes/mandelbrot.out");
 
-        let root_node = node_from_source(mandelbrot_source);
+        let block = block(mandelbrot_source);
 
         let mut output_buffer = Vec::new();
 
         InterPreter::builder()
-            .root_node(&root_node)
+            .root_node(&block)
             .input(io::empty())
             .output(&mut output_buffer)
             .build()
@@ -378,12 +378,12 @@ mod test {
         let mandelbrot_source = include_str!("../../bf_codes/mandelbrot.bf");
         let assert_mandelbrot = include_str!("../../bf_codes/mandelbrot.out");
 
-        let root_node = node_from_source_optimized(mandelbrot_source);
+        let block = block_opt(mandelbrot_source);
 
         let mut output_buffer = Vec::new();
 
         InterPreter::builder()
-            .root_node(&root_node)
+            .root_node(&block)
             .input(io::empty())
             .output(&mut output_buffer)
             .build()
@@ -398,12 +398,12 @@ mod test {
         let hello_world_code = include_str!("../../bf_codes/hello_world.bf");
         let hello_world = include_str!("../../bf_codes/hello_world.out");
 
-        let root_node = node_from_source(hello_world_code);
+        let block = block(hello_world_code);
 
         let mut output_buffer = vec![];
 
         InterPreter::builder()
-            .root_node(&root_node)
+            .root_node(&block)
             .input(io::empty())
             .output(&mut output_buffer)
             .build()
@@ -418,12 +418,12 @@ mod test {
         let hello_world_code = include_str!("../../bf_codes/hello_world.bf");
         let hello_world = include_str!("../../bf_codes/hello_world.out");
 
-        let root_node = node_from_source_optimized(hello_world_code);
+        let block = block_opt(hello_world_code);
 
         let mut output_buffer = vec![];
 
         InterPreter::builder()
-            .root_node(&root_node)
+            .root_node(&block)
             .input(io::empty())
             .output(&mut output_buffer)
             .build()

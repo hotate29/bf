@@ -104,34 +104,21 @@ fn main() -> anyhow::Result<()> {
                     File::create(path)?
                 }
             };
+            let mut block = transpile::wasm::Block::from_bf(&code)?;
+
+            if arg.optimize {
+                block = block.optimize(true);
+            }
 
             match arg.target {
                 TransTarget::C => {
-                    let mut block = transpile::wasm::Block::from_bf(&code)?;
-
-                    if arg.optimize {
-                        block = block.optimize(true);
-                    }
-
                     let c_code = transpile::c::to_c(&block, arg.memory_len);
                     output.write_all(c_code.as_bytes())?;
                 }
                 TransTarget::Wat => {
-                    let mut block = transpile::wasm::Block::from_bf(&code)?;
-
-                    if arg.optimize {
-                        block = time!(block.optimize(true));
-                    }
-
-                    transpile::wasm::to_wat(block, output)?;
+                    transpile::wasm::to_wat(&block, output)?;
                 }
                 TransTarget::Wasm => {
-                    let mut block = transpile::wasm::Block::from_bf(&code)?;
-
-                    if arg.optimize {
-                        block = time!(block.optimize(true));
-                    }
-
                     transpile::wasm::to_wasm(&block, output)?;
                 }
             };

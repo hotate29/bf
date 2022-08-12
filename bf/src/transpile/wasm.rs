@@ -487,7 +487,7 @@ fn validate_bf(bf: &str) -> anyhow::Result<()> {
     Ok(())
 }
 
-pub fn to_wat(block: Block, mut out: impl io::Write) -> io::Result<()> {
+pub fn to_wat(block: &Block, mut out: impl io::Write) -> io::Result<()> {
     let body = block.to_wat(40);
 
     // Base Wasmer

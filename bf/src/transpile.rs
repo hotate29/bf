@@ -7,15 +7,15 @@ pub mod c {
 
     use super::wasm::Block;
 
-    const PTR_NAME: &str = "ptr";
+    const PTR_NAME: &str = "p";
 
-    pub fn to_c(root_node: &Block, memory_len: usize) -> String {
-        fn inner(nodes: &Block, c_code: &mut String) {
-            for node in &nodes.items {
-                match node {
-                    BlockItem::Loop(loop_nodes) => {
+    pub fn to_c(block: &Block, memory_len: usize) -> String {
+        fn inner(block: &Block, c_code: &mut String) {
+            for item in &block.items {
+                match item {
+                    BlockItem::Loop(loop_block) => {
                         write!(c_code, "while(*{PTR_NAME}){{").unwrap();
-                        inner(loop_nodes, c_code);
+                        inner(loop_block, c_code);
                         c_code.push('}');
                     }
                     BlockItem::If(if_block) => {
@@ -24,28 +24,36 @@ pub mod c {
                         c_code.push('}');
                     }
                     BlockItem::Op(instruction) => match instruction {
-                        Op::Add(x, offset) => write!(c_code, "*(ptr+{offset})+={x};").unwrap(),
-                        Op::Sub(x, offset) => write!(c_code, "*(ptr+{offset})-={x};").unwrap(),
-                        Op::PtrAdd(x) => write!(c_code, "ptr+={x};").unwrap(),
-                        Op::PtrSub(x) => write!(c_code, "ptr-={x};").unwrap(),
-                        Op::Mul(to, x, offset) => {
-                            write!(c_code, "*(ptr+{offset}+{to})+=*(ptr+{offset})*{x};",).unwrap()
+                        Op::Add(x, offset) => {
+                            write!(c_code, "*({PTR_NAME}+{offset})+={x};").unwrap()
                         }
-                        Op::Set(x, offset) => write!(c_code, "*(ptr+{offset})={x};",).unwrap(),
-                        Op::Out(offset) => write!(c_code, "putchar(*(ptr+{offset}));",).unwrap(),
-                        Op::Input(offset) => write!(c_code, "*(ptr+{offset})=getchar();",).unwrap(),
+                        Op::Sub(x, offset) => {
+                            write!(c_code, "*({PTR_NAME}+{offset})-={x};").unwrap()
+                        }
+                        Op::PtrAdd(x) => write!(c_code, "{PTR_NAME}+={x};").unwrap(),
+                        Op::PtrSub(x) => write!(c_code, "{PTR_NAME}-={x};").unwrap(),
+                        Op::Mul(to, x, offset) => write!(
+                            c_code,
+                            "*({PTR_NAME}+{offset}+{to})+=*({PTR_NAME}+{offset})*{x};",
+                        )
+                        .unwrap(),
+                        Op::Set(x, offset) => {
+                            write!(c_code, "*({PTR_NAME}+{offset})={x};",).unwrap()
+                        }
+                        Op::Out(offset) => {
+                            write!(c_code, "putchar(*({PTR_NAME}+{offset}));",).unwrap()
+                        }
+                        Op::Input(offset) => {
+                            write!(c_code, "*({PTR_NAME}+{offset})=getchar();",).unwrap()
+                        }
                     },
                 }
             }
         }
 
         let mut a = String::new();
-        inner(root_node, &mut a);
+        inner(block, &mut a);
 
-        let mut c_code = format!("#include <stdio.h>\n#include <stdint.h>\nint main(void){{uint8_t mem[{memory_len}]={{0}};uint8_t* {PTR_NAME} = mem;");
-        c_code += &a;
-        c_code += "}";
-
-        c_code
+        format!("#include <stdio.h>\n#include <stdint.h>\nint main(void){{uint8_t mem[{memory_len}]={{0}};uint8_t*{PTR_NAME}=mem;{a}}}")
     }
 }
