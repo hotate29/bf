@@ -34,10 +34,10 @@ struct RunArg {
 
 #[derive(Debug, clap::Parser)]
 struct TransArg {
-    #[clap(arg_enum, value_parser)]
-    target: TransTarget,
     #[clap(value_parser)]
     file: PathBuf,
+    #[clap(arg_enum, default_value_t = TransTarget::Wasm)]
+    target: TransTarget,
     #[clap(short, long)]
     optimize: bool,
     out: Option<PathBuf>,
@@ -119,7 +119,7 @@ fn main() -> anyhow::Result<()> {
                     transpile::wasm::to_wat(&block, output)?;
                 }
                 TransTarget::Wasm => {
-                    transpile::wasm::to_wasm(&block, output)?;
+                    transpile::wasm::to_wasm(&block, &mut output)?;
                 }
             };
         }
