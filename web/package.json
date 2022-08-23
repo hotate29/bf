@@ -22,6 +22,7 @@
     "webpack-dev-server": "^4.9.3"
   },
   "dependencies": {
-    "@hotate29/bf": "file:../bf/pkg"
+    "@hotate29/bf": "file:../bf/pkg",
+    "binaryen": "^109.0.0"
   }
 }

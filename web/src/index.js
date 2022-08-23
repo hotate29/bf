@@ -1,3 +1,5 @@
+import binaryen from 'binaryen';
+
 import { bf_to_wasm } from '@hotate29/bf';
 
 const start_button = document.querySelector('button[id="start"]');
@@ -35,7 +37,11 @@ async function run() {
         return
     }
 
-    const module = await WebAssembly.compile(wasm);
+    const binaryen_module = binaryen.readBinary(wasm);
+    binaryen_module.optimize();
+    const wasm_binary = binaryen_module.emitBinary();
+
+    const module = await WebAssembly.compile(wasm_binary);
 
     const end_transpile = performance.now();
     const transpile_time = end_transpile - start_transpile;

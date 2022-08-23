@@ -37,5 +37,8 @@ module.exports = {
             __COMMIT_HASH__: JSON.stringify(commitHash)
         })
     ],
-    experiments: { 'asyncWebAssembly': true }
+    experiments: {
+        'asyncWebAssembly': true,
+        "topLevelAwait": true
+    }
 };
