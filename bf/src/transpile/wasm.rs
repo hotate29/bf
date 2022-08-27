@@ -475,6 +475,26 @@ impl Block {
     }
 }
 
+pub fn bf_to_wasm(bf: &str, optimize: bool, mut w: impl io::Write) -> Result<(), Error> {
+    let mut block = Block::from_bf(bf)?;
+    if optimize {
+        block = block.optimize(optimize);
+    }
+
+    to_wasm(&block, &mut w)?;
+    Ok(())
+}
+
+pub fn bf_to_wat(bf: &str, optimize: bool, mut w: impl io::Write) -> Result<(), Error> {
+    let mut block = Block::from_bf(bf)?;
+    if optimize {
+        block = block.optimize(optimize);
+    }
+
+    to_wat(&block, &mut w)?;
+    Ok(())
+}
+
 pub fn to_wat(block: &Block, mut out: impl io::Write) -> io::Result<()> {
     let body = block.to_wat(40);
 
@@ -663,13 +683,9 @@ pub mod w {
 
     #[wasm_bindgen]
     pub fn bf_to_wasm(bf: &str) -> Result<Vec<u8>, String> {
-        let block = Block::from_bf(bf).map_err(|e| e.to_string())?;
-        let block = block.optimize(true);
-
         let mut buffer = Vec::new();
 
-        to_wasm(&block, &mut buffer).unwrap();
-
+        super::bf_to_wasm(bf, true, &mut buffer).map_err(|e| e.to_string())?;
         Ok(buffer)
     }
 }

@@ -5,7 +5,7 @@ use std::{
     path::PathBuf,
 };
 
-use bf::{interpreter::InterPreter, transpile};
+use bf::{transpile, InterPreter};
 use clap::{ArgEnum, StructOpt};
 use log::{info, Level};
 
@@ -73,7 +73,7 @@ fn main() -> anyhow::Result<()> {
         SubCommand::Run(arg) => {
             let code = fs::read_to_string(arg.file)?;
 
-            let mut block = transpile::wasm::Block::from_bf(&code)?;
+            let mut block = transpile::Block::from_bf(&code)?;
 
             if arg.optimize {
                 block = block.optimize(true);
@@ -104,22 +104,17 @@ fn main() -> anyhow::Result<()> {
                     File::create(path)?
                 }
             };
-            let mut block = transpile::wasm::Block::from_bf(&code)?;
-
-            if arg.optimize {
-                block = block.optimize(true);
-            }
 
             match arg.target {
                 TransTarget::C => {
-                    let c_code = transpile::c::to_c(&block, arg.memory_len);
+                    let c_code = transpile::bf_to_c(&code, arg.memory_len, arg.optimize)?;
                     output.write_all(c_code.as_bytes())?;
                 }
                 TransTarget::Wat => {
-                    transpile::wasm::to_wat(&block, output)?;
+                    transpile::bf_to_wat(&code, arg.optimize, &mut output)?;
                 }
                 TransTarget::Wasm => {
-                    transpile::wasm::to_wasm(&block, &mut output)?;
+                    transpile::bf_to_wasm(&code, arg.optimize, &mut output)?;
                 }
             };
         }
