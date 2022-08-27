@@ -7,7 +7,10 @@ const MANDELBROT: &str = include_str!("../../bf_codes/mandelbrot.bf");
 
 #[bench]
 fn bench_ast_to_block_mandelbrot(bencher: &mut test::Bencher) {
-    bencher.iter(|| Block::from_bf(MANDELBROT).unwrap())
+    let ast: Ast = MANDELBROT.parse().unwrap();
+    bencher.iter(|| {
+        let _: Block = (&ast).into();
+    })
 }
 
 #[bench]
