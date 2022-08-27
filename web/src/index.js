@@ -37,11 +37,11 @@ async function run() {
         return
     }
 
-    const binaryen_module = binaryen.readBinary(wasm);
-    binaryen_module.optimize();
-    const wasm_binary = binaryen_module.emitBinary();
+    // const binaryen_module = binaryen.readBinary(wasm);
+    // binaryen_module.optimize();
+    // const wasm_binary = binaryen_module.emitBinary();
 
-    const module = await WebAssembly.compile(wasm_binary);
+    const module = await WebAssembly.compile(wasm);
 
     const end_transpile = performance.now();
     const transpile_time = end_transpile - start_transpile;
