@@ -17,7 +17,7 @@ fn validate_bf(bf: &str) -> Result<(), Error> {
 
         if loop_depth < 0 {
             let error = Error::InvalidSyntax {
-                msg: "invalid syntax: `]` not corresponding to `[`".to_string(),
+                msg: "invalid syntax: `]` not corresponding to `[`",
             };
             return Err(error);
         }
@@ -25,7 +25,7 @@ fn validate_bf(bf: &str) -> Result<(), Error> {
 
     if loop_depth != 0 {
         let error = Error::InvalidSyntax {
-            msg: "invalid syntax: `[` not corresponding to `]`".to_string(),
+            msg: "invalid syntax: `[` not corresponding to `]`",
         };
         return Err(error);
     }
