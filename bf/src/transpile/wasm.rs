@@ -11,7 +11,7 @@ use wasm_binary::{
     Function, Import, Memory, ModuleBuilder,
 };
 
-use crate::parse::Ast;
+use crate::{error::Error, parse::Ast};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Op<T = u32> {
@@ -90,7 +90,7 @@ impl Block {
     fn new() -> Self {
         Self::default()
     }
-    pub fn from_bf(bf: &str) -> anyhow::Result<Self> {
+    pub fn from_bf(bf: &str) -> Result<Self, Error> {
         let ast = Ast::from_bf(bf)?;
         Ok(ast.into())
     }

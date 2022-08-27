@@ -1,8 +1,8 @@
 use std::str::Chars;
 
-use anyhow::ensure;
+use crate::error::Error;
 
-fn validate_bf(bf: &str) -> anyhow::Result<()> {
+fn validate_bf(bf: &str) -> Result<(), Error> {
     // バリテーション
     let mut loop_depth = 0;
 
@@ -15,15 +15,21 @@ fn validate_bf(bf: &str) -> anyhow::Result<()> {
             _ => (),
         }
 
-        ensure!(
-            loop_depth >= 0,
-            "invalid syntax: `]` not corresponding to `[`"
-        )
+        if loop_depth < 0 {
+            let error = Error::InvalidSyntax {
+                msg: "invalid syntax: `]` not corresponding to `[`".to_string(),
+            };
+            return Err(error);
+        }
     }
-    ensure!(
-        loop_depth == 0,
-        "invalid syntax: `[` not corresponding to `]`"
-    );
+
+    if loop_depth != 0 {
+        let error = Error::InvalidSyntax {
+            msg: "invalid syntax: `[` not corresponding to `]`".to_string(),
+        };
+        return Err(error);
+    }
+
     Ok(())
 }
 
@@ -53,7 +59,7 @@ impl Ast {
     pub fn inner(&self) -> &Vec<Item> {
         &self.items
     }
-    pub fn from_bf(bf: &str) -> anyhow::Result<Ast> {
+    pub fn from_bf(bf: &str) -> Result<Ast, Error> {
         fn inner(ast: &mut Ast, chars: &mut Chars) {
             while let Some(char) = chars.next() {
                 match char {
