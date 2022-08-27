@@ -78,7 +78,8 @@ impl From<&Ast> for Block {
             }
         }
 
-        let mut block = Block::new();
+        let capacity = ast.inner().len();
+        let mut block = Block::from_items(Vec::with_capacity(capacity));
 
         inner(&mut block, ast);
 
