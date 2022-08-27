@@ -23,7 +23,7 @@ jobs:
 
       - uses: Swatinem/rust-cache@v2.0.0
 
-      - run: wasm-pack build --scope hotate29 --features wasm-bindgen
+      - run: wasm-pack build --scope hotate29 --features wasm-bindgen --release
         working-directory: bf
 
       - run: npm install
