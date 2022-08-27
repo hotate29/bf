@@ -91,7 +91,7 @@ impl Block {
         Self::default()
     }
     pub fn from_bf(bf: &str) -> Result<Self, Error> {
-        let ast = Ast::from_bf(bf)?;
+        let ast: Ast = bf.parse()?;
         Ok(ast.into())
     }
     fn from_items(items: Vec<BlockItem>) -> Self {

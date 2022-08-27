@@ -1,4 +1,4 @@
-use std::str::Chars;
+use std::str::{Chars, FromStr};
 
 use crate::error::Error;
 
@@ -59,7 +59,7 @@ impl Ast {
     pub fn inner(&self) -> &Vec<Item> {
         &self.items
     }
-    pub fn from_bf(bf: &str) -> Result<Ast, Error> {
+    fn from_bf(bf: &str) -> Result<Ast, Error> {
         fn inner(ast: &mut Ast, chars: &mut Chars) {
             while let Some(char) = chars.next() {
                 match char {
@@ -88,6 +88,13 @@ impl Ast {
         inner(&mut block, &mut bf_chars);
 
         Ok(block)
+    }
+}
+
+impl FromStr for Ast {
+    type Err = Error;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ast::from_bf(s)
     }
 }
 
