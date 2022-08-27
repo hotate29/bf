@@ -1,9 +1,8 @@
-use std::{fmt::Write, io, str::Chars};
+use std::{fmt::Write, io};
 
 mod opt;
 mod wasm_binary;
 
-use anyhow::ensure;
 use wasm_binary::{
     code::{FunctionBody, LocalEntry, MemoryImmediate, Op as WOp, OpSlice},
     section::{MemoryType, ResizableLimits},
@@ -11,6 +10,8 @@ use wasm_binary::{
     var::Var,
     Function, Import, Memory, ModuleBuilder,
 };
+
+use crate::parse::Ast;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Op<T = u32> {
@@ -48,39 +49,50 @@ pub struct Block {
     pub items: Vec<BlockItem>,
 }
 
+impl From<Ast> for Block {
+    fn from(ast: Ast) -> Self {
+        (&ast).into()
+    }
+}
+
+impl From<&Ast> for Block {
+    fn from(ast: &Ast) -> Self {
+        fn inner(block: &mut Block, ast: &Ast) {
+            for item in ast.inner() {
+                let blockitem = match item {
+                    crate::parse::Item::Op(op) => {
+                        let op = match op {
+                            crate::parse::Op::Add => Op::Add(1, 0),
+                            crate::parse::Op::Sub => Op::Sub(1, 0),
+                            crate::parse::Op::PtrAdd => Op::PtrAdd(1),
+                            crate::parse::Op::PtrSub => Op::PtrSub(1),
+                            crate::parse::Op::Output => Op::Out(0),
+                            crate::parse::Op::Input => Op::Input(0),
+                        };
+                        BlockItem::Op(op)
+                    }
+                    crate::parse::Item::Loop(ast) => BlockItem::Loop(ast.into()),
+                };
+
+                block.push_item(blockitem);
+            }
+        }
+
+        let mut block = Block::new();
+
+        inner(&mut block, ast);
+
+        block
+    }
+}
+
 impl Block {
     fn new() -> Self {
         Self::default()
     }
     pub fn from_bf(bf: &str) -> anyhow::Result<Self> {
-        fn inner(block: &mut Block, chars: &mut Chars) {
-            while let Some(char) = chars.next() {
-                match char {
-                    '+' => block.push_item(BlockItem::Op(Op::Add(1, 0))),
-                    '-' => block.push_item(BlockItem::Op(Op::Sub(1, 0))),
-                    '>' => block.push_item(BlockItem::Op(Op::PtrAdd(1))),
-                    '<' => block.push_item(BlockItem::Op(Op::PtrSub(1))),
-                    '.' => block.push_item(BlockItem::Op(Op::Out(0))),
-                    ',' => block.push_item(BlockItem::Op(Op::Input(0))),
-                    '[' => {
-                        let mut b = Block::new();
-                        inner(&mut b, chars);
-                        block.push_item(BlockItem::Loop(b));
-                    }
-                    ']' => return,
-                    _ => (),
-                }
-            }
-        }
-
-        validate_bf(bf)?;
-
-        let mut block = Block::new();
-        let mut bf_chars = bf.chars();
-
-        inner(&mut block, &mut bf_chars);
-
-        Ok(block)
+        let ast = Ast::from_bf(bf)?;
+        Ok(ast.into())
     }
     fn from_items(items: Vec<BlockItem>) -> Self {
         Self { items }
@@ -460,31 +472,6 @@ impl Block {
         }
         Ok(())
     }
-}
-
-fn validate_bf(bf: &str) -> anyhow::Result<()> {
-    // バリテーション
-    let mut loop_depth = 0;
-
-    for ci in bf.chars() {
-        match ci {
-            '[' => {
-                loop_depth += 1;
-            }
-            ']' => loop_depth -= 1,
-            _ => (),
-        }
-
-        ensure!(
-            loop_depth >= 0,
-            "invalid syntax: `]` not corresponding to `[`"
-        )
-    }
-    ensure!(
-        loop_depth == 0,
-        "invalid syntax: `[` not corresponding to `]`"
-    );
-    Ok(())
 }
 
 pub fn to_wat(block: &Block, mut out: impl io::Write) -> io::Result<()> {
