@@ -676,7 +676,7 @@ pub fn to_wasm(block: &Block, mut buffer: impl io::Write) -> io::Result<()> {
     module.write(&mut buffer)
 }
 
-#[cfg(feature = "wasm-bindgen")]
+#[cfg(target_arch = "wasm32")]
 pub mod w {
     use super::*;
     use wasm_bindgen::prelude::*;

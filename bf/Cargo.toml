@@ -12,7 +12,9 @@ license = "MIT"
 leb128 = "0.2.5"
 log = "0.4.16"
 thiserror = "1.0.30"
-wasm-bindgen = {version = "0.2.82", optional = true}
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+wasm-bindgen = "0.2.82"
 
 [lib]
 crate-type = ["cdylib", "rlib"]
