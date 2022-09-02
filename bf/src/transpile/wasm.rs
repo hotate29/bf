@@ -545,39 +545,7 @@ pub fn to_wat(block: &Block, mut out: impl io::Write) -> io::Result<()> {
     )
 }
 
-pub fn to_wasm(block: &Block, mut buffer: impl io::Write) -> io::Result<()> {
-    let mut module_builder = ModuleBuilder::new(Memory {
-        mem_type: MemoryType {
-            limits: ResizableLimits {
-                initial: Var(1),
-                maximum: None,
-            },
-        },
-        export_name: Some("memory".to_string()),
-    });
-
-    let import_fd_write = Import::Function {
-        module_name: "wasi_unstable".to_string(),
-        field_name: "fd_write".to_string(),
-        signature: Type::Func {
-            params: vec![Type::I32, Type::I32, Type::I32, Type::I32],
-            result: Some(Box::new(Type::I32)),
-        },
-    };
-
-    module_builder.push_import(import_fd_write);
-
-    let import_fd_read = Import::Function {
-        module_name: "wasi_unstable".to_string(),
-        field_name: "fd_read".to_string(),
-        signature: Type::Func {
-            params: vec![Type::I32, Type::I32, Type::I32, Type::I32],
-            result: Some(Box::new(Type::I32)),
-        },
-    };
-
-    module_builder.push_import(import_fd_read);
-
+fn print_char(wd_write_index: Var<u32>) -> Function {
     let mut print_char = Function {
         signature: Type::Func {
             params: vec![Type::I32],
@@ -604,15 +572,17 @@ pub fn to_wasm(block: &Block, mut buffer: impl io::Write) -> io::Result<()> {
         WOp::I32Const(Var(1)),
         WOp::I32Const(Var(12)),
         WOp::Call {
-            function_index: Var(0),
+            function_index: wd_write_index,
         },
         WOp::Drop,
         WOp::End,
     ];
-    print_char_ops.write(&mut print_char.body.code)?;
+    print_char_ops.write(&mut print_char.body.code).unwrap();
 
-    module_builder.push_function(print_char);
+    print_char
+}
 
+fn input_char(fd_read_index: Var<u32>) -> Function {
     let mut input_char = Function {
         signature: Type::Func {
             params: vec![],
@@ -634,16 +604,53 @@ pub fn to_wasm(block: &Block, mut buffer: impl io::Write) -> io::Result<()> {
         WOp::I32Const(Var(1)),
         WOp::I32Const(Var(12)),
         WOp::Call {
-            function_index: Var(1),
+            function_index: fd_read_index,
         },
         WOp::Drop,
         WOp::I32Const(Var(0)),
         WOp::I32Load8U(MemoryImmediate::i8(0)),
         WOp::End,
     ];
-    input_char_ops.write(&mut input_char.body.code)?;
+    input_char_ops.write(&mut input_char.body.code).unwrap();
 
-    module_builder.push_function(input_char);
+    input_char
+}
+
+pub fn to_wasm(block: &Block, mut buffer: impl io::Write) -> io::Result<()> {
+    let mut module_builder = ModuleBuilder::new(Memory {
+        mem_type: MemoryType {
+            limits: ResizableLimits {
+                initial: Var(1),
+                maximum: None,
+            },
+        },
+        export_name: Some("memory".to_string()),
+    });
+
+    let import_fd_write = Import::Function {
+        module_name: "wasi_unstable".to_string(),
+        field_name: "fd_write".to_string(),
+        signature: Type::Func {
+            params: vec![Type::I32, Type::I32, Type::I32, Type::I32],
+            result: Some(Box::new(Type::I32)),
+        },
+    };
+
+    let fd_write = module_builder.push_import(import_fd_write);
+
+    let import_fd_read = Import::Function {
+        module_name: "wasi_unstable".to_string(),
+        field_name: "fd_read".to_string(),
+        signature: Type::Func {
+            params: vec![Type::I32, Type::I32, Type::I32, Type::I32],
+            result: Some(Box::new(Type::I32)),
+        },
+    };
+
+    let fd_read = module_builder.push_import(import_fd_read);
+
+    module_builder.push_function(print_char(fd_write));
+    module_builder.push_function(input_char(fd_read));
 
     let mut main = Function {
         signature: Type::Func {

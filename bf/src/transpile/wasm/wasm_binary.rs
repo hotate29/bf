@@ -55,11 +55,11 @@ impl ModuleBuilder {
         }
     }
     /// `push_function`の前に行う
-    pub fn push_import(&mut self, import: Import) -> usize {
+    pub fn push_import(&mut self, import: Import) -> Var<u32> {
         assert!(self.functions.is_empty());
         self.imports.push(import);
 
-        self.imports.len() - 1
+        Var((self.imports.len() - 1) as u32)
     }
     /// `push_import`の後に行う
     pub fn push_function(&mut self, function: Function) {
