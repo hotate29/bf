@@ -219,11 +219,13 @@ impl<R: Read, W: Write> InterPreter<R, W> {
 
                             // eprintln!("{to}, {x}, {offset}, {a}");
 
-                            let v = self.state.at_offset_mut(to as isize + offset as isize)?;
+                            let to = to as isize + offset as isize;
+                            let value = u32_mod256(a.unsigned_abs());
+
                             if a < 0 {
-                                *v -= u32_mod256(a.unsigned_abs())
+                                self.state.sub(to, value)?;
                             } else {
-                                *v += u32_mod256(a.unsigned_abs())
+                                self.state.add(to, value)?;
                             }
                         }
                         Op::Out(offset) => self.state.output(offset as isize, &mut self.output)?,
