@@ -250,8 +250,7 @@ pub(crate) fn offset_opt(block: &Block) -> Block {
                 | Op::Input(offset)
                 | Op::Set(_, offset)
                 | Op::Mul(_, _, offset) => Some(*offset),
-                Op::PtrAdd(_) => todo!(),
-                Op::PtrSub(_) => todo!(),
+                Op::PtrAdd(_) | Op::PtrSub(_) => unreachable!(),
             })
             .min();
 

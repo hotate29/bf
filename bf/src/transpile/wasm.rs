@@ -13,6 +13,7 @@ use wasm_binary::{
 
 use crate::{error::Error, parse::Ast};
 
+// WebAssemblyのメモリ操作命令に付いているoffsetを使いたいので、offsetは正の整数のみ受け入れるようにしている。
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Op<T = u32> {
     Add(u32, T),
