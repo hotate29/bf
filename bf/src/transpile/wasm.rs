@@ -661,11 +661,14 @@ pub fn to_wasm(block: &Block, mut buffer: impl io::Write) -> io::Result<()> {
         export_name: Some("_start".to_string()),
     };
 
-    main.push_local(LocalEntry {
+    let ptr = LocalEntry {
         count: Var(2),
         type_: Type::I32,
-    });
+    };
+    main.push_local(ptr);
 
+    // ポインタの初期値を40に設定する。40未満はI/Oで使うために確保する。
+    // 40未満をいじった場合の動作は未定義（I/O関連がこわれるかも？）
     [
         WOp::I32Const(Var(40)),
         WOp::SetLocal {
