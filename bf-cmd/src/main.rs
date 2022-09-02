@@ -13,7 +13,7 @@ use log::{info, Level};
 struct Command {
     #[clap(subcommand)]
     subcommand: SubCommand,
-    #[clap(long, env = "RUST_LOG", default_value_t = Level::Warn)]
+    #[clap(long, env = "RUST_LOG", default_value_t = Level::Info)]
     log_level: Level,
 }
 
@@ -92,18 +92,16 @@ fn main() -> anyhow::Result<()> {
         SubCommand::Trans(arg) => {
             let code = fs::read_to_string(arg.file)?;
 
-            let mut output = match arg.out {
-                Some(path) => File::create(path)?,
-                None => {
-                    let path = match arg.target {
-                        TransTarget::C => "a.c",
-                        TransTarget::Wat => "a.wat",
-                        TransTarget::Wasm => "a.wasm",
-                    };
-
-                    File::create(path)?
+            let output_path = arg.out.unwrap_or_else(|| {
+                match arg.target {
+                    TransTarget::C => "a.c",
+                    TransTarget::Wat => "a.wat",
+                    TransTarget::Wasm => "a.wasm",
                 }
-            };
+                .into()
+            });
+
+            let mut output = File::create(&output_path)?;
 
             match arg.target {
                 TransTarget::C => {
@@ -117,6 +115,8 @@ fn main() -> anyhow::Result<()> {
                     transpile::bf_to_wasm(&code, arg.optimize, &mut output)?;
                 }
             };
+
+            info!("Done {:?}", output_path);
         }
     }
     Ok(())
