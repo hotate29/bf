@@ -4,13 +4,19 @@ use super::{type_::Type, var::Var};
 
 pub struct FunctionBody {
     locals: Vec<LocalEntry>,
-    pub code: Vec<u8>,
+    pub code: Vec<Op>,
 }
 impl FunctionBody {
     pub fn new() -> Self {
         Self {
             locals: Vec::new(),
             code: Vec::new(),
+        }
+    }
+    pub fn from_ops(ops: &[Op]) -> Self {
+        Self {
+            locals: Vec::new(),
+            code: ops.to_vec(),
         }
     }
     pub fn push_local(&mut self, local_entry: LocalEntry) {
@@ -26,7 +32,7 @@ impl FunctionBody {
             local.write(&mut body_payload)?;
         }
 
-        body_payload.write_all(&self.code)?;
+        self.code.write(&mut body_payload)?;
 
         let body_size = Var(body_payload.len() as u32);
         body_size.write(&mut w)?;

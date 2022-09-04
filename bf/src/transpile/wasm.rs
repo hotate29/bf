@@ -545,15 +545,6 @@ pub fn to_wat(block: &Block, mut out: impl io::Write) -> io::Result<()> {
 }
 
 fn print_char(wd_write_index: Var<u32>) -> Function {
-    let mut print_char = Function {
-        signature: Type::Func {
-            params: vec![Type::I32],
-            result: None,
-        },
-        body: FunctionBody::new(),
-        export_name: None,
-    };
-
     let print_char_ops = [
         WOp::I32Const(Var(0)),
         WOp::GetLocal {
@@ -576,21 +567,18 @@ fn print_char(wd_write_index: Var<u32>) -> Function {
         WOp::Drop,
         WOp::End,
     ];
-    print_char_ops.write(&mut print_char.body.code).unwrap();
 
-    print_char
+    Function {
+        signature: Type::Func {
+            params: vec![Type::I32],
+            result: None,
+        },
+        body: FunctionBody::from_ops(&print_char_ops),
+        export_name: None,
+    }
 }
 
 fn input_char(fd_read_index: Var<u32>) -> Function {
-    let mut input_char = Function {
-        signature: Type::Func {
-            params: vec![],
-            result: Some(Box::new(Type::I32)),
-        },
-        body: FunctionBody::new(),
-        export_name: None,
-    };
-
     let input_char_ops = [
         WOp::I32Const(Var(4)),
         WOp::I32Const(Var(0)),
@@ -610,9 +598,15 @@ fn input_char(fd_read_index: Var<u32>) -> Function {
         WOp::I32Load8U(MemoryImmediate::i8(0)),
         WOp::End,
     ];
-    input_char_ops.write(&mut input_char.body.code).unwrap();
 
-    input_char
+    Function {
+        signature: Type::Func {
+            params: vec![],
+            result: Some(Box::new(Type::I32)),
+        },
+        body: FunctionBody::from_ops(&input_char_ops),
+        export_name: None,
+    }
 }
 
 pub fn to_wasm(block: &Block, mut buffer: impl io::Write) -> io::Result<()> {
@@ -668,20 +662,14 @@ pub fn to_wasm(block: &Block, mut buffer: impl io::Write) -> io::Result<()> {
 
     // ポインタの初期値を40に設定する。40未満はI/Oで使うために確保する。
     // 40未満をいじった場合の動作は未定義（I/O関連がこわれるかも？）
-    [
+    main.body.code.extend([
         WOp::I32Const(Var(40)),
         WOp::SetLocal {
             local_index: Var(0),
         },
-    ]
-    .write(&mut main.body.code)?;
-
-    let mut wasm_ops = Vec::new();
-    block.to_wasm_ops(&mut wasm_ops);
-
-    wasm_ops.write(&mut main.body.code)?;
-
-    WOp::End.write(&mut main.body.code)?;
+    ]);
+    block.to_wasm_ops(&mut main.body.code);
+    main.body.code.push(WOp::End);
 
     module_builder.push_function(main);
 
