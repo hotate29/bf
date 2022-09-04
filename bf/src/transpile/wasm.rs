@@ -1,4 +1,4 @@
-use std::{fmt::Write, io};
+use std::{fmt::Write as _, io};
 
 mod opt;
 mod wasm_binary;
