@@ -2,6 +2,7 @@ use std::io::{self, Write};
 
 use super::var::Var;
 
+#[derive(Debug, Clone)]
 pub enum Type {
     I32,
     // I64,

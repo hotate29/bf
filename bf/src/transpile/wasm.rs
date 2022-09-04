@@ -296,7 +296,7 @@ impl Block {
 
         wat
     }
-    fn to_wasm_codes(&self, mut buffer: &mut Vec<u8>) -> io::Result<()> {
+    fn to_wasm_ops(&self, ops: &mut Vec<WOp>) {
         for item in &self.items {
             match item {
                 BlockItem::Op(op) => match op {
@@ -314,7 +314,7 @@ impl Block {
                             WOp::I32Store8(MemoryImmediate::i8(*offset)),
                         ];
 
-                        add_ops.write(&mut buffer)?;
+                        ops.extend(add_ops);
                     }
                     Op::Sub(value, offset) => {
                         // Addと大体おなじ
@@ -331,7 +331,7 @@ impl Block {
                             WOp::I32Store8(MemoryImmediate::i8(*offset)),
                         ];
 
-                        sub_ops.write(&mut buffer)?;
+                        ops.extend(sub_ops);
                     }
                     Op::PtrAdd(value) => {
                         let ptr_add_ops = [
@@ -345,7 +345,7 @@ impl Block {
                             },
                         ];
 
-                        ptr_add_ops.write(&mut buffer)?;
+                        ops.extend(ptr_add_ops);
                     }
                     Op::PtrSub(value) => {
                         let ptr_sub_ops = [
@@ -359,7 +359,7 @@ impl Block {
                             },
                         ];
 
-                        ptr_sub_ops.write(&mut buffer)?;
+                        ops.extend(ptr_sub_ops);
                     }
                     Op::Mul(x, y, offset) => {
                         let mul_ops = [
@@ -385,7 +385,7 @@ impl Block {
                             WOp::I32Store8(MemoryImmediate::i8(*offset)),
                         ];
 
-                        mul_ops.write(&mut buffer)?;
+                        ops.extend(mul_ops);
                     }
                     Op::Set(value, offset) => {
                         let clear_ops = [
@@ -396,7 +396,7 @@ impl Block {
                             WOp::I32Store8(MemoryImmediate::i8(*offset)),
                         ];
 
-                        clear_ops.write(&mut buffer)?;
+                        ops.extend(clear_ops);
                     }
                     Op::Out(offset) => {
                         let out_ops = [
@@ -409,7 +409,7 @@ impl Block {
                             },
                         ];
 
-                        out_ops.write(&mut buffer)?;
+                        ops.extend(out_ops);
                     }
                     Op::Input(offset) => {
                         let input_ops = [
@@ -422,7 +422,7 @@ impl Block {
                             WOp::I32Store8(MemoryImmediate::i8(*offset)),
                         ];
 
-                        input_ops.write(&mut buffer)?
+                        ops.extend(input_ops)
                     }
                 },
                 BlockItem::Loop(loop_block) => {
@@ -439,9 +439,9 @@ impl Block {
                         },
                     ];
 
-                    loop_ops.write(&mut buffer)?;
+                    ops.extend(loop_ops);
 
-                    loop_block.to_wasm_codes(buffer)?;
+                    loop_block.to_wasm_ops(ops);
 
                     let loop_ops = [
                         WOp::Br {
@@ -451,7 +451,7 @@ impl Block {
                         WOp::End,
                     ];
 
-                    loop_ops.write(&mut buffer)?;
+                    ops.extend(loop_ops);
                 }
                 BlockItem::If(if_block) => {
                     let if_ops = [
@@ -464,15 +464,14 @@ impl Block {
                         },
                     ];
 
-                    if_ops.write(&mut buffer)?;
+                    ops.extend(if_ops);
 
-                    if_block.to_wasm_codes(buffer)?;
+                    if_block.to_wasm_ops(ops);
 
-                    WOp::End.write(&mut buffer)?;
+                    ops.push(WOp::End);
                 }
             }
         }
-        Ok(())
     }
 }
 
@@ -677,7 +676,10 @@ pub fn to_wasm(block: &Block, mut buffer: impl io::Write) -> io::Result<()> {
     ]
     .write(&mut main.body.code)?;
 
-    block.to_wasm_codes(&mut main.body.code)?;
+    let mut wasm_ops = Vec::new();
+    block.to_wasm_ops(&mut wasm_ops);
+
+    wasm_ops.write(&mut main.body.code)?;
 
     WOp::End.write(&mut main.body.code)?;
 

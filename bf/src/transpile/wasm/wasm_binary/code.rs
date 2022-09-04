@@ -46,6 +46,7 @@ impl LocalEntry {
     }
 }
 
+#[derive(Debug, Clone)]
 pub enum Op {
     Nop,
     End,
@@ -144,6 +145,7 @@ impl Op {
     }
 }
 
+#[derive(Debug, Clone, Copy)]
 pub struct MemoryImmediate {
     flags: Var<u32>,
     offset: Var<u32>,

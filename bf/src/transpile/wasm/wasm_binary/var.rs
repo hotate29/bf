@@ -9,6 +9,7 @@ impl VarInt for i32 {}
 impl VarInt for u32 {}
 impl VarInt for i64 {}
 
+#[derive(Debug, Clone, Copy)]
 pub struct Var<T: VarInt>(pub T);
 
 impl Var<bool> {
