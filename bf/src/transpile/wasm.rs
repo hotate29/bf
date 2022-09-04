@@ -330,7 +330,7 @@ pub fn to_wat(block: &Block, mut out: impl io::Write) -> io::Result<()> {
     // ops.push(WOp::End);
 
     let mut body = String::new();
-    ops.write_str(&mut body);
+    ops.write_str(2, &mut body);
 
     // let body = block.to_wat(40);
 
@@ -374,9 +374,9 @@ pub fn to_wat(block: &Block, mut out: impl io::Write) -> io::Result<()> {
         i32.const 0
         i32.load8_u
     )
-    (func $main (export "_start") (local i32 i32) {body})
-)
-"#,
+    (func $main (export "_start") (local i32 i32)
+{body}    )
+)"#,
     )
 }
 

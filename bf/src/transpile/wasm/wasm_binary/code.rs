@@ -212,7 +212,7 @@ impl MemoryImmediate {
 
 pub trait OpSlice {
     fn write(&self, w: impl Write) -> io::Result<()>;
-    fn write_str(&self, s: &mut String);
+    fn write_str(&self, indent: u32, s: &mut String);
 }
 
 impl OpSlice for [Op] {
@@ -223,8 +223,16 @@ impl OpSlice for [Op] {
         Ok(())
     }
 
-    fn write_str(&self, s: &mut String) {
+    fn write_str(&self, mut indent: u32, s: &mut String) {
         for op in self {
+            match op {
+                Op::Block { .. } | Op::Loop { .. } | Op::If { .. } => indent += 1,
+                Op::End => indent -= 1,
+                _ => (),
+            }
+            for _ in 0..indent {
+                s.push_str("    ")
+            }
             op.write_str(s);
             *s += "\n";
         }
