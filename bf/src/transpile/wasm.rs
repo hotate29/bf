@@ -409,7 +409,7 @@ fn print_char(wd_write_index: Var<u32>) -> Function {
             params: vec![Type::I32],
             result: None,
         },
-        body: FunctionBody::from_ops(&print_char_ops),
+        body: FunctionBody::from_ops(print_char_ops.to_vec()),
         export_name: None,
     }
 }
@@ -440,7 +440,7 @@ fn input_char(fd_read_index: Var<u32>) -> Function {
             params: vec![],
             result: Some(Box::new(Type::I32)),
         },
-        body: FunctionBody::from_ops(&input_char_ops),
+        body: FunctionBody::from_ops(input_char_ops.to_vec()),
         export_name: None,
     }
 }

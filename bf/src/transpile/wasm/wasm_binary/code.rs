@@ -14,10 +14,10 @@ impl FunctionBody {
             code: Vec::new(),
         }
     }
-    pub fn from_ops(ops: &[Op]) -> Self {
+    pub fn from_ops(ops: Vec<Op>) -> Self {
         Self {
             locals: Vec::new(),
-            code: ops.to_vec(),
+            code: ops,
         }
     }
     pub fn push_local(&mut self, local_entry: LocalEntry) {
