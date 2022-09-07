@@ -1,4 +1,3 @@
-use std::fmt::Write as _;
 use std::io::{self, Write};
 
 use super::{type_::Type, var::Var};
@@ -86,38 +85,38 @@ pub enum Op {
 }
 
 impl Op {
-    pub fn write_str(&self, s: &mut String) {
+    pub fn write_str(&self, mut s: impl io::Write) -> io::Result<()> {
         match self {
-            Op::Nop => (),
-            Op::End => *s += "end",
+            Op::Nop => Ok(()),
+            Op::End => write!(s, "end"),
             Op::Block { block_type } => {
                 assert_eq!(block_type, &Type::Void);
-                *s += "block";
+                write!(s, "block")
             }
             Op::Loop { block_type } => {
                 assert_eq!(block_type, &Type::Void);
-                *s += "loop";
+                write!(s, "loop")
             }
             Op::If { block_type } => {
                 assert_eq!(block_type, &Type::Void);
-                *s += "if";
+                write!(s, "if")
             }
-            Op::Br { relative_depth } => write!(s, "br {}", relative_depth.0).unwrap(),
-            Op::BrIf { relative_depth } => write!(s, "br_if {}", relative_depth.0).unwrap(),
-            Op::Call { function_index } => write!(s, "call {}", function_index.0).unwrap(),
-            Op::Drop => *s += "drop",
-            Op::GetLocal { local_index } => write!(s, "local.get {}", local_index.0).unwrap(),
-            Op::SetLocal { local_index } => write!(s, "local.set {}", local_index.0).unwrap(),
-            Op::TeeLocal { local_index } => write!(s, "local.tee {}", local_index.0).unwrap(),
-            Op::I32Load8U(offset) => write!(s, "i32.load8_u offset={}", offset.offset.0).unwrap(),
-            Op::I32Store(offset) => write!(s, "i32.store offset={}", offset.offset.0).unwrap(),
-            Op::I32Store8(offset) => write!(s, "i32.store8 offset={}", offset.offset.0).unwrap(),
-            Op::I32Const(var) => write!(s, "i32.const {}", var.0).unwrap(),
-            Op::I32Eqz => *s += "i32.eqz",
-            Op::I32Ne => *s += "i32.ne",
-            Op::I32Add => *s += "i32.add",
-            Op::I32Sub => *s += "i32.sub",
-            Op::I32Mul => *s += "i32.mul",
+            Op::Br { relative_depth } => write!(s, "br {}", relative_depth.0),
+            Op::BrIf { relative_depth } => write!(s, "br_if {}", relative_depth.0),
+            Op::Call { function_index } => write!(s, "call {}", function_index.0),
+            Op::Drop => write!(s, "drop"),
+            Op::GetLocal { local_index } => write!(s, "local.get {}", local_index.0),
+            Op::SetLocal { local_index } => write!(s, "local.set {}", local_index.0),
+            Op::TeeLocal { local_index } => write!(s, "local.tee {}", local_index.0),
+            Op::I32Load8U(offset) => write!(s, "i32.load8_u offset={}", offset.offset.0),
+            Op::I32Store(offset) => write!(s, "i32.store offset={}", offset.offset.0),
+            Op::I32Store8(offset) => write!(s, "i32.store8 offset={}", offset.offset.0),
+            Op::I32Const(var) => write!(s, "i32.const {}", var.0),
+            Op::I32Eqz => write!(s, "i32.eqz"),
+            Op::I32Ne => write!(s, "i32.ne"),
+            Op::I32Add => write!(s, "i32.add"),
+            Op::I32Sub => write!(s, "i32.sub"),
+            Op::I32Mul => write!(s, "i32.mul"),
         }
     }
     pub fn write(&self, mut w: impl Write) -> io::Result<()> {
@@ -212,7 +211,7 @@ impl MemoryImmediate {
 
 pub trait OpSlice {
     fn write(&self, w: impl Write) -> io::Result<()>;
-    fn write_str(&self, indent: u32, s: &mut String);
+    fn write_str(&self, indent: u32, s: impl Write) -> io::Result<()>;
 }
 
 impl OpSlice for [Op] {
@@ -223,7 +222,7 @@ impl OpSlice for [Op] {
         Ok(())
     }
 
-    fn write_str(&self, mut indent: u32, s: &mut String) {
+    fn write_str(&self, mut indent: u32, mut s: impl Write) -> io::Result<()> {
         for op in self {
             match op {
                 Op::Block { .. } | Op::Loop { .. } | Op::If { .. } => indent += 1,
@@ -231,10 +230,11 @@ impl OpSlice for [Op] {
                 _ => (),
             }
             for _ in 0..indent {
-                s.push_str("    ")
+                write!(s, "    ")?;
             }
-            op.write_str(s);
-            *s += "\n";
+            op.write_str(&mut s)?;
+            s.write_all(b"\n")?
         }
+        Ok(())
     }
 }

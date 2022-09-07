@@ -318,22 +318,6 @@ pub fn bf_to_wat(bf: &str, optimize: bool, mut w: impl io::Write) -> Result<(), 
 }
 
 pub fn to_wat(block: &Block, mut out: impl io::Write) -> io::Result<()> {
-    let mut ops = Vec::new();
-    ops.extend([
-        WOp::I32Const(Var(40)),
-        WOp::SetLocal {
-            local_index: Var(0),
-        },
-    ]);
-    block.to_wasm_ops(&mut ops);
-    // テキスト形式だといらない
-    // ops.push(WOp::End);
-
-    let mut body = String::new();
-    ops.write_str(2, &mut body);
-
-    // let body = block.to_wat(40);
-
     // Base Wasmer
     // https://github.com/wasmerio/wasmer/blob/75a98ab171bee010b9a7cd0f836919dc4519dcaf/lib/wasi/tests/stdio.rs
     writeln!(
@@ -362,7 +346,7 @@ pub fn to_wat(block: &Block, mut out: impl io::Write) -> io::Result<()> {
     (func $input_char (result i32)
         (i32.store (i32.const 4) (i32.const 0))
         (i32.store (i32.const 8) (i32.const 1))
-
+    
         (call $fd_read
             (i32.const 0)
             (i32.const 4)
@@ -370,14 +354,32 @@ pub fn to_wat(block: &Block, mut out: impl io::Write) -> io::Result<()> {
             (i32.const 12)
         )
         drop
-
+    
         i32.const 0
         i32.load8_u
     )
-    (func $main (export "_start") (local i32 i32)
-{body}    )
-)"#,
+    (func $main (export "_start") (local i32 i32)"#,
+    )?;
+
+    let mut main = Vec::new();
+    main.extend([
+        WOp::I32Const(Var(40)),
+        WOp::SetLocal {
+            local_index: Var(0),
+        },
+    ]);
+    block.to_wasm_ops(&mut main);
+    // テキスト形式だといらない
+    // ops.push(WOp::End);
+
+    main.write_str(2, &mut out)?;
+    writeln!(
+        out,
+"    )
+)"
     )
+
+    // let body = block.to_wat(40);
 }
 
 fn print_char(wd_write_index: Var<u32>) -> Function {
