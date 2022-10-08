@@ -48,10 +48,3 @@ impl Var<i32> {
         Ok(())
     }
 }
-
-impl Var<i64> {
-    pub fn write(&self, mut w: impl Write) -> io::Result<()> {
-        leb128::write::signed(&mut w, self.0)?;
-        Ok(())
-    }
-}

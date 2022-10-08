@@ -54,13 +54,11 @@ impl LocalEntry {
 
 #[derive(Debug, Clone)]
 pub enum Op {
-    Nop,
+    _Nop,
     End,
-    Block { block_type: Type },
     Loop { block_type: Type },
     If { block_type: Type },
     Br { relative_depth: Var<u32> },
-    BrIf { relative_depth: Var<u32> },
 
     Call { function_index: Var<u32> },
 
@@ -76,9 +74,6 @@ pub enum Op {
 
     I32Const(Var<i32>),
 
-    I32Eqz,
-    I32Ne,
-
     I32Add,
     I32Sub,
     I32Mul,
@@ -87,12 +82,8 @@ pub enum Op {
 impl Op {
     pub fn write_str(&self, mut s: impl io::Write) -> io::Result<()> {
         match self {
-            Op::Nop => Ok(()),
+            Op::_Nop => Ok(()),
             Op::End => write!(s, "end"),
-            Op::Block { block_type } => {
-                assert_eq!(block_type, &Type::Void);
-                write!(s, "block")
-            }
             Op::Loop { block_type } => {
                 assert_eq!(block_type, &Type::Void);
                 write!(s, "loop")
@@ -102,7 +93,6 @@ impl Op {
                 write!(s, "if")
             }
             Op::Br { relative_depth } => write!(s, "br {}", relative_depth.0),
-            Op::BrIf { relative_depth } => write!(s, "br_if {}", relative_depth.0),
             Op::Call { function_index } => write!(s, "call {}", function_index.0),
             Op::Drop => write!(s, "drop"),
             Op::GetLocal { local_index } => write!(s, "local.get {}", local_index.0),
@@ -112,8 +102,6 @@ impl Op {
             Op::I32Store(offset) => write!(s, "i32.store offset={}", offset.offset.0),
             Op::I32Store8(offset) => write!(s, "i32.store8 offset={}", offset.offset.0),
             Op::I32Const(var) => write!(s, "i32.const {}", var.0),
-            Op::I32Eqz => write!(s, "i32.eqz"),
-            Op::I32Ne => write!(s, "i32.ne"),
             Op::I32Add => write!(s, "i32.add"),
             Op::I32Sub => write!(s, "i32.sub"),
             Op::I32Mul => write!(s, "i32.mul"),
@@ -121,12 +109,8 @@ impl Op {
     }
     pub fn write(&self, mut w: impl Write) -> io::Result<()> {
         match self {
-            Op::Nop => w.write_all(&[0x01]),
+            Op::_Nop => w.write_all(&[0x01]),
             Op::End => w.write_all(&[0x0b]),
-            Op::Block { block_type } => {
-                w.write_all(&[0x02])?;
-                block_type.write(&mut w)
-            }
             Op::Loop { block_type } => {
                 w.write_all(&[0x03])?;
                 block_type.write(&mut w)
@@ -137,10 +121,6 @@ impl Op {
             }
             Op::Br { relative_depth } => {
                 w.write_all(&[0x0c])?;
-                relative_depth.write(&mut w)
-            }
-            Op::BrIf { relative_depth } => {
-                w.write_all(&[0x0d])?;
                 relative_depth.write(&mut w)
             }
             Op::Call { function_index } => {
@@ -176,8 +156,6 @@ impl Op {
                 w.write_all(&[0x41])?;
                 literal.write(w)
             }
-            Op::I32Eqz => w.write_all(&[0x45]),
-            Op::I32Ne => w.write_all(&[0x47]),
             Op::I32Add => w.write_all(&[0x6a]),
             Op::I32Sub => w.write_all(&[0x6b]),
             Op::I32Mul => w.write_all(&[0x6c]),
@@ -225,7 +203,7 @@ impl OpSlice for [Op] {
     fn write_str(&self, mut indent: u32, mut s: impl Write) -> io::Result<()> {
         for op in self {
             match op {
-                Op::Block { .. } | Op::Loop { .. } | Op::If { .. } => indent += 1,
+                Op::Loop { .. } | Op::If { .. } => indent += 1,
                 Op::End => indent -= 1,
                 _ => (),
             }
