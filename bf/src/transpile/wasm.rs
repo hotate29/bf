@@ -102,10 +102,10 @@ impl Block {
     fn push_item(&mut self, item: BlockItem) {
         self.items.push(item)
     }
-    pub fn optimize(&self, top_level: bool) -> Block {
+    pub fn optimize(&self, is_top_level: bool) -> Block {
         let mut block = self.clone();
 
-        if top_level {
+        if is_top_level {
             block.items.insert(0, BlockItem::Op(Op::Set(0, 0)));
         }
 
