@@ -2,45 +2,21 @@ use crate::transpile::wasm::{Block, BlockItem, Op};
 
 use std::io::{self, Read, Write};
 
-use log::{trace, warn};
+use log::warn;
 use thiserror::Error;
+
+pub use memory::{AutoExtendMemory, Memory};
+
+mod memory;
 
 type Result<T> = std::result::Result<T, Error>;
 
 #[derive(Debug)]
-struct Memory(Vec<u8>);
-
-impl Memory {
-    #[inline]
-    fn extend(&mut self, index: usize) {
-        if self.0.len() <= index + 1 {
-            let extend_len = self.0.len() * 2 + index + 1;
-
-            trace!("extend! {} -> {}", self.0.len(), extend_len);
-            self.0.resize(extend_len, 0);
-        }
-    }
-    #[inline]
-    fn inner(&self) -> &Vec<u8> {
-        &self.0
-    }
-    #[inline]
-    fn get(&mut self, index: usize) -> u8 {
-        *self.get_mut(index)
-    }
-    #[inline]
-    fn get_mut(&mut self, index: usize) -> &mut u8 {
-        self.extend(index);
-        &mut self.0[index]
-    }
-}
-
-#[derive(Debug)]
-struct State {
+struct State<M: Memory> {
     pointer: usize,
-    memory: Memory,
+    memory: M,
 }
-impl State {
+impl<M: Memory> State<M> {
     #[inline]
     fn at(&mut self) -> u8 {
         self.memory.get(self.pointer)
@@ -159,22 +135,19 @@ fn u32_mod256(value: u32) -> u8 {
     (value % 256) as u8
 }
 
-pub struct InterPreter<R: Read, W: Write> {
-    state: State,
+pub struct InterPreter<R: Read, W: Write, M: Memory> {
+    state: State<M>,
     input: R,
     output: W,
     instructions: Vec<FlatInstruction>,
     now: usize,
 }
-impl<R: Read, W: Write> InterPreter<R, W> {
-    pub fn builder<'a>() -> InterPreterBuilder<'a, R, W> {
+impl<R: Read, W: Write, M: Memory> InterPreter<R, W, M> {
+    pub fn builder<'a>() -> InterPreterBuilder<'a, R, W, M> {
         InterPreterBuilder::default()
     }
-    fn new(block: &Block, memory_len: usize, input: R, output: W) -> Self {
-        let state = State {
-            pointer: 0,
-            memory: Memory(vec![0; memory_len]),
-        };
+    fn new(block: &Block, input: R, output: W, memory: M) -> Self {
+        let state = State { pointer: 0, memory };
 
         let instructions = block_to_flat_instructions(block);
 
@@ -186,7 +159,7 @@ impl<R: Read, W: Write> InterPreter<R, W> {
             output,
         }
     }
-    pub fn memory(&self) -> &Vec<u8> {
+    pub fn memory(&self) -> &[u8] {
         self.state.memory.inner()
     }
     pub fn pointer(&self) -> usize {
@@ -195,7 +168,7 @@ impl<R: Read, W: Write> InterPreter<R, W> {
     pub fn now(&self) -> usize {
         self.now
     }
-    pub fn iter(&mut self) -> InterPreterIter<'_, R, W> {
+    pub fn iter(&mut self) -> InterPreterIter<'_, R, W, M> {
         InterPreterIter(self)
     }
     #[inline]
@@ -248,7 +221,7 @@ impl<R: Read, W: Write> InterPreter<R, W> {
     }
 }
 
-impl<R: Read, W: Write> Iterator for InterPreterIter<'_, R, W> {
+impl<R: Read, W: Write, M: Memory> Iterator for InterPreterIter<'_, R, W, M> {
     type Item = Result<()>;
 
     #[inline]
@@ -261,32 +234,34 @@ impl<R: Read, W: Write> Iterator for InterPreterIter<'_, R, W> {
     }
 }
 
-pub struct InterPreterBuilder<'a, R: Read, W: Write> {
+pub struct InterPreterBuilder<'a, R: Read, W: Write, M: Memory> {
     root_node: Option<&'a Block>,
-    memory_len: usize,
+    memory: Option<M>,
     input: Option<R>,
     output: Option<W>,
 }
-impl<'a, R: Read, W: Write> Default for InterPreterBuilder<'a, R, W> {
+impl<'a, R: Read, W: Write, M: Memory> Default for InterPreterBuilder<'a, R, W, M> {
     fn default() -> Self {
         Self {
             root_node: Default::default(),
-            memory_len: 1,
+            memory: Default::default(),
             input: Default::default(),
             output: Default::default(),
         }
     }
 }
-impl<'a, R: Read, W: Write> InterPreterBuilder<'a, R, W> {
+impl<'a, R: Read, W: Write, M: Memory> InterPreterBuilder<'a, R, W, M> {
     pub fn root_node(self, root_node: &'a Block) -> Self {
         Self {
             root_node: Some(root_node),
             ..self
         }
     }
-    pub fn memory_len(self, memory_len: usize) -> Self {
-        assert!(memory_len > 0);
-        Self { memory_len, ..self }
+    pub fn memory(self, memory: M) -> Self {
+        Self {
+            memory: Some(memory),
+            ..self
+        }
     }
     pub fn input(self, input: R) -> Self {
         Self {
@@ -300,10 +275,10 @@ impl<'a, R: Read, W: Write> InterPreterBuilder<'a, R, W> {
             ..self
         }
     }
-    pub fn build(self) -> InterPreter<R, W> {
+    pub fn build(self) -> InterPreter<R, W, M> {
         let Self {
             root_node,
-            memory_len,
+            memory,
             input,
             output,
         } = self;
@@ -311,20 +286,21 @@ impl<'a, R: Read, W: Write> InterPreterBuilder<'a, R, W> {
         let root_node = root_node.unwrap();
         let input = input.unwrap();
         let output = output.unwrap();
+        let memory = memory.unwrap();
 
-        InterPreter::new(root_node, memory_len, input, output)
+        InterPreter::new(root_node, input, output, memory)
     }
 }
 
-pub struct InterPreterIter<'a, R: Read, W: Write>(&'a mut InterPreter<R, W>);
+pub struct InterPreterIter<'a, R: Read, W: Write, M: Memory>(&'a mut InterPreter<R, W, M>);
 
 #[cfg(test)]
 mod test {
     use std::io;
 
-    use crate::{interpreter::Memory, transpile::wasm::Block};
+    use crate::{interpreter::AutoExtendMemory, transpile::wasm::Block};
 
-    use super::InterPreter;
+    use super::*;
 
     fn block(source: &str) -> Block {
         Block::from_bf(source).unwrap()
@@ -336,17 +312,17 @@ mod test {
     #[test]
     fn test_memory_extend() {
         {
-            let mut memory = Memory(Vec::new());
+            let mut memory = AutoExtendMemory::new(Vec::new());
             memory.get(0); // 自動で伸びるはず...!
 
-            assert!(!memory.0.is_empty());
+            assert!(!memory.inner().is_empty());
         }
 
         {
-            let mut memory = Memory(Vec::new());
+            let mut memory = AutoExtendMemory::new(Vec::new());
             memory.get_mut(0); // 自動で伸びるはず...!2
 
-            assert!(!memory.0.is_empty());
+            assert!(!memory.inner().is_empty());
         }
     }
 
@@ -366,6 +342,7 @@ mod test {
             .root_node(&block)
             .input(io::empty())
             .output(&mut output_buffer)
+            .memory(AutoExtendMemory::new(vec![0]))
             .build()
             .iter()
             .count();
@@ -388,6 +365,7 @@ mod test {
             .root_node(&block)
             .input(io::empty())
             .output(&mut output_buffer)
+            .memory(AutoExtendMemory::new(vec![0]))
             .build()
             .iter()
             .count();
@@ -408,6 +386,7 @@ mod test {
             .root_node(&block)
             .input(io::empty())
             .output(&mut output_buffer)
+            .memory(AutoExtendMemory::new(vec![0]))
             .build()
             .iter()
             .count();
@@ -428,6 +407,7 @@ mod test {
             .root_node(&block)
             .input(io::empty())
             .output(&mut output_buffer)
+            .memory(AutoExtendMemory::new(vec![0]))
             .build()
             .iter()
             .count();

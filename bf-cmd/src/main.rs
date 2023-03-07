@@ -5,7 +5,7 @@ use std::{
     path::PathBuf,
 };
 
-use bf::{transpile, InterPreter};
+use bf::{interpreter::AutoExtendMemory, transpile, InterPreter};
 use clap::{ArgEnum, StructOpt};
 use log::{info, Level};
 
@@ -83,7 +83,7 @@ fn main() -> anyhow::Result<()> {
                 .input(io::stdin())
                 .output(io::stdout())
                 .root_node(&block)
-                .memory_len(arg.initial_memory_len.get())
+                .memory(AutoExtendMemory::new(vec![0; arg.initial_memory_len.get()]))
                 .build();
 
             let step_count = time!(interpreter.iter().count());

@@ -3,7 +3,10 @@ extern crate test;
 
 use std::io;
 
-use bf::{interpreter::InterPreter, transpile::wasm::Block};
+use bf::{
+    interpreter::{AutoExtendMemory, InterPreter},
+    transpile::wasm::Block,
+};
 
 const MANDELBROT: &str = include_str!("../../bf_codes/mandelbrot.bf");
 
@@ -16,6 +19,7 @@ fn bench_not_optimize_mandelbrot(bencher: &mut test::Bencher) {
             .root_node(&block)
             .input(io::empty())
             .output(io::sink())
+            .memory(AutoExtendMemory::new(vec![0]))
             .build()
             .iter()
             .count();
@@ -31,6 +35,7 @@ fn bench_optimized_mandelbrot(bencher: &mut test::Bencher) {
             .root_node(&block)
             .input(io::empty())
             .output(io::sink())
+            .memory(AutoExtendMemory::new(vec![0]))
             .build()
             .iter()
             .count();
@@ -48,6 +53,7 @@ fn bench_hello_world(bencher: &mut test::Bencher) {
             .root_node(&block)
             .input(io::empty())
             .output(io::sink())
+            .memory(AutoExtendMemory::new(vec![0]))
             .build()
             .iter()
             .count();
@@ -65,6 +71,7 @@ fn bench_optimized_hello_world(bencher: &mut test::Bencher) {
             .root_node(&block)
             .input(io::empty())
             .output(io::sink())
+            .memory(AutoExtendMemory::new(vec![0]))
             .build()
             .iter()
             .count();
@@ -82,6 +89,7 @@ fn bench_optimized_pi16(bencher: &mut test::Bencher) {
             .root_node(&block)
             .input(io::empty())
             .output(io::sink())
+            .memory(AutoExtendMemory::new(vec![0]))
             .build()
             .iter()
             .count();
