@@ -41,6 +41,20 @@ pub enum Op {
     Output,
     Input,
 }
+impl Op {
+    fn from_char(c: char) -> Option<Self> {
+        match c {
+            '+' => Some(Op::Add),
+            '-' => Some(Op::Sub),
+            '>' => Some(Op::PtrAdd),
+            '<' => Some(Op::PtrSub),
+            '.' => Some(Op::Output),
+            ',' => Some(Op::Input),
+            _ => None,
+        }
+    }
+}
+
 pub enum Item {
     Op(Op),
     Loop(Ast),
@@ -59,16 +73,17 @@ impl Ast {
     pub fn inner(&self) -> &Vec<Item> {
         &self.items
     }
-    fn from_bf(bf: &str) -> Result<Ast, Error> {
+}
+
+impl FromStr for Ast {
+    type Err = Error;
+    fn from_str(bf: &str) -> Result<Self, Self::Err> {
         fn inner(ast: &mut Ast, chars: &mut Chars) {
             while let Some(char) = chars.next() {
                 match char {
-                    '+' => ast.push(Item::Op(Op::Add)),
-                    '-' => ast.push(Item::Op(Op::Sub)),
-                    '>' => ast.push(Item::Op(Op::PtrAdd)),
-                    '<' => ast.push(Item::Op(Op::PtrSub)),
-                    '.' => ast.push(Item::Op(Op::Output)),
-                    ',' => ast.push(Item::Op(Op::Input)),
+                    '+' | '-' | '>' | '<' | '.' | ',' => {
+                        ast.push(Item::Op(Op::from_char(char).unwrap()))
+                    }
                     '[' => {
                         let mut s = Ast::new();
                         inner(&mut s, chars);
@@ -88,13 +103,6 @@ impl Ast {
         inner(&mut block, &mut bf_chars);
 
         Ok(block)
-    }
-}
-
-impl FromStr for Ast {
-    type Err = Error;
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Ast::from_bf(s)
     }
 }
 

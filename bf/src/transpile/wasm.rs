@@ -188,7 +188,7 @@ impl Block {
                             WOp::GetLocal {
                                 local_index: Var(0),
                             },
-                            WOp::I32Const(Var(*x as i32)),
+                            WOp::I32Const(Var(*x)),
                             WOp::I32Add,
                             WOp::TeeLocal {
                                 local_index: Var(1),
@@ -201,7 +201,7 @@ impl Block {
                                 local_index: Var(0),
                             },
                             WOp::I32Load8U(MemoryImmediate::i8(*offset)),
-                            WOp::I32Const(Var(*y as i32)),
+                            WOp::I32Const(Var(*y)),
                             WOp::I32Mul,
                             WOp::I32Add,
                             WOp::I32Store8(MemoryImmediate::i8(*offset)),
@@ -330,11 +330,11 @@ pub fn to_wat(block: &Block, mut out: impl io::Write) -> io::Result<()> {
     i32.const 0
     local.get $char
     i32.store8
-    
+
     ;; Creating a new io vector within linear memory
     (i32.store (i32.const 4) (i32.const 0))  ;; iov.iov_base - This is a pointer to the start of the 'hello world\n' string
     (i32.store (i32.const 8) (i32.const 1))  ;; iov.iov_len - The length of the 'hello world\n' string
-    
+
     (call $fd_write
         (i32.const 1) ;; file_descriptor - 1 for stdout
         (i32.const 4) ;; *iovs - The pointer to the iov array, which is stored at memory location 0
@@ -346,7 +346,7 @@ pub fn to_wat(block: &Block, mut out: impl io::Write) -> io::Result<()> {
     (func $input_char (result i32)
         (i32.store (i32.const 4) (i32.const 0))
         (i32.store (i32.const 8) (i32.const 1))
-    
+
         (call $fd_read
             (i32.const 0)
             (i32.const 4)
@@ -354,7 +354,7 @@ pub fn to_wat(block: &Block, mut out: impl io::Write) -> io::Result<()> {
             (i32.const 12)
         )
         drop
-    
+
         i32.const 0
         i32.load8_u
     )
