@@ -1,4 +1,4 @@
-import binaryen from 'binaryen';
+// import binaryen from 'binaryen';
 
 import { bf_to_wasm } from '@hotate29/bf';
 
