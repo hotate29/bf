@@ -3,6 +3,7 @@ use std::io;
 mod opt;
 mod wasm_binary;
 
+use chumsky::Parser;
 use wasm_binary::{
     code::{FunctionBody, LocalEntry, MemoryImmediate, Op as WOp, OpSlice},
     section::{MemoryType, ResizableLimits},
@@ -11,7 +12,10 @@ use wasm_binary::{
     Function, Import, Memory, ModuleBuilder,
 };
 
-use crate::{error::Error, parse::Ast};
+use crate::{
+    error::Error,
+    parse::{self, Ast},
+};
 
 // WebAssemblyのメモリ操作命令に付いているoffsetを使いたいので、offsetは正の整数のみ受け入れるようにしている。
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -50,41 +54,22 @@ pub struct Block {
     pub items: Vec<BlockItem>,
 }
 
-impl From<Ast> for Block {
-    fn from(ast: Ast) -> Self {
-        (&ast).into()
-    }
-}
-
-impl From<&Ast> for Block {
-    fn from(ast: &Ast) -> Self {
-        fn inner(block: &mut Block, ast: &Ast) {
-            for item in ast.inner() {
-                let blockitem = match item {
-                    crate::parse::Item::Op(op) => {
-                        let op = match op {
-                            crate::parse::Op::Add => Op::Add(1, 0),
-                            crate::parse::Op::Sub => Op::Sub(1, 0),
-                            crate::parse::Op::PtrAdd => Op::PtrAdd(1),
-                            crate::parse::Op::PtrSub => Op::PtrSub(1),
-                            crate::parse::Op::Output => Op::Out(0),
-                            crate::parse::Op::Input => Op::Input(0),
-                        };
-                        BlockItem::Op(op)
-                    }
-                    crate::parse::Item::Loop(ast) => BlockItem::Loop(ast.into()),
-                };
-
-                block.push_item(blockitem);
-            }
-        }
-
-        let capacity = ast.inner().len();
-        let mut block = Block::from_items(Vec::with_capacity(capacity));
-
-        inner(&mut block, ast);
-
-        block
+impl From<&[Ast]> for Block {
+    fn from(ast: &[Ast]) -> Self {
+        Block::from_items(
+            ast.iter()
+                .filter_map(|item| match item {
+                    Ast::PtrInc => Some(BlockItem::Op(Op::PtrAdd(1))),
+                    Ast::PtrDec => Some(BlockItem::Op(Op::PtrSub(1))),
+                    Ast::Inc => Some(BlockItem::Op(Op::Add(1, 0))),
+                    Ast::Dec => Some(BlockItem::Op(Op::Sub(1, 0))),
+                    Ast::Read => Some(BlockItem::Op(Op::Input(0))),
+                    Ast::Write => Some(BlockItem::Op(Op::Out(0))),
+                    Ast::Loop(loop_items) => Some(BlockItem::Loop(loop_items.as_slice().into())),
+                    Ast::_Invalid => None,
+                })
+                .collect(),
+        )
     }
 }
 
@@ -93,8 +78,14 @@ impl Block {
         Self::default()
     }
     pub fn from_bf(bf: &str) -> Result<Self, Error> {
-        let ast: Ast = bf.parse()?;
-        Ok(ast.into())
+        let ast = parse::bf_parser()
+            .parse(bf)
+            .into_result()
+            .map_err(|_| Error::InvalidSyntax {
+                msg: "The brackets are not corresponding.",
+            })?;
+
+        Ok(ast.as_slice().into())
     }
     fn from_items(items: Vec<BlockItem>) -> Self {
         Self { items }
@@ -375,7 +366,7 @@ pub fn to_wat(block: &Block, mut out: impl io::Write) -> io::Result<()> {
     main.write_str(2, &mut out)?;
     writeln!(
         out,
-"    )
+        "    )
 )"
     )
 

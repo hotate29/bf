@@ -1,21 +1,15 @@
 #![feature(test)]
 extern crate test;
 
-use bf::{parse::Ast, transpile::wasm::Block};
+use bf::parse::bf_parser;
+use chumsky::Parser;
 
 const MANDELBROT: &str = include_str!("../../bf_codes/mandelbrot.bf");
 
 #[bench]
-fn bench_ast_to_block_mandelbrot(bencher: &mut test::Bencher) {
-    let ast: Ast = MANDELBROT.parse().unwrap();
+fn bench_parse_mandelbrot_ast(bencher: &mut test::Bencher) {
+    let parser = bf_parser();
     bencher.iter(|| {
-        let _: Block = (&ast).into();
-    })
-}
-
-#[bench]
-fn bench_parse_ast_mandelbrot(bencher: &mut test::Bencher) {
-    bencher.iter(|| {
-        MANDELBROT.parse::<Ast>().unwrap();
+        parser.parse(MANDELBROT);
     })
 }
