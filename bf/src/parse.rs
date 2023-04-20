@@ -1,5 +1,7 @@
 use chumsky::prelude::*;
 
+use crate::Error;
+
 #[derive(Clone, Debug)]
 pub enum Ast {
     _Invalid, // その他文字
@@ -12,7 +14,18 @@ pub enum Ast {
     Loop(Vec<Self>),
 }
 
-pub fn bf_parser<'a>() -> impl Parser<'a, &'a str, Vec<Ast>, extra::Err<EmptyErr>> {
+pub fn parse(code: &str) -> Result<Vec<Ast>, Error> {
+    let ast = bf_parser()
+        .parse(code)
+        .into_result()
+        .map_err(|_| Error::InvalidSyntax {
+            msg: "The brackets are not corresponding.",
+        })?;
+
+    Ok(ast)
+}
+
+fn bf_parser<'a>() -> impl Parser<'a, &'a str, Vec<Ast>, extra::Err<EmptyErr>> {
     use Ast::*;
 
     let bf_chars = "+-><.,[]";

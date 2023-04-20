@@ -1,13 +1,15 @@
 #![feature(test)]
 extern crate test;
 
-use bf::transpile::wasm::Block;
+use bf::{opt::optimize, utils};
 
 const MANDELBROT: &str = include_str!("../../bf_codes/mandelbrot.bf");
 
 #[bench]
 fn bench_optimizing_mandelbrot(bencher: &mut test::Bencher) {
-    let block = Block::from_bf(MANDELBROT).unwrap();
-
-    bencher.iter(|| block.optimize(true))
+    let block = utils::bf_to_block(MANDELBROT, false).unwrap();
+    bencher.iter(|| {
+        let block = block.clone();
+        optimize(block, true)
+    })
 }

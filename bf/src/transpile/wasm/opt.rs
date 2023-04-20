@@ -45,7 +45,7 @@ impl Add for Op<u32> {
     }
 }
 
-pub(super) fn merge(block: &Block) -> Block {
+pub(crate) fn merge(block: &Block) -> Block {
     let mut merged_block = Block::new();
 
     for item in &block.items {
@@ -75,7 +75,7 @@ pub(super) fn merge(block: &Block) -> Block {
     merged_block
 }
 
-pub(super) fn clear(block: &mut Block) {
+pub(crate) fn clear(block: &mut Block) {
     for item in &mut block.items {
         if let BlockItem::Loop(block) = item {
             if let [BlockItem::Op(Op::Add(1, 0) | Op::Sub(1, 0))] = block.items.as_slice() {
@@ -87,7 +87,7 @@ pub(super) fn clear(block: &mut Block) {
     }
 }
 
-pub(super) fn unwrap(block: &mut Block) {
+pub(crate) fn unwrap(block: &mut Block) {
     fn inner(item: &mut BlockItem) -> bool {
         if let BlockItem::Loop(loop_block) = item {
             if loop_block.items.len() == 1 {
@@ -110,7 +110,7 @@ pub(super) fn unwrap(block: &mut Block) {
     });
 }
 
-pub(super) fn mul(block: &mut Block) {
+pub(crate) fn mul(block: &mut Block) {
     #[derive(Debug, PartialEq, Eq)]
     enum OpType {
         Mul(i32),

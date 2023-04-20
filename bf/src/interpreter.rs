@@ -298,15 +298,17 @@ pub struct InterPreterIter<'a, R: Read, W: Write, M: Memory>(&'a mut InterPreter
 mod test {
     use std::io;
 
-    use crate::{interpreter::AutoExtendMemory, transpile::wasm::Block};
+    use crate::{interpreter::AutoExtendMemory, opt, parse::parse, transpile::wasm::Block};
 
     use super::*;
 
     fn block(source: &str) -> Block {
-        Block::from_bf(source).unwrap()
+        let ast = parse(source).unwrap();
+        Block::from_ast(&ast)
     }
     fn block_opt(source: &str) -> Block {
-        Block::from_bf(source).unwrap().optimize(true)
+        let block = block(source);
+        opt::optimize(block, true)
     }
 
     #[test]

@@ -5,7 +5,7 @@ use std::{
     path::PathBuf,
 };
 
-use bf::{interpreter::AutoExtendMemory, transpile, InterPreter};
+use bf::{interpreter::AutoExtendMemory, transpile, utils::bf_to_block, InterPreter};
 use clap::{ArgEnum, StructOpt};
 use log::{info, Level};
 
@@ -73,11 +73,7 @@ fn main() -> anyhow::Result<()> {
         SubCommand::Run(arg) => {
             let code = fs::read_to_string(arg.file)?;
 
-            let mut block = transpile::Block::from_bf(&code)?;
-
-            if arg.optimize {
-                block = block.optimize(true);
-            }
+            let block = bf_to_block(&code, arg.optimize)?;
 
             let mut interpreter = InterPreter::builder()
                 .input(io::stdin())
@@ -92,6 +88,8 @@ fn main() -> anyhow::Result<()> {
         SubCommand::Trans(arg) => {
             let code = fs::read_to_string(arg.file)?;
 
+            let block = bf_to_block(&code, arg.optimize)?;
+
             let output_path = arg.out.unwrap_or_else(|| {
                 match arg.target {
                     TransTarget::C => "a.c",
@@ -105,14 +103,14 @@ fn main() -> anyhow::Result<()> {
 
             match arg.target {
                 TransTarget::C => {
-                    let c_code = transpile::bf_to_c(&code, arg.memory_len, arg.optimize)?;
+                    let c_code = transpile::block_to_c(&block, arg.memory_len);
                     output.write_all(c_code.as_bytes())?;
                 }
                 TransTarget::Wat => {
-                    transpile::bf_to_wat(&code, arg.optimize, &mut output)?;
+                    transpile::block_to_wat(&block, &mut output)?;
                 }
                 TransTarget::Wasm => {
-                    transpile::bf_to_wasm(&code, arg.optimize, &mut output)?;
+                    transpile::block_to_wasm(&block, &mut output)?;
                 }
             };
 

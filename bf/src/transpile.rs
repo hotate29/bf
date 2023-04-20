@@ -1,30 +1,17 @@
-pub use c::bf_to_c;
+pub use c::block_to_c;
 pub use wasm::Block;
-pub use wasm::{bf_to_wasm, bf_to_wat, to_wasm, to_wat};
+pub use wasm::{block_to_wasm, block_to_wat};
 
 pub mod wasm;
 
 pub mod c {
     use std::fmt::Write;
 
-    use crate::{
-        transpile::wasm::{BlockItem, Op},
-        Error,
-    };
+    use crate::transpile::wasm::{BlockItem, Op};
 
     use super::wasm::Block;
 
     const PTR_NAME: &str = "p";
-
-    pub fn bf_to_c(bf: &str, memory_len: usize, optimize: bool) -> Result<String, Error> {
-        let mut block = Block::from_bf(bf)?;
-
-        if optimize {
-            block = block.optimize(true);
-        }
-
-        Ok(block_to_c(&block, memory_len))
-    }
 
     pub fn block_to_c(block: &Block, memory_len: usize) -> String {
         fn inner(block: &Block, c_code: &mut String) {
