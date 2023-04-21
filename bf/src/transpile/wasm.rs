@@ -1,6 +1,5 @@
 use std::io;
 
-pub mod opt;
 pub mod wasm_binary;
 
 use wasm_binary::{
