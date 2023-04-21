@@ -9,6 +9,9 @@ pub use memory::{AutoExtendMemory, Memory};
 
 mod memory;
 
+// メモリセルのサイズを変えられるようにしたいわね
+const MOD: i32 = 256;
+
 type Result<T> = std::result::Result<T, Error>;
 
 #[derive(Debug)]
@@ -131,10 +134,6 @@ pub enum Error {
     NegativePointer(isize),
 }
 
-fn u32_mod256(value: u32) -> u8 {
-    (value % 256) as u8
-}
-
 pub struct InterPreter<R: Read, W: Write, M: Memory> {
     state: State<M>,
     input: R,
@@ -186,10 +185,12 @@ impl<R: Read, W: Write, M: Memory> InterPreter<R, W, M> {
                             }
                         }
                         Op::Add(value, to_offset) => {
-                            self.state.add(to_offset as isize, u32_mod256(value))?;
-                        }
-                        Op::Sub(value, to_offset) => {
-                            self.state.sub(to_offset as isize, u32_mod256(value))?;
+                            let x = value % MOD;
+                            if x.is_positive() {
+                                self.state.add(to_offset as isize, x.unsigned_abs() as u8)?;
+                            } else {
+                                self.state.sub(to_offset as isize, x.unsigned_abs() as u8)?;
+                            }
                         }
                         Op::Mul(to, x, offset) => {
                             let a = self.state.at_offset(offset as isize)? as i32;
@@ -198,7 +199,7 @@ impl<R: Read, W: Write, M: Memory> InterPreter<R, W, M> {
                             // eprintln!("{to}, {x}, {offset}, {a}");
 
                             let to = to as isize + offset as isize;
-                            let value = u32_mod256(a.unsigned_abs());
+                            let value = (a % MOD).unsigned_abs() as u8;
 
                             if a < 0 {
                                 self.state.sub(to, value)?;
@@ -211,8 +212,7 @@ impl<R: Read, W: Write, M: Memory> InterPreter<R, W, M> {
                             self.state.input(offset as isize, &mut self.input)?;
                         }
                         Op::Set(value, offset) => {
-                            *self.state.at_offset_mut(offset as isize)? =
-                                u32_mod256(value.try_into().unwrap());
+                            *self.state.at_offset_mut(offset as isize)? = (value % MOD) as u8;
                         }
                     };
                     self.now += 1

@@ -6,8 +6,7 @@ use crate::transpile::wasm::wasm_binary::var::Var;
 // WebAssemblyのメモリ操作命令に付いているoffsetを使いたいので、offsetは正の整数のみ受け入れるようにしている。
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Op<T = u32> {
-    Add(u32, T),
-    Sub(u32, T),
+    Add(i32, T),
     MovePtr(i32),
     /// Mul(to, x, offset)
     ///
@@ -20,6 +19,9 @@ pub enum Op<T = u32> {
 impl<T> Op<T> {
     pub fn ptr(of: i32) -> Self {
         Op::MovePtr(of)
+    }
+    pub fn is_nop(&self) -> bool {
+        matches!(self, Op::Add(0, _) | Op::Mul(_, 0, _))
     }
 }
 
@@ -43,7 +45,7 @@ impl From<&[Ast]> for Block {
                     Ast::PtrInc => Some(BlockItem::Op(Op::ptr(1))),
                     Ast::PtrDec => Some(BlockItem::Op(Op::ptr(-1))),
                     Ast::Inc => Some(BlockItem::Op(Op::Add(1, 0))),
-                    Ast::Dec => Some(BlockItem::Op(Op::Sub(1, 0))),
+                    Ast::Dec => Some(BlockItem::Op(Op::Add(-1, 0))),
                     Ast::Read => Some(BlockItem::Op(Op::Input(0))),
                     Ast::Write => Some(BlockItem::Op(Op::Out(0))),
                     Ast::Loop(loop_items) => Some(BlockItem::Loop(loop_items.as_slice().into())),
@@ -80,29 +82,12 @@ impl Block {
                                 local_index: Var(0),
                             },
                             WOp::I32Load8U(MemoryImmediate::i8(*offset)),
-                            WOp::I32Const(Var(*value as i32)),
+                            WOp::I32Const(Var(*value)),
                             WOp::I32Add,
                             WOp::I32Store8(MemoryImmediate::i8(*offset)),
                         ];
 
                         ops.extend(add_ops);
-                    }
-                    Op::Sub(value, offset) => {
-                        // Addと大体おなじ
-                        let sub_ops = [
-                            WOp::GetLocal {
-                                local_index: Var(0),
-                            },
-                            WOp::GetLocal {
-                                local_index: Var(0),
-                            },
-                            WOp::I32Load8U(MemoryImmediate::i8(*offset)),
-                            WOp::I32Const(Var(*value as i32)),
-                            WOp::I32Sub,
-                            WOp::I32Store8(MemoryImmediate::i8(*offset)),
-                        ];
-
-                        ops.extend(sub_ops);
                     }
                     Op::MovePtr(offset) => {
                         let ptr_add_ops = [
