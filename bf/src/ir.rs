@@ -24,6 +24,105 @@ impl<T> Op<T> {
         matches!(self, Op::Add(0, _) | Op::Mul(_, 0, _))
     }
 }
+impl Op<u32> {
+    fn to_wasm_ops(self, ops: &mut Vec<WOp>) {
+        match self {
+            Op::Add(value, offset) => {
+                let add_ops = [
+                    WOp::GetLocal {
+                        local_index: Var(0),
+                    },
+                    WOp::GetLocal {
+                        local_index: Var(0),
+                    },
+                    WOp::I32Load8U(MemoryImmediate::i8(offset)),
+                    WOp::I32Const(Var(value)),
+                    WOp::I32Add,
+                    WOp::I32Store8(MemoryImmediate::i8(offset)),
+                ];
+
+                ops.extend(add_ops);
+            }
+            Op::MovePtr(offset) => {
+                let ptr_add_ops = [
+                    WOp::GetLocal {
+                        local_index: Var(0),
+                    },
+                    WOp::I32Const(Var(offset)),
+                    WOp::I32Add,
+                    WOp::SetLocal {
+                        local_index: Var(0),
+                    },
+                ];
+
+                ops.extend(ptr_add_ops);
+            }
+            Op::Mul(x, y, offset) => {
+                let mul_ops = [
+                    WOp::GetLocal {
+                        local_index: Var(0),
+                    },
+                    WOp::I32Const(Var(x)),
+                    WOp::I32Add,
+                    WOp::TeeLocal {
+                        local_index: Var(1),
+                    },
+                    WOp::GetLocal {
+                        local_index: Var(1),
+                    },
+                    WOp::I32Load8U(MemoryImmediate::i8(offset)),
+                    WOp::GetLocal {
+                        local_index: Var(0),
+                    },
+                    WOp::I32Load8U(MemoryImmediate::i8(offset)),
+                    WOp::I32Const(Var(y)),
+                    WOp::I32Mul,
+                    WOp::I32Add,
+                    WOp::I32Store8(MemoryImmediate::i8(offset)),
+                ];
+
+                ops.extend(mul_ops);
+            }
+            Op::Set(value, offset) => {
+                let clear_ops = [
+                    WOp::GetLocal {
+                        local_index: Var(0),
+                    },
+                    WOp::I32Const(Var(value)),
+                    WOp::I32Store8(MemoryImmediate::i8(offset)),
+                ];
+
+                ops.extend(clear_ops);
+            }
+            Op::Out(offset) => {
+                let out_ops = [
+                    WOp::GetLocal {
+                        local_index: Var(0),
+                    },
+                    WOp::I32Load8U(MemoryImmediate::i8(offset)),
+                    WOp::Call {
+                        function_index: Var(2),
+                    },
+                ];
+
+                ops.extend(out_ops);
+            }
+            Op::Input(offset) => {
+                let input_ops = [
+                    WOp::GetLocal {
+                        local_index: Var(0),
+                    },
+                    WOp::Call {
+                        function_index: Var(3),
+                    },
+                    WOp::I32Store8(MemoryImmediate::i8(offset)),
+                ];
+
+                ops.extend(input_ops)
+            }
+        }
+    }
+}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum BlockItem {
@@ -72,101 +171,9 @@ impl Block {
     pub(crate) fn to_wasm_ops(&self, ops: &mut Vec<WOp>) {
         for item in &self.items {
             match item {
-                BlockItem::Op(op) => match op {
-                    Op::Add(value, offset) => {
-                        let add_ops = [
-                            WOp::GetLocal {
-                                local_index: Var(0),
-                            },
-                            WOp::GetLocal {
-                                local_index: Var(0),
-                            },
-                            WOp::I32Load8U(MemoryImmediate::i8(*offset)),
-                            WOp::I32Const(Var(*value)),
-                            WOp::I32Add,
-                            WOp::I32Store8(MemoryImmediate::i8(*offset)),
-                        ];
-
-                        ops.extend(add_ops);
-                    }
-                    Op::MovePtr(offset) => {
-                        let ptr_add_ops = [
-                            WOp::GetLocal {
-                                local_index: Var(0),
-                            },
-                            WOp::I32Const(Var(*offset)),
-                            WOp::I32Add,
-                            WOp::SetLocal {
-                                local_index: Var(0),
-                            },
-                        ];
-
-                        ops.extend(ptr_add_ops);
-                    }
-                    Op::Mul(x, y, offset) => {
-                        let mul_ops = [
-                            WOp::GetLocal {
-                                local_index: Var(0),
-                            },
-                            WOp::I32Const(Var(*x)),
-                            WOp::I32Add,
-                            WOp::TeeLocal {
-                                local_index: Var(1),
-                            },
-                            WOp::GetLocal {
-                                local_index: Var(1),
-                            },
-                            WOp::I32Load8U(MemoryImmediate::i8(*offset)),
-                            WOp::GetLocal {
-                                local_index: Var(0),
-                            },
-                            WOp::I32Load8U(MemoryImmediate::i8(*offset)),
-                            WOp::I32Const(Var(*y)),
-                            WOp::I32Mul,
-                            WOp::I32Add,
-                            WOp::I32Store8(MemoryImmediate::i8(*offset)),
-                        ];
-
-                        ops.extend(mul_ops);
-                    }
-                    Op::Set(value, offset) => {
-                        let clear_ops = [
-                            WOp::GetLocal {
-                                local_index: Var(0),
-                            },
-                            WOp::I32Const(Var(*value)),
-                            WOp::I32Store8(MemoryImmediate::i8(*offset)),
-                        ];
-
-                        ops.extend(clear_ops);
-                    }
-                    Op::Out(offset) => {
-                        let out_ops = [
-                            WOp::GetLocal {
-                                local_index: Var(0),
-                            },
-                            WOp::I32Load8U(MemoryImmediate::i8(*offset)),
-                            WOp::Call {
-                                function_index: Var(2),
-                            },
-                        ];
-
-                        ops.extend(out_ops);
-                    }
-                    Op::Input(offset) => {
-                        let input_ops = [
-                            WOp::GetLocal {
-                                local_index: Var(0),
-                            },
-                            WOp::Call {
-                                function_index: Var(3),
-                            },
-                            WOp::I32Store8(MemoryImmediate::i8(*offset)),
-                        ];
-
-                        ops.extend(input_ops)
-                    }
-                },
+                BlockItem::Op(op) => {
+                    op.to_wasm_ops(ops);
+                }
                 BlockItem::Loop(loop_block) => {
                     let loop_ops = [
                         WOp::Loop {
