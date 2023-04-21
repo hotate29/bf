@@ -9,13 +9,11 @@ impl Add for Op<u32> {
         match (self, rhs) {
             (Op::Add(n, o), Op::Add(m, f)) if o == f => Some(Op::Add(n + m, o)),
             (Op::Sub(n, o), Op::Sub(m, f)) if o == f => Some(Op::Sub(n + m, o)),
-            (Op::PtrAdd(n), Op::PtrAdd(m)) => Some(Op::PtrAdd(n + m)),
-            (Op::PtrSub(n), Op::PtrSub(m)) => Some(Op::PtrSub(n + m)),
+            (Op::MovePtr(n), Op::MovePtr(m)) => Some(Op::ptr(n + m)),
             (Op::Add(_, o) | Op::Sub(_, o), Op::Set(_, f)) if o == f => Some(rhs),
             (Op::Set(0, o), Op::Mul(_, _, f)) if o == f => Some(Op::Set(0, o)),
             (Op::Set(_, o), Op::Set(_, f)) if o == f => Some(rhs),
             (Op::Sub(_, _), Op::Add(_, _)) => rhs + self,
-            (Op::PtrSub(_), Op::PtrAdd(_)) => rhs + self,
             (Op::Set(x, o), Op::Add(y, f)) if o == f => Some(Op::Set(x + y as i32, o)),
             (Op::Set(x, o), Op::Sub(y, f)) if o == f => Some(Op::Set(x - y as i32, o)),
             (Op::Add(x, o), Op::Sub(y, f)) if o == f => {
@@ -27,18 +25,8 @@ impl Add for Op<u32> {
                     Some(Op::Sub(-z as u32, o))
                 }
             }
-            (Op::PtrAdd(x), Op::PtrSub(y)) => {
-                let z = x as i32 - y as i32;
-
-                if z.is_positive() {
-                    Some(Op::PtrAdd(z as u32))
-                } else {
-                    Some(Op::PtrSub(-z as u32))
-                }
-            }
             // 0を足し引きするのは無駄なので、適当な機会に消滅してほしい。
             (op, Op::Add(0, _) | Op::Sub(0, _)) => Some(op),
-            (op, Op::PtrAdd(0) | Op::PtrSub(0)) => Some(op),
             (op, Op::Mul(_, 0, _)) => Some(op),
             (_, _) => None,
         }
@@ -149,8 +137,7 @@ pub(crate) fn mul(block: &mut Block) {
                             .or_insert(OpType::Mul(-(*v as i32)));
                     }
 
-                    Op::PtrAdd(of) => ptr_offset += *of as i32,
-                    Op::PtrSub(of) => ptr_offset -= *of as i32,
+                    Op::MovePtr(of) => ptr_offset += *of,
                     Op::Set(v, offset) => {
                         offset_op.insert(ptr_offset + *offset as i32, OpType::Set(*v));
                     }
@@ -229,8 +216,7 @@ pub(crate) fn offset_opt(block: &Block) -> Block {
                 BlockItem::Op(op) => match op {
                     Op::Add(value, of) => offset_ops.push(Op::Add(*value, offset + *of as i32)),
                     Op::Sub(value, of) => offset_ops.push(Op::Sub(*value, offset + *of as i32)),
-                    Op::PtrAdd(x) => offset += *x as i32,
-                    Op::PtrSub(x) => offset -= *x as i32,
+                    Op::MovePtr(x) => offset += *x,
                     Op::Mul(x, y, of) => offset_ops.push(Op::Mul(*x, *y, offset + *of as i32)),
                     Op::Set(value, of) => offset_ops.push(Op::Set(*value, offset + *of as i32)),
                     Op::Out(of) => offset_ops.push(Op::Out(offset + *of as i32)),
@@ -250,7 +236,7 @@ pub(crate) fn offset_opt(block: &Block) -> Block {
                 | Op::Input(offset)
                 | Op::Set(_, offset)
                 | Op::Mul(_, _, offset) => Some(*offset),
-                Op::PtrAdd(_) | Op::PtrSub(_) => unreachable!(),
+                Op::MovePtr(_) => unreachable!(),
             })
             .min();
 
@@ -267,8 +253,7 @@ pub(crate) fn offset_opt(block: &Block) -> Block {
                     .map(|op| match op {
                         Op::Add(value, offset) => Op::Add(value, (offset - min_offset) as u32),
                         Op::Sub(value, offset) => Op::Sub(value, (offset - min_offset) as u32),
-                        Op::PtrAdd(_) => todo!(),
-                        Op::PtrSub(_) => todo!(),
+                        Op::MovePtr(_) => todo!(),
                         Op::Mul(x, y, offset) => Op::Mul(x, y, (offset - min_offset) as u32),
                         Op::Set(value, offset) => Op::Set(value, (offset - min_offset) as u32),
                         Op::Out(offset) => Op::Out((offset - min_offset) as u32),

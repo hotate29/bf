@@ -178,8 +178,13 @@ impl<R: Read, W: Write, M: Memory> InterPreter<R, W, M> {
             match *ins {
                 FlatInstruction::Instruction(instruction) => {
                     match instruction {
-                        Op::PtrAdd(n) => self.state.pointer_add(n as usize),
-                        Op::PtrSub(n) => self.state.pointer_sub(n as usize)?,
+                        Op::MovePtr(offset) => {
+                            if offset < 0 {
+                                self.state.pointer_sub(offset.unsigned_abs() as usize)?;
+                            } else {
+                                self.state.pointer_add(offset as usize);
+                            }
+                        }
                         Op::Add(value, to_offset) => {
                             self.state.add(to_offset as isize, u32_mod256(value))?;
                         }

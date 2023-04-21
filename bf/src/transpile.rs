@@ -31,8 +31,7 @@ pub mod c {
                         Op::Sub(x, offset) => {
                             write!(c_code, "*({PTR_NAME}+{offset})-={x};").unwrap()
                         }
-                        Op::PtrAdd(x) => write!(c_code, "{PTR_NAME}+={x};").unwrap(),
-                        Op::PtrSub(x) => write!(c_code, "{PTR_NAME}-={x};").unwrap(),
+                        Op::MovePtr(x) => write!(c_code, "{PTR_NAME}+={x};").unwrap(),
                         Op::Mul(to, x, offset) => write!(
                             c_code,
                             "*({PTR_NAME}+{offset}+{to})+=*({PTR_NAME}+{offset})*{x};",

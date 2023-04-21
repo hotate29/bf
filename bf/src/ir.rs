@@ -8,8 +8,7 @@ use crate::transpile::wasm::wasm_binary::var::Var;
 pub enum Op<T = u32> {
     Add(u32, T),
     Sub(u32, T),
-    PtrAdd(u32),
-    PtrSub(u32),
+    MovePtr(i32),
     /// Mul(to, x, offset)
     ///
     /// [ptr + to + off] += [ptr + off]*x
@@ -20,11 +19,7 @@ pub enum Op<T = u32> {
 }
 impl<T> Op<T> {
     pub fn ptr(of: i32) -> Self {
-        if of < 0 {
-            Op::PtrSub(-of as u32)
-        } else {
-            Op::PtrAdd(of as u32)
-        }
+        Op::MovePtr(of)
     }
 }
 
@@ -45,8 +40,8 @@ impl From<&[Ast]> for Block {
         Block::from_items(
             ast.iter()
                 .filter_map(|item| match item {
-                    Ast::PtrInc => Some(BlockItem::Op(Op::PtrAdd(1))),
-                    Ast::PtrDec => Some(BlockItem::Op(Op::PtrSub(1))),
+                    Ast::PtrInc => Some(BlockItem::Op(Op::ptr(1))),
+                    Ast::PtrDec => Some(BlockItem::Op(Op::ptr(-1))),
                     Ast::Inc => Some(BlockItem::Op(Op::Add(1, 0))),
                     Ast::Dec => Some(BlockItem::Op(Op::Sub(1, 0))),
                     Ast::Read => Some(BlockItem::Op(Op::Input(0))),
@@ -109,12 +104,12 @@ impl Block {
 
                         ops.extend(sub_ops);
                     }
-                    Op::PtrAdd(value) => {
+                    Op::MovePtr(offset) => {
                         let ptr_add_ops = [
                             WOp::GetLocal {
                                 local_index: Var(0),
                             },
-                            WOp::I32Const(Var(*value as i32)),
+                            WOp::I32Const(Var(*offset)),
                             WOp::I32Add,
                             WOp::SetLocal {
                                 local_index: Var(0),
@@ -122,20 +117,6 @@ impl Block {
                         ];
 
                         ops.extend(ptr_add_ops);
-                    }
-                    Op::PtrSub(value) => {
-                        let ptr_sub_ops = [
-                            WOp::GetLocal {
-                                local_index: Var(0),
-                            },
-                            WOp::I32Const(Var(*value as i32)),
-                            WOp::I32Sub,
-                            WOp::SetLocal {
-                                local_index: Var(0),
-                            },
-                        ];
-
-                        ops.extend(ptr_sub_ops);
                     }
                     Op::Mul(x, y, offset) => {
                         let mul_ops = [
