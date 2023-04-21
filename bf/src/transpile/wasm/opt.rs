@@ -1,6 +1,6 @@
 use std::{collections::BTreeMap, ops::Add};
 
-use super::{Block, BlockItem, Op};
+use crate::ir::{Block, BlockItem, Op};
 
 impl Add for Op<u32> {
     type Output = Option<Self>;

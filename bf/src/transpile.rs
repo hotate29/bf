@@ -1,5 +1,4 @@
 pub use c::block_to_c;
-pub use wasm::Block;
 pub use wasm::{block_to_wasm, block_to_wat};
 
 pub mod wasm;
@@ -7,9 +6,7 @@ pub mod wasm;
 pub mod c {
     use std::fmt::Write;
 
-    use crate::transpile::wasm::{BlockItem, Op};
-
-    use super::wasm::Block;
+    use crate::ir::{Block, BlockItem, Op};
 
     const PTR_NAME: &str = "p";
 

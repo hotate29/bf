@@ -1,4 +1,4 @@
-use crate::transpile::wasm::{Block, BlockItem, Op};
+use crate::ir::{Block, BlockItem, Op};
 
 use std::io::{self, Read, Write};
 
@@ -298,7 +298,7 @@ pub struct InterPreterIter<'a, R: Read, W: Write, M: Memory>(&'a mut InterPreter
 mod test {
     use std::io;
 
-    use crate::{interpreter::AutoExtendMemory, opt, parse::parse, transpile::wasm::Block};
+    use crate::{interpreter::AutoExtendMemory, ir::Block, opt, parse::parse};
 
     use super::*;
 

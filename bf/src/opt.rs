@@ -1,6 +1,6 @@
-use crate::transpile::{
-    wasm::{opt, BlockItem, Op},
-    Block,
+use crate::{
+    ir::{Block, BlockItem, Op},
+    transpile::wasm::opt,
 };
 
 pub fn optimize(mut block: Block, is_top_level: bool) -> Block {

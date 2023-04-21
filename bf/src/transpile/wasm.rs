@@ -11,7 +11,7 @@ use wasm_binary::{
     Function, Import, Memory, ModuleBuilder,
 };
 
-pub use crate::ir::*;
+use crate::ir::Block;
 
 pub fn block_to_wat(block: &Block, mut out: impl io::Write) -> io::Result<()> {
     // Base Wasmer
