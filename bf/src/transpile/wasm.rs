@@ -209,17 +209,3 @@ pub fn block_to_wasm(block: &Block, mut buffer: impl io::Write) -> io::Result<()
     let module = module_builder.into_module();
     module.write(&mut buffer)
 }
-
-#[cfg(target_arch = "wasm32")]
-pub mod w {
-    use super::*;
-    use wasm_bindgen::prelude::*;
-
-    #[wasm_bindgen]
-    pub fn bf_to_wasm(bf: &str) -> Result<Vec<u8>, String> {
-        let mut buffer = Vec::new();
-
-        super::bf_to_wasm(bf, true, &mut buffer).map_err(|e| e.to_string())?;
-        Ok(buffer)
-    }
-}

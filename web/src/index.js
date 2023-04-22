@@ -32,7 +32,7 @@ async function run() {
     const start_transpile = performance.now();
 
     let wasm;
-    try { wasm = bf_to_wasm(bf); } catch (e) {
+    try { wasm = bf_to_wasm(bf, true); } catch (e) {
         alert(e);
         return
     }
