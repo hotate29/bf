@@ -53,14 +53,16 @@ impl<M: Memory> State<M> {
     }
     #[inline]
     fn pointer_sub(&mut self, value: usize) -> Result<()> {
-        if self.pointer < value {
-            Err(Error::NegativePointer(
+        let ptr = self
+            .pointer
+            .checked_sub(value)
+            .ok_or(Error::NegativePointer(
                 self.pointer as isize - value as isize,
-            ))
-        } else {
-            self.pointer -= value;
-            Ok(())
-        }
+            ))?;
+
+        self.pointer = ptr;
+
+        Ok(())
     }
     #[inline]
     fn output(&mut self, offset: isize, writer: &mut impl Write) -> Result<()> {
