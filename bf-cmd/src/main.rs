@@ -30,6 +30,8 @@ struct RunArg {
     optimize: bool,
     #[clap(long, default_value_t = NonZeroUsize::try_from(30000).unwrap())]
     initial_memory_len: NonZeroUsize,
+    #[clap(short, long, default_value_t = false)]
+    verbose: bool,
 }
 
 #[derive(Debug, clap::Parser)]
@@ -43,6 +45,8 @@ struct TransArg {
     out: Option<PathBuf>,
     #[clap(short, long, default_value_t = 30000)]
     memory_len: usize,
+    #[clap(short, long, default_value_t = false)]
+    verbose: bool,
 }
 
 #[derive(Debug, Clone, Copy, ArgEnum)]
@@ -74,6 +78,9 @@ fn main() -> anyhow::Result<()> {
             let code = fs::read_to_string(arg.file)?;
 
             let block = bf_to_block(&code, arg.optimize)?;
+            if arg.verbose {
+                info!("block: {:#?}", block);
+            }
 
             let mut interpreter = InterPreter::builder()
                 .input(io::stdin())
@@ -89,6 +96,9 @@ fn main() -> anyhow::Result<()> {
             let code = fs::read_to_string(arg.file)?;
 
             let block = bf_to_block(&code, arg.optimize)?;
+            if arg.verbose {
+                info!("block: {:#?}", block);
+            }
 
             let output_path = arg.out.unwrap_or_else(|| {
                 match arg.target {
