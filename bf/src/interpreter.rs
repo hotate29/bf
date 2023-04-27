@@ -315,7 +315,7 @@ mod test {
     }
     fn block_opt(source: &str) -> Block {
         let block = block(source);
-        opt::optimize(block, true)
+        opt::optimize(&block, true)
     }
 
     #[test]

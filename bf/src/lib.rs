@@ -24,7 +24,7 @@ pub fn bf_to_wasm(bf: &str, optimize: bool) -> Result<Vec<u8>, String> {
 
     let mut block = bf_to_block(bf, optimize).map_err(|e| e.to_string())?;
     if optimize {
-        block = opt::optimize(block, true);
+        block = opt::optimize(&block, true);
     }
 
     block_to_wasm(&block, &mut buffer).map_err(|e| e.to_string())?;

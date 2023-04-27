@@ -2,17 +2,13 @@ use std::{collections::BTreeMap, ops::Add};
 
 use crate::ir::{Block, BlockItem, Op};
 
-pub fn optimize(mut block: Block, is_top_level: bool) -> Block {
-    if is_top_level {
-        block.items.insert(0, BlockItem::Op(Op::Set(0, 0)));
-    }
-
-    let mut block = merge(&block);
+pub fn optimize(block: &Block, is_top_level: bool) -> Block {
+    let mut block = merge(block, is_top_level);
 
     unwrap(&mut block);
     clear(&mut block);
     mul(&mut block);
-    let mut block = merge(&block);
+    let mut block = merge(&block, is_top_level);
     if_opt(&mut block);
     offset_opt(&block)
 }
@@ -34,13 +30,17 @@ impl Add for Op<u32> {
     }
 }
 
-pub(crate) fn merge(block: &Block) -> Block {
+pub(crate) fn merge(block: &Block, is_top_level: bool) -> Block {
     let mut merged_block = Block::new();
+
+    if is_top_level {
+        merged_block.items.push(BlockItem::Op(Op::Set(0, 0)));
+    }
 
     for item in &block.items {
         let item = match item {
-            BlockItem::Loop(loop_block) => BlockItem::Loop(merge(loop_block)),
-            BlockItem::If(if_block) => BlockItem::If(merge(if_block)),
+            BlockItem::Loop(loop_block) => BlockItem::Loop(merge(loop_block, false)),
+            BlockItem::If(if_block) => BlockItem::If(merge(if_block, false)),
             BlockItem::Op(op) => BlockItem::Op(*op),
         };
         merged_block.push_item(item);
