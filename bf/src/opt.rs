@@ -66,7 +66,9 @@ pub(crate) fn merge(block: &Block) -> Block {
 pub(crate) fn clear(block: &mut Block) {
     for item in &mut block.items {
         if let BlockItem::Loop(block) = item {
-            if let [BlockItem::Op(Op::Add(1, 0))] = block.items.as_slice() {
+            if let [BlockItem::Op(Op::Add(1, 0)) | BlockItem::Op(Op::Add(-1, 0))] =
+                block.items.as_slice()
+            {
                 *item = BlockItem::Op(Op::Set(0, 0));
             } else {
                 clear(block);
