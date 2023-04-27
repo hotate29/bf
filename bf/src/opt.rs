@@ -38,19 +38,18 @@ pub(crate) fn merge(block: &Block) -> Block {
     let mut merged_block = Block::new();
 
     for item in &block.items {
-        match item {
-            BlockItem::Loop(loop_block) => {
-                merged_block.push_item(BlockItem::Loop(merge(loop_block)))
-            }
-            BlockItem::If(if_block) => merged_block.push_item(BlockItem::If(merge(if_block))),
-            // BlockItem::Opのコピーは軽いのでおｋ
-            item => merged_block.push_item(item.clone()),
+        let item = match item {
+            BlockItem::Loop(loop_block) => BlockItem::Loop(merge(loop_block)),
+            BlockItem::If(if_block) => BlockItem::If(merge(if_block)),
+            BlockItem::Op(op) => BlockItem::Op(*op),
         };
-        while merged_block.items.len() >= 2 {
-            let last2 = merged_block.items.iter().nth_back(1).unwrap();
-            let last = merged_block.items.last().unwrap();
+        merged_block.push_item(item);
 
-            match (last2, last) {
+        while merged_block.items.len() >= 2 {
+            let lhs = merged_block.items.iter().nth_back(1).unwrap();
+            let rhs = merged_block.items.last().unwrap();
+
+            match (lhs, rhs) {
                 (BlockItem::Op(lhs), BlockItem::Op(rhs)) if (*lhs + *rhs).is_some() => {
                     let op = (*lhs + *rhs).unwrap();
                     merged_block.items.pop().unwrap();
