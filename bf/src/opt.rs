@@ -80,14 +80,9 @@ pub(crate) fn clear(block: &mut Block) {
 pub(crate) fn unwrap(block: &mut Block) {
     fn inner(item: &mut BlockItem) -> bool {
         if let BlockItem::Loop(loop_block) = item {
-            if loop_block.items.len() == 1 {
-                match loop_block.items.pop().unwrap() {
-                    BlockItem::Loop(deep_loop_block) => {
-                        *loop_block = deep_loop_block;
-                        return true;
-                    }
-                    item => loop_block.push_item(item),
-                }
+            if let [BlockItem::Loop(deep_loop_block)] = loop_block.items.as_slice() {
+                *loop_block = deep_loop_block.clone();
+                return true;
             }
         }
         false
@@ -320,4 +315,24 @@ pub fn if_opt(block: &mut Block) {
         }
     }
     block.items.iter_mut().for_each(inner);
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::utils::bf_to_block;
+
+    use super::*;
+
+    #[test]
+    fn test_unwrap() {
+        let mut block = bf_to_block("[[[[[-]]]]]", false).unwrap();
+        unwrap(&mut block);
+
+        assert_eq!(block, bf_to_block("[-]", false).unwrap());
+
+        let mut block = bf_to_block("[[[+][[[-]]]]]", false).unwrap();
+        unwrap(&mut block);
+
+        assert_eq!(block, bf_to_block("[[+][-]]", false).unwrap());
+    }
 }
