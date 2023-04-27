@@ -5,6 +5,7 @@ use std::{
     path::PathBuf,
 };
 
+use anyhow::Context;
 use bf::{interpreter::AutoExtendMemory, transpile, utils::bf_to_block, InterPreter};
 use clap::{ArgEnum, StructOpt};
 use log::{info, Level};
@@ -30,7 +31,7 @@ struct RunArg {
     optimize: bool,
     #[clap(long, default_value_t = NonZeroUsize::try_from(30000).unwrap())]
     initial_memory_len: NonZeroUsize,
-    #[clap(short, long, default_value_t = false)]
+    #[clap(short, long)]
     verbose: bool,
 }
 
@@ -38,14 +39,14 @@ struct RunArg {
 struct TransArg {
     #[clap(value_parser)]
     file: PathBuf,
-    #[clap(arg_enum, default_value_t = TransTarget::Wasm)]
-    target: TransTarget,
+    #[clap(long, short, arg_enum)]
+    target: Option<TransTarget>,
     #[clap(short, long)]
     optimize: bool,
-    out: Option<PathBuf>,
+    out: PathBuf,
     #[clap(short, long, default_value_t = 30000)]
     memory_len: usize,
-    #[clap(short, long, default_value_t = false)]
+    #[clap(short, long)]
     verbose: bool,
 }
 
@@ -93,25 +94,31 @@ fn main() -> anyhow::Result<()> {
             info!("step: {step_count}");
         }
         SubCommand::Trans(arg) => {
-            let code = fs::read_to_string(arg.file)?;
+            let code = fs::read_to_string(&arg.file)?;
 
             let block = bf_to_block(&code, arg.optimize)?;
             if arg.verbose {
                 info!("block: {:#?}", block);
             }
 
-            let output_path = arg.out.unwrap_or_else(|| {
-                match arg.target {
-                    TransTarget::C => "a.c",
-                    TransTarget::Wat => "a.wat",
-                    TransTarget::Wasm => "a.wasm",
-                }
-                .into()
-            });
+            let target = arg
+                .out
+                .extension()
+                .and_then(|ext| ext.to_str())
+                .and_then(|ext| match ext {
+                    "c" => Some(TransTarget::C),
+                    "wasm" => Some(TransTarget::Wasm),
+                    "wat" => Some(TransTarget::Wat),
+                    _ => None,
+                })
+                .or(arg.target)
+                .context(
+                    "出力形式が不明: --target(-t) 引数か, 出力パスの拡張子で出力形式(wasm, wat, c)を指定する",
+                )?;
 
-            let mut output = File::create(&output_path)?;
+            let mut output = File::create(&arg.out)?;
 
-            match arg.target {
+            match target {
                 TransTarget::C => {
                     let c_code = transpile::block_to_c(&block, arg.memory_len);
                     output.write_all(c_code.as_bytes())?;
@@ -124,7 +131,7 @@ fn main() -> anyhow::Result<()> {
                 }
             };
 
-            info!("Done {:?}", output_path);
+            info!("Done {:?}", arg.out);
         }
     }
     Ok(())
