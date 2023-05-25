@@ -23,6 +23,16 @@ impl<T> Op<T> {
     pub fn is_nop(&self) -> bool {
         matches!(self, Op::Add(0, _) | Op::Mul(_, 0, _))
     }
+    pub fn map_offset<U>(self, func: impl FnOnce(T) -> U) -> Option<Op<U>> {
+        match self {
+            Op::Add(x, offset) => Some(Op::Add(x, func(offset))),
+            Op::Mul(to, x, offset) => Some(Op::Mul(to, x, func(offset))),
+            Op::Set(x, offset) => Some(Op::Set(x, func(offset))),
+            Op::Out(offset) => Some(Op::Out(func(offset))),
+            Op::Input(offset) => Some(Op::Input(func(offset))),
+            _ => None,
+        }
+    }
 }
 impl Op<u32> {
     fn to_wasm_ops(self, ops: &mut Vec<WOp>) {
