@@ -13,7 +13,7 @@ pub fn optimize(block: &Block, is_top_level: bool) -> Block {
     offset_opt(&block)
 }
 
-impl Add for Op<u32> {
+impl Add for Op {
     type Output = Option<Self>;
 
     fn add(self, rhs: Self) -> Self::Output {
@@ -123,13 +123,13 @@ pub(crate) fn mul(block: &mut Block) {
                 BlockItem::Op(op) => match op {
                     Op::Add(v, of) => {
                         offset_op
-                            .entry(ptr_offset + *of as i32)
+                            .entry(ptr_offset + *of)
                             .and_modify(|x| x.mul(*v))
                             .or_insert(OpType::Mul(*v));
                     }
                     Op::MovePtr(of) => ptr_offset += *of,
                     Op::Set(v, offset) => {
-                        offset_op.insert(ptr_offset + *offset as i32, OpType::Set(*v));
+                        offset_op.insert(ptr_offset + *offset, OpType::Set(*v));
                     }
                     Op::Mul(_, _, _) | Op::Out(_) | Op::Input(_) => {
                         unreachable!()
@@ -140,7 +140,7 @@ pub(crate) fn mul(block: &mut Block) {
 
         let clear_minus = offset_op.get(&0) == Some(&OpType::Mul(-1));
 
-        // bool.then_some()にできる
+        // TODO: bool.then_some()にする
         if ptr_offset == 0 && clear_minus {
             Some(offset_op)
         } else {
@@ -204,12 +204,12 @@ pub(crate) fn offset_opt(block: &Block) -> Block {
         for item in item_slice {
             match item {
                 BlockItem::Op(op) => match op {
-                    Op::Add(value, of) => offset_ops.push(Op::Add(*value, offset + *of as i32)),
+                    Op::Add(value, of) => offset_ops.push(Op::Add(*value, offset + *of)),
                     Op::MovePtr(x) => offset += *x,
-                    Op::Mul(x, y, of) => offset_ops.push(Op::Mul(*x, *y, offset + *of as i32)),
-                    Op::Set(value, of) => offset_ops.push(Op::Set(*value, offset + *of as i32)),
-                    Op::Out(of) => offset_ops.push(Op::Out(offset + *of as i32)),
-                    Op::Input(of) => offset_ops.push(Op::Input(offset + *of as i32)),
+                    Op::Mul(x, y, of) => offset_ops.push(Op::Mul(*x, *y, offset + *of)),
+                    Op::Set(value, of) => offset_ops.push(Op::Set(*value, offset + *of)),
+                    Op::Out(of) => offset_ops.push(Op::Out(offset + *of)),
+                    Op::Input(of) => offset_ops.push(Op::Input(offset + *of)),
                 },
                 BlockItem::Loop(_) | BlockItem::If(_) => unreachable!(),
             }
@@ -239,12 +239,12 @@ pub(crate) fn offset_opt(block: &Block) -> Block {
                 offset_ops
                     .into_iter()
                     .map(|op| match op {
-                        Op::Add(value, offset) => Op::Add(value, (offset - min_offset) as u32),
+                        Op::Add(value, offset) => Op::Add(value, offset - min_offset),
                         Op::MovePtr(_) => todo!(),
-                        Op::Mul(x, y, offset) => Op::Mul(x, y, (offset - min_offset) as u32),
-                        Op::Set(value, offset) => Op::Set(value, (offset - min_offset) as u32),
-                        Op::Out(offset) => Op::Out((offset - min_offset) as u32),
-                        Op::Input(offset) => Op::Input((offset - min_offset) as u32),
+                        Op::Mul(x, y, offset) => Op::Mul(x, y, offset - min_offset),
+                        Op::Set(value, offset) => Op::Set(value, offset - min_offset),
+                        Op::Out(offset) => Op::Out(offset - min_offset),
+                        Op::Input(offset) => Op::Input(offset - min_offset),
                     })
                     .map(BlockItem::Op),
             );

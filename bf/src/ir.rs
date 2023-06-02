@@ -4,26 +4,27 @@ use crate::transpile::wasm::wasm_binary::type_::Type;
 use crate::transpile::wasm::wasm_binary::var::Var;
 
 // WebAssemblyのメモリ操作命令に付いているoffsetを使いたいので、offsetは正の整数のみ受け入れるようにしている。
+// offsetは負の値もとる事ができる。WebAssemblyメモリ操作命令は正のoffsetしか受け付けないので、出力時によしなにする。
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Op<T = u32> {
-    Add(i32, T),
+pub enum Op {
+    Add(i32, i32),
     MovePtr(i32),
     /// Mul(to, x, offset)
     ///
     /// [ptr + to + off] += [ptr + off]*x
-    Mul(i32, i32, T),
-    Set(i32, T),
-    Out(T),
-    Input(T),
+    Mul(i32, i32, i32),
+    Set(i32, i32),
+    Out(i32),
+    Input(i32),
 }
-impl<T> Op<T> {
+impl Op {
     pub fn ptr(of: i32) -> Self {
         Op::MovePtr(of)
     }
     pub fn is_nop(&self) -> bool {
         matches!(self, Op::Add(0, _) | Op::Mul(_, 0, _))
     }
-    pub fn map_offset<U>(self, func: impl FnOnce(T) -> U) -> Option<Op<U>> {
+    pub fn map_offset(self, func: impl FnOnce(i32) -> i32) -> Option<Op> {
         match self {
             Op::Add(x, offset) => Some(Op::Add(x, func(offset))),
             Op::Mul(to, x, offset) => Some(Op::Mul(to, x, func(offset))),
@@ -33,9 +34,22 @@ impl<T> Op<T> {
             _ => None,
         }
     }
-}
-impl Op<u32> {
+    pub fn offset(self) -> Option<i32> {
+        match self {
+            Op::Add(_, offset) => Some(offset),
+            Op::Mul(_, _, offset) => Some(offset),
+            Op::Set(_, offset) => Some(offset),
+            Op::Out(offset) => Some(offset),
+            Op::Input(offset) => Some(offset),
+            _ => None,
+        }
+    }
     fn to_wasm_ops(self, ops: &mut Vec<WOp>) {
+        if let Some(offset) = self.offset() {
+            if offset.is_negative() {
+                unimplemented!();
+            }
+        }
         match self {
             Op::Add(value, offset) => {
                 let add_ops = [
@@ -45,10 +59,10 @@ impl Op<u32> {
                     WOp::GetLocal {
                         local_index: Var(0),
                     },
-                    WOp::I32Load8U(MemoryImmediate::i8(offset)),
+                    WOp::I32Load8U(MemoryImmediate::i8(offset as u32)),
                     WOp::I32Const(Var(value)),
                     WOp::I32Add,
-                    WOp::I32Store8(MemoryImmediate::i8(offset)),
+                    WOp::I32Store8(MemoryImmediate::i8(offset as u32)),
                 ];
 
                 ops.extend(add_ops);
@@ -80,15 +94,15 @@ impl Op<u32> {
                     WOp::GetLocal {
                         local_index: Var(1),
                     },
-                    WOp::I32Load8U(MemoryImmediate::i8(offset)),
+                    WOp::I32Load8U(MemoryImmediate::i8(offset as u32)),
                     WOp::GetLocal {
                         local_index: Var(0),
                     },
-                    WOp::I32Load8U(MemoryImmediate::i8(offset)),
+                    WOp::I32Load8U(MemoryImmediate::i8(offset as u32)),
                     WOp::I32Const(Var(y)),
                     WOp::I32Mul,
                     WOp::I32Add,
-                    WOp::I32Store8(MemoryImmediate::i8(offset)),
+                    WOp::I32Store8(MemoryImmediate::i8(offset as u32)),
                 ];
 
                 ops.extend(mul_ops);
@@ -99,7 +113,7 @@ impl Op<u32> {
                         local_index: Var(0),
                     },
                     WOp::I32Const(Var(value)),
-                    WOp::I32Store8(MemoryImmediate::i8(offset)),
+                    WOp::I32Store8(MemoryImmediate::i8(offset as u32)),
                 ];
 
                 ops.extend(clear_ops);
@@ -109,7 +123,7 @@ impl Op<u32> {
                     WOp::GetLocal {
                         local_index: Var(0),
                     },
-                    WOp::I32Load8U(MemoryImmediate::i8(offset)),
+                    WOp::I32Load8U(MemoryImmediate::i8(offset as u32)),
                     WOp::Call {
                         function_index: Var(2),
                     },
@@ -125,7 +139,7 @@ impl Op<u32> {
                     WOp::Call {
                         function_index: Var(3),
                     },
-                    WOp::I32Store8(MemoryImmediate::i8(offset)),
+                    WOp::I32Store8(MemoryImmediate::i8(offset as u32)),
                 ];
 
                 ops.extend(input_ops)
