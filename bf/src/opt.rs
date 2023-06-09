@@ -10,7 +10,9 @@ pub fn optimize(block: &Block, is_top_level: bool) -> Block {
     mul(&mut block);
     let mut block = merge(&block, is_top_level);
     if_opt(&mut block);
-    offset_opt(&block)
+    let mut block = offset_opt(&block);
+    remove_nop(&mut block);
+    block
 }
 
 impl Add for Op {
@@ -28,6 +30,18 @@ impl Add for Op {
             (_, _) => None,
         }
     }
+}
+
+fn remove_nop(block: &mut Block) {
+    block
+        .items
+        .retain(|item| !matches!(item, BlockItem::Op(op) if op.is_nop()));
+
+    block.items.iter_mut().for_each(|item| {
+        if let BlockItem::Loop(block) | BlockItem::If(block) = item {
+            remove_nop(block)
+        }
+    });
 }
 
 pub(crate) fn merge(block: &Block, is_top_level: bool) -> Block {
@@ -223,7 +237,6 @@ pub(crate) fn offset_opt(block: &Block) -> Block {
             .map(BlockItem::Op)
             .collect::<Vec<_>>();
         optimized_ops.push(items);
-        continue;
     }
 
     let mut optimized_block = Block::new();
@@ -231,11 +244,10 @@ pub(crate) fn offset_opt(block: &Block) -> Block {
     let mut optimized_ops = optimized_ops.into_iter();
 
     // Loop | Ifを処理する
-    let mut optimized_loops = block.items.iter().filter_map(|item| match item {
-        BlockItem::Op(_) => None,
-        BlockItem::Loop(b) => Some(BlockItem::Loop(offset_opt(b))),
-        BlockItem::If(b) => Some(BlockItem::If(offset_opt(b))),
-    });
+    let mut optimized_loops = block
+        .items
+        .iter()
+        .filter_map(|item| item.map_block(offset_opt));
 
     // eprintln!("{optimized_ops:?}");
     // eprintln!("{optimized_loops:?}");

@@ -22,7 +22,7 @@ impl Op {
         Op::MovePtr(of)
     }
     pub fn is_nop(&self) -> bool {
-        matches!(self, Op::Add(0, _) | Op::Mul(_, 0, _))
+        matches!(self, Op::Add(0, _) | Op::Mul(_, 0, _) | Op::MovePtr(0))
     }
     pub fn map_offset(self, func: impl FnOnce(i32) -> i32) -> Option<Op> {
         match self {

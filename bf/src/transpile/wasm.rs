@@ -144,43 +144,39 @@ fn input_char(fd_read_index: Var<u32>) -> Function {
     }
 }
 
-fn to_not_negative_offset(block: &Block) -> Block {
-    fn map_ops(ops: &mut Vec<Op>, min_offset: Option<i32>) {
-        if let Some(min_offset) = min_offset {
-            if min_offset.is_negative() {
-                ops.iter_mut().for_each(|op| {
-                    *op = op
-                        .map_offset(|offset| offset - min_offset)
-                        .or_else(|| {
-                            if let Op::MovePtr(moving) = op {
-                                Some(Op::ptr(*moving - min_offset))
-                            } else {
-                                unreachable!();
-                            }
-                        })
-                        .unwrap();
-                });
-                ops.insert(0, Op::ptr(min_offset));
-            }
-        }
+pub fn to_not_negative_offset(block: &Block) -> Block {
+    fn map_ops(ops: &mut Vec<Op>, negative_offset: i32) {
+        ops.iter_mut().for_each(|op| {
+            *op = op
+                .map_offset(|offset| offset - negative_offset)
+                .unwrap_or(*op);
+        });
+
+        ops.insert(0, Op::ptr(negative_offset));
+        ops.push(Op::ptr(-negative_offset));
     }
     let mut ops = vec![];
-    let mut min_offset = None;
+
+    let mut offset = 0;
+    let mut min_offset = 0;
 
     let mut new_block = Block::new();
 
     for item in &block.items {
         match item {
             BlockItem::Op(op) => {
-                if let Some(offset) = op.offset() {
-                    min_offset = min_offset
-                        .map(|min_offset| offset.min(min_offset))
-                        .or(Some(offset));
+                if let Some(op_offset) = op.offset() {
+                    min_offset = min_offset.min(op_offset + offset);
+                }
+                if let Op::MovePtr(moving) = op {
+                    offset += moving;
                 }
                 ops.push(*op)
             }
             item @ (BlockItem::Loop(_) | BlockItem::If(_)) => {
-                map_ops(&mut ops, min_offset);
+                if min_offset.is_negative() {
+                    map_ops(&mut ops, min_offset);
+                }
                 new_block
                     .items
                     .extend(ops.iter().copied().map(BlockItem::Op));
@@ -188,17 +184,19 @@ fn to_not_negative_offset(block: &Block) -> Block {
                 new_block.push_item(item.map_block(to_not_negative_offset).unwrap());
 
                 ops.clear();
-                min_offset = None;
+
+                offset = 0;
+                min_offset = 0;
             }
         }
     }
 
-    if !ops.is_empty() {
+    if min_offset.is_negative() {
         map_ops(&mut ops, min_offset);
-        new_block
-            .items
-            .extend(ops.iter().copied().map(BlockItem::Op));
     }
+    new_block
+        .items
+        .extend(ops.iter().copied().map(BlockItem::Op));
 
     new_block
 }
@@ -207,20 +205,23 @@ fn to_not_negative_offset(block: &Block) -> Block {
 mod test {
     use super::*;
 
-    use crate::opt::optimize;
-    use crate::parse::parse;
-
     #[test]
     fn test_to_not_negative_offset() {
-        let ast = parse("<+>>++<<<[>]").unwrap();
-        let block = Block::from_ast(&ast);
+        let block = Block::from_items(vec![
+            BlockItem::Op(Op::Add(1, -5)),
+            BlockItem::Op(Op::ptr(-5)),
+        ]);
+        let block = to_not_negative_offset(&block);
 
-        let optimized_block = optimize(&block, true);
-
-        eprintln!("{:?}", optimized_block);
-
-        let not_negative = to_not_negative_offset(&optimized_block);
-        eprintln!("{:?}", not_negative);
+        assert_eq!(
+            block.items,
+            vec![
+                BlockItem::Op(Op::ptr(-5)),
+                BlockItem::Op(Op::Add(1, 0)),
+                BlockItem::Op(Op::ptr(-5)),
+                BlockItem::Op(Op::ptr(5)),
+            ]
+        );
     }
 }
 
