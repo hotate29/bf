@@ -219,12 +219,7 @@ pub(crate) fn mul(block: &mut Block) {
 
         let clear_minus = offset_op.get(&0) == Some(&OpType::Mul(-1));
 
-        // TODO: bool.then_some()にする
-        if ptr_offset == 0 && clear_minus {
-            Some(offset_op)
-        } else {
-            None
-        }
+        (ptr_offset == 0 && clear_minus).then_some(offset_op)
     }
 
     for item in &mut block.items {
@@ -282,14 +277,10 @@ pub(crate) fn offset_opt(block: &Block) -> Block {
 
         for item in item_slice {
             match item {
-                BlockItem::Op(op) => match op {
-                    Op::Add(value, of) => offset_ops.push(Op::Add(*value, offset + *of)),
-                    Op::MovePtr(x) => offset += *x,
-                    Op::Mul(x, y, of) => offset_ops.push(Op::Mul(*x, *y, offset + *of)),
-                    Op::Set(value, of) => offset_ops.push(Op::Set(*value, offset + *of)),
-                    Op::Out(of) => offset_ops.push(Op::Out(offset + *of)),
-                    Op::Input(of) => offset_ops.push(Op::Input(offset + *of)),
-                },
+                BlockItem::Op(Op::MovePtr(x)) => {
+                    offset += *x;
+                }
+                BlockItem::Op(op) => offset_ops.push(op.map_offset(|of| of + offset).unwrap()),
                 BlockItem::Loop(_) | BlockItem::If(_) => unreachable!(),
             }
         }
