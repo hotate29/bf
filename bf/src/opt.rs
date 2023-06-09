@@ -215,52 +215,15 @@ pub(crate) fn offset_opt(block: &Block) -> Block {
             }
         }
 
-        // offsetの最小値を計算
-        let min_offset = offset_ops
-            .iter()
-            .filter_map(|op| match op {
-                Op::Add(_, offset)
-                | Op::Out(offset)
-                | Op::Input(offset)
-                | Op::Set(_, offset)
-                | Op::Mul(_, _, offset) => Some(*offset),
-                Op::MovePtr(_) => unreachable!(),
-            })
-            .min();
+        // 帳尻を合わせる
+        offset_ops.push(Op::ptr(offset));
 
-        let mut ops = Vec::new();
-
-        if let Some(min_offset) = min_offset {
-            if min_offset != 0 {
-                ops.push(BlockItem::Op(Op::ptr(min_offset)));
-            }
-
-            ops.extend(
-                offset_ops
-                    .into_iter()
-                    .map(|op| match op {
-                        Op::Add(value, offset) => Op::Add(value, offset - min_offset),
-                        Op::MovePtr(_) => todo!(),
-                        Op::Mul(x, y, offset) => Op::Mul(x, y, offset - min_offset),
-                        Op::Set(value, offset) => Op::Set(value, offset - min_offset),
-                        Op::Out(offset) => Op::Out(offset - min_offset),
-                        Op::Input(offset) => Op::Input(offset - min_offset),
-                    })
-                    .map(BlockItem::Op),
-            );
-
-            // 謎の命名
-            let of = offset - min_offset;
-            if of != 0 {
-                ops.push(BlockItem::Op(Op::ptr(of)));
-            }
-
-            // eprintln!("{ops:?}");
-        } else if offset != 0 {
-            ops.push(BlockItem::Op(Op::ptr(offset)));
-        }
-
-        optimized_ops.push(ops);
+        let items = offset_ops
+            .into_iter()
+            .map(BlockItem::Op)
+            .collect::<Vec<_>>();
+        optimized_ops.push(items);
+        continue;
     }
 
     let mut optimized_block = Block::new();

@@ -154,6 +154,24 @@ pub enum BlockItem {
     Loop(Block),
     If(Block),
 }
+impl BlockItem {
+    pub fn is_block(&self) -> bool {
+        matches!(self, BlockItem::Loop(_) | BlockItem::If(_))
+    }
+    pub fn map_block(&self, func: impl FnOnce(&Block) -> Block) -> Option<Self> {
+        match self {
+            BlockItem::Loop(block) => Some(BlockItem::Loop(func(block))),
+            BlockItem::If(block) => Some(BlockItem::If(func(block))),
+            _ => None,
+        }
+    }
+    pub fn map_op(&self, func: impl FnOnce(Op) -> Op) -> Option<Self> {
+        match self {
+            BlockItem::Op(op) => Some(BlockItem::Op(func(*op))),
+            _ => None,
+        }
+    }
+}
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct Block {
