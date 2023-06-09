@@ -8,12 +8,11 @@ pub mod utils;
 
 pub use error::Error;
 pub use interpreter::InterPreter;
+use ir::Block;
 pub use transpile::{
     c::block_to_c,
     wasm::{block_to_wasm, block_to_wat},
 };
-
-use utils::bf_to_block;
 
 #[cfg(target_arch = "wasm32")]
 use wasm_bindgen::prelude::*;
@@ -22,9 +21,11 @@ use wasm_bindgen::prelude::*;
 pub fn bf_to_wasm(bf: &str, optimize: bool) -> Result<Vec<u8>, String> {
     let mut buffer = Vec::new();
 
-    let mut block = bf_to_block(bf, optimize).map_err(|e| e.to_string())?;
+    let ast = parse::parse(bf).map_err(|e| e.to_string())?;
+    let mut block = Block::from_ast(&ast);
+
     if optimize {
-        block = opt::optimize(&block, true);
+        block = opt::optimize(&block, true, true);
     }
 
     block_to_wasm(&block, &mut buffer).map_err(|e| e.to_string())?;

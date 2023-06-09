@@ -2,7 +2,7 @@ use std::{collections::BTreeMap, ops::Add};
 
 use crate::ir::{Block, BlockItem, Op};
 
-pub fn optimize(block: &Block, is_top_level: bool) -> Block {
+pub fn optimize(block: &Block, is_top_level: bool, non_negative_offset: bool) -> Block {
     let mut block = merge(block, is_top_level);
 
     unwrap(&mut block);
@@ -11,7 +11,14 @@ pub fn optimize(block: &Block, is_top_level: bool) -> Block {
     let mut block = merge(&block, is_top_level);
     if_opt(&mut block);
     let mut block = offset_opt(&block);
+
+    if non_negative_offset {
+        block = to_not_negative_offset(&block);
+    }
+
+    let mut block = merge(&block, is_top_level);
     remove_nop(&mut block);
+
     block
 }
 
@@ -42,6 +49,64 @@ fn remove_nop(block: &mut Block) {
             remove_nop(block)
         }
     });
+}
+
+// 2回以上適用すると壊れる！（ポインターが負になる？）
+fn to_not_negative_offset(block: &Block) -> Block {
+    fn map_ops(ops: &mut Vec<Op>, negative_offset: i32) {
+        ops.iter_mut().for_each(|op| {
+            *op = op
+                .map_offset(|offset| offset - negative_offset)
+                .unwrap_or(*op);
+        });
+
+        ops.insert(0, Op::ptr(negative_offset));
+        ops.push(Op::ptr(-negative_offset));
+    }
+    let mut ops = vec![];
+
+    let mut offset = 0;
+    let mut min_offset = 0;
+
+    let mut new_block = Block::new();
+
+    for item in &block.items {
+        match item {
+            BlockItem::Op(op) => {
+                if let Some(op_offset) = op.offset() {
+                    min_offset = min_offset.min(op_offset + offset);
+                }
+                if let Op::MovePtr(moving) = op {
+                    offset += moving;
+                }
+                ops.push(*op)
+            }
+            item @ (BlockItem::Loop(_) | BlockItem::If(_)) => {
+                if min_offset.is_negative() {
+                    map_ops(&mut ops, min_offset);
+                }
+                new_block
+                    .items
+                    .extend(ops.iter().copied().map(BlockItem::Op));
+
+                new_block.push_item(item.map_block(to_not_negative_offset).unwrap());
+
+                ops.clear();
+
+                offset = 0;
+                min_offset = 0;
+            }
+        }
+    }
+
+    if min_offset.is_negative() {
+        map_ops(&mut ops, min_offset);
+    }
+    new_block
+        .items
+        .extend(ops.iter().copied().map(BlockItem::Op));
+
+    new_block
 }
 
 pub(crate) fn merge(block: &Block, is_top_level: bool) -> Block {
@@ -300,14 +365,33 @@ mod tests {
 
     #[test]
     fn test_unwrap() {
-        let mut block = bf_to_block("[[[[[-]]]]]", false).unwrap();
+        let mut block = bf_to_block("[[[[[-]]]]]").unwrap();
         unwrap(&mut block);
 
-        assert_eq!(block, bf_to_block("[-]", false).unwrap());
+        assert_eq!(block, bf_to_block("[-]").unwrap());
 
-        let mut block = bf_to_block("[[[+][[[-]]]]]", false).unwrap();
+        let mut block = bf_to_block("[[[+][[[-]]]]]").unwrap();
         unwrap(&mut block);
 
-        assert_eq!(block, bf_to_block("[[+][-]]", false).unwrap());
+        assert_eq!(block, bf_to_block("[[+][-]]").unwrap());
+    }
+
+    #[test]
+    fn test_to_not_negative_offset() {
+        let block = Block::from_items(vec![
+            BlockItem::Op(Op::Add(1, -5)),
+            BlockItem::Op(Op::ptr(-5)),
+        ]);
+        let block = to_not_negative_offset(&block);
+
+        assert_eq!(
+            block.items,
+            vec![
+                BlockItem::Op(Op::ptr(-5)),
+                BlockItem::Op(Op::Add(1, 0)),
+                BlockItem::Op(Op::ptr(-5)),
+                BlockItem::Op(Op::ptr(5)),
+            ]
+        );
     }
 }

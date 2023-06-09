@@ -47,7 +47,7 @@ impl Op {
     fn to_wasm_ops(self, ops: &mut Vec<WOp>) {
         if let Some(offset) = self.offset() {
             if offset.is_negative() {
-                unimplemented!();
+                panic!();
             }
         }
         match self {

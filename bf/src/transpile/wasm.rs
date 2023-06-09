@@ -10,11 +10,9 @@ use wasm_binary::{
     Function, Import, Memory, ModuleBuilder,
 };
 
-use crate::ir::{Block, BlockItem, Op};
+use crate::ir::Block;
 
 pub fn block_to_wat(block: &Block, mut out: impl io::Write) -> io::Result<()> {
-    let block = to_not_negative_offset(block);
-
     // Base Wasmer
     // https://github.com/wasmerio/wasmer/blob/75a98ab171bee010b9a7cd0f836919dc4519dcaf/lib/wasi/tests/stdio.rs
     writeln!(
@@ -144,90 +142,7 @@ fn input_char(fd_read_index: Var<u32>) -> Function {
     }
 }
 
-pub fn to_not_negative_offset(block: &Block) -> Block {
-    fn map_ops(ops: &mut Vec<Op>, negative_offset: i32) {
-        ops.iter_mut().for_each(|op| {
-            *op = op
-                .map_offset(|offset| offset - negative_offset)
-                .unwrap_or(*op);
-        });
-
-        ops.insert(0, Op::ptr(negative_offset));
-        ops.push(Op::ptr(-negative_offset));
-    }
-    let mut ops = vec![];
-
-    let mut offset = 0;
-    let mut min_offset = 0;
-
-    let mut new_block = Block::new();
-
-    for item in &block.items {
-        match item {
-            BlockItem::Op(op) => {
-                if let Some(op_offset) = op.offset() {
-                    min_offset = min_offset.min(op_offset + offset);
-                }
-                if let Op::MovePtr(moving) = op {
-                    offset += moving;
-                }
-                ops.push(*op)
-            }
-            item @ (BlockItem::Loop(_) | BlockItem::If(_)) => {
-                if min_offset.is_negative() {
-                    map_ops(&mut ops, min_offset);
-                }
-                new_block
-                    .items
-                    .extend(ops.iter().copied().map(BlockItem::Op));
-
-                new_block.push_item(item.map_block(to_not_negative_offset).unwrap());
-
-                ops.clear();
-
-                offset = 0;
-                min_offset = 0;
-            }
-        }
-    }
-
-    if min_offset.is_negative() {
-        map_ops(&mut ops, min_offset);
-    }
-    new_block
-        .items
-        .extend(ops.iter().copied().map(BlockItem::Op));
-
-    new_block
-}
-#[cfg(test)]
-
-mod test {
-    use super::*;
-
-    #[test]
-    fn test_to_not_negative_offset() {
-        let block = Block::from_items(vec![
-            BlockItem::Op(Op::Add(1, -5)),
-            BlockItem::Op(Op::ptr(-5)),
-        ]);
-        let block = to_not_negative_offset(&block);
-
-        assert_eq!(
-            block.items,
-            vec![
-                BlockItem::Op(Op::ptr(-5)),
-                BlockItem::Op(Op::Add(1, 0)),
-                BlockItem::Op(Op::ptr(-5)),
-                BlockItem::Op(Op::ptr(5)),
-            ]
-        );
-    }
-}
-
 pub fn block_to_wasm(block: &Block, mut buffer: impl io::Write) -> io::Result<()> {
-    let block = to_not_negative_offset(block);
-
     let mut module_builder = ModuleBuilder::new(Memory {
         mem_type: MemoryType {
             limits: ResizableLimits {
@@ -286,7 +201,9 @@ pub fn block_to_wasm(block: &Block, mut buffer: impl io::Write) -> io::Result<()
             local_index: Var(0),
         },
     ]);
+
     block.to_wasm_ops(&mut main.body.code);
+
     main.body.code.push(WOp::End);
 
     module_builder.push_function(main);

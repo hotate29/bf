@@ -78,7 +78,11 @@ fn main() -> anyhow::Result<()> {
         SubCommand::Run(arg) => {
             let code = fs::read_to_string(arg.file)?;
 
-            let block = bf_to_block(&code, arg.optimize)?;
+            let mut block = bf_to_block(&code)?;
+            if arg.optimize {
+                block = bf::opt::optimize(&block, true, false);
+            }
+
             if arg.verbose {
                 info!("block: {:#?}", block);
             }
@@ -96,7 +100,8 @@ fn main() -> anyhow::Result<()> {
         SubCommand::Trans(arg) => {
             let code = fs::read_to_string(&arg.file)?;
 
-            let block = bf_to_block(&code, arg.optimize)?;
+            let mut block = bf_to_block(&code)?;
+
             if arg.verbose {
                 info!("block: {:#?}", block);
             }
@@ -120,13 +125,22 @@ fn main() -> anyhow::Result<()> {
 
             match target {
                 TransTarget::C => {
+                    if arg.optimize {
+                        block = bf::opt::optimize(&block, true, false);
+                    }
                     let c_code = transpile::block_to_c(&block, arg.memory_len);
                     output.write_all(c_code.as_bytes())?;
                 }
                 TransTarget::Wat => {
+                    if arg.optimize {
+                        block = bf::opt::optimize(&block, true, true);
+                    }
                     transpile::block_to_wat(&block, &mut output)?;
                 }
                 TransTarget::Wasm => {
+                    if arg.optimize {
+                        block = bf::opt::optimize(&block, true, true);
+                    }
                     transpile::block_to_wasm(&block, &mut output)?;
                 }
             };
