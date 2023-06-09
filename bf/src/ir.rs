@@ -82,30 +82,75 @@ impl Op {
                 ops.extend(ptr_add_ops);
             }
             Op::Mul(x, y, offset) => {
-                let mul_ops = [
-                    WOp::GetLocal {
-                        local_index: Var(0),
-                    },
-                    WOp::I32Const(Var(x)),
-                    WOp::I32Add,
-                    WOp::TeeLocal {
-                        local_index: Var(1),
-                    },
-                    WOp::GetLocal {
-                        local_index: Var(1),
-                    },
-                    WOp::I32Load8U(MemoryImmediate::i8(offset as u32)),
-                    WOp::GetLocal {
-                        local_index: Var(0),
-                    },
-                    WOp::I32Load8U(MemoryImmediate::i8(offset as u32)),
-                    WOp::I32Const(Var(y)),
-                    WOp::I32Mul,
-                    WOp::I32Add,
-                    WOp::I32Store8(MemoryImmediate::i8(offset as u32)),
-                ];
-
-                ops.extend(mul_ops);
+                if y == 1 {
+                    let mul_ops = [
+                        WOp::GetLocal {
+                            local_index: Var(0),
+                        },
+                        WOp::I32Const(Var(x)),
+                        WOp::I32Add,
+                        WOp::TeeLocal {
+                            local_index: Var(1),
+                        },
+                        WOp::GetLocal {
+                            local_index: Var(1),
+                        },
+                        WOp::I32Load8U(MemoryImmediate::i8(offset as u32)),
+                        WOp::GetLocal {
+                            local_index: Var(0),
+                        },
+                        WOp::I32Load8U(MemoryImmediate::i8(offset as u32)),
+                        WOp::I32Add,
+                        WOp::I32Store8(MemoryImmediate::i8(offset as u32)),
+                    ];
+                    ops.extend(mul_ops);
+                } else if y == -1 {
+                    let mul_ops = [
+                        WOp::GetLocal {
+                            local_index: Var(0),
+                        },
+                        WOp::I32Const(Var(x)),
+                        WOp::I32Add,
+                        WOp::TeeLocal {
+                            local_index: Var(1),
+                        },
+                        WOp::GetLocal {
+                            local_index: Var(1),
+                        },
+                        WOp::I32Load8U(MemoryImmediate::i8(offset as u32)),
+                        WOp::GetLocal {
+                            local_index: Var(0),
+                        },
+                        WOp::I32Load8U(MemoryImmediate::i8(offset as u32)),
+                        WOp::I32Sub,
+                        WOp::I32Store8(MemoryImmediate::i8(offset as u32)),
+                    ];
+                    ops.extend(mul_ops);
+                } else {
+                    let mul_ops = [
+                        WOp::GetLocal {
+                            local_index: Var(0),
+                        },
+                        WOp::I32Const(Var(x)),
+                        WOp::I32Add,
+                        WOp::TeeLocal {
+                            local_index: Var(1),
+                        },
+                        WOp::GetLocal {
+                            local_index: Var(1),
+                        },
+                        WOp::I32Load8U(MemoryImmediate::i8(offset as u32)),
+                        WOp::GetLocal {
+                            local_index: Var(0),
+                        },
+                        WOp::I32Load8U(MemoryImmediate::i8(offset as u32)),
+                        WOp::I32Const(Var(y)),
+                        WOp::I32Mul,
+                        WOp::I32Add,
+                        WOp::I32Store8(MemoryImmediate::i8(offset as u32)),
+                    ];
+                    ops.extend(mul_ops);
+                }
             }
             Op::Set(value, offset) => {
                 let clear_ops = [
