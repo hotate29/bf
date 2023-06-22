@@ -1,7 +1,7 @@
 use std::{
     fs::{self, File},
     io::{self, Write},
-    num::NonZeroUsize,
+    num::NonZeroIsize,
     path::PathBuf,
 };
 
@@ -29,8 +29,8 @@ struct RunArg {
     file: PathBuf,
     #[clap(short, long)]
     optimize: bool,
-    #[clap(long, default_value_t = NonZeroUsize::try_from(30000).unwrap())]
-    initial_memory_len: NonZeroUsize,
+    #[clap(long, default_value_t = NonZeroIsize::try_from(30000).unwrap())]
+    memory_len: NonZeroIsize,
     #[clap(short, long)]
     verbose: bool,
 }
@@ -86,15 +86,30 @@ fn main() -> anyhow::Result<()> {
             if arg.verbose {
                 info!("block: {:#?}", block);
             }
+            let step_count = match arg.memory_len.get().cmp(&0) {
+                std::cmp::Ordering::Less => {
+                    let interpreter = InterPreter::builder()
+                        .input(io::stdin())
+                        .output(io::stdout())
+                        .root_node(&block)
+                        // .memory(AutoExtendMemory::new(vec![0; arg.initial_memory_len.get()]))
+                        .memory(AutoExtendMemory::new(vec![0; 300000]))
+                        .build();
 
-            let interpreter = InterPreter::builder()
-                .input(io::stdin())
-                .output(io::stdout())
-                .root_node(&block)
-                .memory(AutoExtendMemory::new(vec![0; arg.initial_memory_len.get()]))
-                .build();
+                    time!(interpreter.run()?)
+                }
+                std::cmp::Ordering::Equal => unreachable!(),
+                std::cmp::Ordering::Greater => {
+                    let interpreter = InterPreter::builder()
+                        .input(io::stdin())
+                        .output(io::stdout())
+                        .root_node(&block)
+                        .memory(vec![0; arg.memory_len.get() as usize])
+                        .build();
 
-            let step_count = time!(interpreter.run()?);
+                    time!(interpreter.run()?)
+                }
+            };
             info!("step: {step_count}");
         }
         SubCommand::Trans(arg) => {
