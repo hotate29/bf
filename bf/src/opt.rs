@@ -18,6 +18,7 @@ pub fn optimize(block: &Block, is_top_level: bool, non_negative_offset: bool) ->
 
     let mut block = merge(&block, is_top_level);
     remove_nop(&mut block);
+    opt_lick(&mut block);
 
     block
 }
@@ -213,7 +214,9 @@ pub(crate) fn mul(block: &mut Block) {
                 // 最適化できないものが混じっていたらreturn
                 BlockItem::Loop(_)
                 | BlockItem::If(_)
-                | BlockItem::Op(Op::Mul(_, _, _) | Op::Out(_) | Op::Input(_)) => return None,
+                | BlockItem::Op(Op::Mul(_, _, _) | Op::Lick(_) | Op::Out(_) | Op::Input(_)) => {
+                    return None
+                }
 
                 BlockItem::Op(op) => match op {
                     Op::Add(v, of) => {
@@ -226,7 +229,7 @@ pub(crate) fn mul(block: &mut Block) {
                     Op::Set(v, offset) => {
                         offset_op.insert(ptr_offset + *offset, OpType::Set(*v));
                     }
-                    Op::Mul(_, _, _) | Op::Out(_) | Op::Input(_) => {
+                    Op::Mul(_, _, _) | Op::Lick(_) | Op::Out(_) | Op::Input(_) => {
                         unreachable!()
                     }
                 },
@@ -362,6 +365,31 @@ pub fn if_opt(block: &mut Block) {
         }
     }
     block.items.iter_mut().for_each(inner);
+}
+
+pub fn opt_lick(block: &mut Block) {
+    for block_item in &mut block.items {
+        // 中がポインタ移動のみか判定する
+        fn is_only_move_ptr(block: &Block) -> i32 {
+            if let [BlockItem::Op(Op::MovePtr(x))] = block.items.as_slice() {
+                *x
+            } else {
+                0
+            }
+        }
+
+        if let BlockItem::Loop(loop_block) = block_item {
+            let offset = is_only_move_ptr(loop_block);
+            if offset != 0 {
+                eprintln!("lick: {}", offset);
+                *block_item = BlockItem::Op(Op::Lick(offset));
+            }
+        }
+
+        if let BlockItem::Loop(block) | BlockItem::If(block) = block_item {
+            opt_lick(block)
+        }
+    }
 }
 
 #[cfg(test)]

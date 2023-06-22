@@ -16,6 +16,8 @@ pub enum Op {
     Set(i32, i32),
     Out(i32),
     Input(i32),
+    // メモリ上の要素をx個ごとに見て、0ならループを抜ける
+    Lick(i32),
 }
 impl Op {
     pub fn ptr(of: i32) -> Self {
@@ -189,6 +191,7 @@ impl Op {
 
                 ops.extend(input_ops)
             }
+            Op::Lick(_) => todo!(),
         }
     }
 }

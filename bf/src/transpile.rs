@@ -53,6 +53,7 @@ pub mod c {
                         Op::Input(offset) => {
                             write!(c_code, "*({PTR_NAME}+{offset})=getchar();",).unwrap()
                         }
+                        Op::Lick(_) => todo!(),
                     },
                 }
             }

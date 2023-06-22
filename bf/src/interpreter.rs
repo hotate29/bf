@@ -169,10 +169,13 @@ impl<R: Read, W: Write, M: Memory> InterPreter<R, W, M> {
     }
 
     pub fn run(mut self) -> Result<usize> {
+        let mut instruction_count = vec![0; self.instructions.len()];
+
         let mut now = 0;
         let mut count = 0;
 
         while let Some(ins) = self.instructions.get(now) {
+            instruction_count[now] += 1;
             count += 1;
             match *ins {
                 FlatInstruction::Instruction(instruction) => {
@@ -214,6 +217,15 @@ impl<R: Read, W: Write, M: Memory> InterPreter<R, W, M> {
                         Op::Set(value, offset) => {
                             *self.state.at_offset_mut(offset as isize)? = (value % MOD) as u8;
                         }
+                        Op::Lick(x) => {
+                            while self.state.at() != 0 {
+                                if x < 0 {
+                                    self.state.pointer_sub(x.unsigned_abs() as usize)?;
+                                } else {
+                                    self.state.pointer_add(x as usize);
+                                }
+                            }
+                        }
                     };
                     now += 1
                 }
@@ -222,6 +234,18 @@ impl<R: Read, W: Write, M: Memory> InterPreter<R, W, M> {
                 FlatInstruction::WhileEnd(to) => now = to,
             }
         }
+
+        // プロファイリングした情報を出力する
+        (0..self.instructions.len()).for_each(|i| {
+            // 一千万回以上実行された命令を出力する
+            if instruction_count[i] > 10000000 {
+                eprintln!(
+                    "{:3}: {:?} {}",
+                    i, self.instructions[i], instruction_count[i]
+                );
+            }
+        });
+
         Ok(count)
     }
 }
