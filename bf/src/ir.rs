@@ -203,6 +203,12 @@ impl BlockItem {
     pub fn is_block(&self) -> bool {
         matches!(self, BlockItem::Loop(_) | BlockItem::If(_))
     }
+    pub fn op(&self) -> Option<Op> {
+        match self {
+            BlockItem::Op(op) => Some(*op),
+            _ => None,
+        }
+    }
     pub fn map_block(&self, func: impl FnOnce(&Block) -> Block) -> Option<Self> {
         match self {
             BlockItem::Loop(block) => Some(BlockItem::Loop(func(block))),

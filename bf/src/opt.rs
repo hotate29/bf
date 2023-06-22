@@ -117,6 +117,8 @@ fn to_not_negative_offset(block: &Block) -> Block {
     new_block
 }
 
+/// `block`から合体可能な命令を見つけて合体する。
+/// `is_top_level`を`true`にした場合、先頭に`Set(0, 0)`を追加して処理する。
 pub(crate) fn merge(block: &Block, is_top_level: bool) -> Block {
     let mut merged_block = Block::new();
 
@@ -132,21 +134,27 @@ pub(crate) fn merge(block: &Block, is_top_level: bool) -> Block {
         };
         merged_block.push_item(item);
 
-        while merged_block.items.len() >= 2 {
-            let lhs = merged_block.items.iter().nth_back(1).unwrap();
-            let rhs = merged_block.items.last().unwrap();
+        // 連鎖的に消えるかもしれないのでwhile
+        while let Some(merged) = {
+            let lhs = merged_block
+                .items
+                .iter()
+                .nth_back(1)
+                .and_then(BlockItem::op);
+            let rhs = merged_block.items.last().and_then(BlockItem::op);
 
-            match (lhs, rhs) {
-                (BlockItem::Op(lhs), BlockItem::Op(rhs)) if (*lhs + *rhs).is_some() => {
-                    let op = (*lhs + *rhs).unwrap();
-                    merged_block.items.pop().unwrap();
-                    merged_block.items.pop().unwrap();
-                    merged_block.push_item(BlockItem::Op(op))
-                }
-                (_, _) => break,
-            }
+            lhs.zip(rhs).and_then(|(lhs, rhs)| lhs + rhs)
+        } {
+            merged_block.items.pop().unwrap();
+            merged_block.items.pop().unwrap();
+            merged_block.push_item(BlockItem::Op(merged))
         }
     }
+
+    if is_top_level && Some(&BlockItem::Op(Op::Set(0, 0))) == merged_block.items.first() {
+        merged_block.items.remove(0);
+    }
+
     merged_block
 }
 
