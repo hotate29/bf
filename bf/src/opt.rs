@@ -39,6 +39,14 @@ impl Add for Op {
     }
 }
 
+impl Add for &Op {
+    type Output = Option<Op>;
+
+    fn add(self, rhs: Self) -> Self::Output {
+        (*self) + (*rhs)
+    }
+}
+
 fn remove_nop(block: &mut Block) {
     block
         .items
