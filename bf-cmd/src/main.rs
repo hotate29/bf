@@ -87,14 +87,14 @@ fn main() -> anyhow::Result<()> {
                 info!("block: {:#?}", block);
             }
 
-            let mut interpreter = InterPreter::builder()
+            let interpreter = InterPreter::builder()
                 .input(io::stdin())
                 .output(io::stdout())
                 .root_node(&block)
                 .memory(AutoExtendMemory::new(vec![0; arg.initial_memory_len.get()]))
                 .build();
 
-            let step_count = time!(interpreter.iter().count());
+            let step_count = time!(interpreter.run()?);
             info!("step: {step_count}");
         }
         SubCommand::Trans(arg) => {

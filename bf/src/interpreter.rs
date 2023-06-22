@@ -141,7 +141,6 @@ pub struct InterPreter<R: Read, W: Write, M: Memory> {
     input: R,
     output: W,
     instructions: Vec<FlatInstruction>,
-    now: usize,
 }
 impl<R: Read, W: Write, M: Memory> InterPreter<R, W, M> {
     pub fn builder<'a>() -> InterPreterBuilder<'a, R, W, M> {
@@ -155,7 +154,6 @@ impl<R: Read, W: Write, M: Memory> InterPreter<R, W, M> {
         Self {
             state,
             instructions,
-            now: 0,
             input,
             output,
         }
@@ -166,16 +164,16 @@ impl<R: Read, W: Write, M: Memory> InterPreter<R, W, M> {
     pub fn pointer(&self) -> usize {
         self.state.pointer
     }
-    pub fn now(&self) -> usize {
-        self.now
-    }
     pub fn iter(&mut self) -> InterPreterIter<'_, R, W, M> {
         InterPreterIter(self)
     }
-    #[inline]
-    fn step(&mut self) -> Result<()> {
-        if let Some(ins) = self.instructions.get(self.now) {
-            // eprintln!("{ins:?}, {:?}", self.state);
+
+    pub fn run(mut self) -> Result<usize> {
+        let mut now = 0;
+        let mut count = 0;
+
+        while let Some(ins) = self.instructions.get(now) {
+            count += 1;
             match *ins {
                 FlatInstruction::Instruction(instruction) => {
                     match instruction {
@@ -217,27 +215,14 @@ impl<R: Read, W: Write, M: Memory> InterPreter<R, W, M> {
                             *self.state.at_offset_mut(offset as isize)? = (value % MOD) as u8;
                         }
                     };
-                    self.now += 1
+                    now += 1
                 }
-                FlatInstruction::WhileBegin(to) if self.state.at() == 0 => self.now = to,
-                FlatInstruction::WhileBegin(_) => self.now += 1,
-                FlatInstruction::WhileEnd(to) => self.now = to,
+                FlatInstruction::WhileBegin(to) if self.state.at() == 0 => now = to,
+                FlatInstruction::WhileBegin(_) => now += 1,
+                FlatInstruction::WhileEnd(to) => now = to,
             }
         }
-        Ok(())
-    }
-}
-
-impl<R: Read, W: Write, M: Memory> Iterator for InterPreterIter<'_, R, W, M> {
-    type Item = Result<()>;
-
-    #[inline]
-    fn next(&mut self) -> Option<Self::Item> {
-        if self.0.now < self.0.instructions.len() {
-            Some(self.0.step())
-        } else {
-            None
-        }
+        Ok(count)
     }
 }
 
@@ -353,8 +338,8 @@ mod test {
             .output(&mut output_buffer)
             .memory(AutoExtendMemory::new(vec![0]))
             .build()
-            .iter()
-            .count();
+            .run()
+            .unwrap();
 
         let output_string = String::from_utf8(output_buffer).unwrap();
         assert_eq!(output_string, assert_mandelbrot);
@@ -376,8 +361,8 @@ mod test {
             .output(&mut output_buffer)
             .memory(AutoExtendMemory::new(vec![0]))
             .build()
-            .iter()
-            .count();
+            .run()
+            .unwrap();
 
         let output_string = String::from_utf8(output_buffer).unwrap();
         assert_eq!(output_string, assert_mandelbrot);
@@ -397,8 +382,8 @@ mod test {
             .output(&mut output_buffer)
             .memory(AutoExtendMemory::new(vec![0]))
             .build()
-            .iter()
-            .count();
+            .run()
+            .unwrap();
 
         let output = String::from_utf8(output_buffer).unwrap();
         assert_eq!(output, hello_world);
@@ -418,8 +403,8 @@ mod test {
             .output(&mut output_buffer)
             .memory(AutoExtendMemory::new(vec![0]))
             .build()
-            .iter()
-            .count();
+            .run()
+            .unwrap();
 
         let output = String::from_utf8(output_buffer).unwrap();
         assert_eq!(output, hello_world);
