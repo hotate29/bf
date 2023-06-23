@@ -1,6 +1,7 @@
 use log::trace;
 
 pub trait Memory {
+    #[inline]
     fn get(&mut self, index: usize) -> u8 {
         *self.get_mut(index)
     }
@@ -9,10 +10,12 @@ pub trait Memory {
 }
 
 impl Memory for Vec<u8> {
+    #[inline]
     fn get_mut(&mut self, index: usize) -> &mut u8 {
         &mut self[index]
     }
 
+    #[inline]
     fn inner(&self) -> &[u8] {
         self
     }
