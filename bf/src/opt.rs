@@ -18,9 +18,12 @@ pub fn optimize(block: &Block, is_top_level: bool, non_negative_offset: bool) ->
 
     let mut block = merge(&block, is_top_level);
     remove_nop(&mut block);
-    opt_lick(&mut block);
 
     block
+}
+
+pub fn optimize_for_interpreter(block: &mut Block) {
+    opt_lick(block)
 }
 
 impl Add for Op {
@@ -367,7 +370,7 @@ pub fn if_opt(block: &mut Block) {
     block.items.iter_mut().for_each(inner);
 }
 
-pub fn opt_lick(block: &mut Block) {
+fn opt_lick(block: &mut Block) {
     for block_item in &mut block.items {
         // 中がポインタ移動のみか判定する
         fn is_only_move_ptr(block: &Block) -> i32 {

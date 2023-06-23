@@ -6,7 +6,10 @@ use std::{
 };
 
 use anyhow::Context;
-use bf::{interpreter::AutoExtendMemory, transpile, utils::bf_to_block, InterPreter};
+use bf::{
+    interpreter::AutoExtendMemory, opt::optimize_for_interpreter, transpile, utils::bf_to_block,
+    InterPreter,
+};
 use clap::{ArgEnum, StructOpt};
 use log::{info, Level};
 
@@ -81,6 +84,7 @@ fn main() -> anyhow::Result<()> {
             let mut block = bf_to_block(&code)?;
             if arg.optimize {
                 block = bf::opt::optimize(&block, true, false);
+                optimize_for_interpreter(&mut block);
             }
 
             if arg.verbose {
