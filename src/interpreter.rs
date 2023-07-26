@@ -354,8 +354,8 @@ mod test {
     #[test]
     #[ignore]
     fn test_interpreter_mandelbrot() {
-        let mandelbrot_source = include_str!("../../bf_codes/mandelbrot.bf");
-        let assert_mandelbrot = include_str!("../../bf_codes/mandelbrot.out");
+        let mandelbrot_source = include_str!("../bf_codes/mandelbrot.bf");
+        let assert_mandelbrot = include_str!("../bf_codes/mandelbrot.out");
 
         let block = block(mandelbrot_source);
 
@@ -377,8 +377,8 @@ mod test {
     #[test]
     #[ignore]
     fn test_optimized_interpreter_mandelbrot() {
-        let mandelbrot_source = include_str!("../../bf_codes/mandelbrot.bf");
-        let assert_mandelbrot = include_str!("../../bf_codes/mandelbrot.out");
+        let mandelbrot_source = include_str!("../bf_codes/mandelbrot.bf");
+        let assert_mandelbrot = include_str!("../bf_codes/mandelbrot.out");
 
         let block = block_opt(mandelbrot_source);
 
@@ -398,8 +398,8 @@ mod test {
     }
     #[test]
     fn test_hello_world_interpreter() {
-        let hello_world_code = include_str!("../../bf_codes/hello_world.bf");
-        let hello_world = include_str!("../../bf_codes/hello_world.out");
+        let hello_world_code = include_str!("../bf_codes/hello_world.bf");
+        let hello_world = include_str!("../bf_codes/hello_world.out");
 
         let block = block(hello_world_code);
 
@@ -419,8 +419,8 @@ mod test {
     }
     #[test]
     fn test_optimized_hello_world_interpreter() {
-        let hello_world_code = include_str!("../../bf_codes/hello_world.bf");
-        let hello_world = include_str!("../../bf_codes/hello_world.out");
+        let hello_world_code = include_str!("../bf_codes/hello_world.bf");
+        let hello_world = include_str!("../bf_codes/hello_world.out");
 
         let block = block_opt(hello_world_code);
 

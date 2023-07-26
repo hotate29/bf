@@ -90,25 +90,17 @@ dependencies = [
 
 [[package]]
 name = "bf"
-version = "0.1.3"
+version = "0.1.0"
 dependencies = [
+ "anyhow",
  "chumsky",
+ "clap",
+ "env_logger",
  "leb128",
  "log",
  "rstest",
  "thiserror",
  "wasm-bindgen",
-]
-
-[[package]]
-name = "bf-cmd"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "bf",
- "clap",
- "env_logger",
- "log",
 ]
 
 [[package]]

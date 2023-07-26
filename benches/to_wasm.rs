@@ -5,7 +5,7 @@ use std::io;
 
 use bf::{transpile::wasm::block_to_wasm, utils};
 
-const MANDELBROT: &str = include_str!("../../bf_codes/mandelbrot.bf");
+const MANDELBROT: &str = include_str!("../bf_codes/mandelbrot.bf");
 
 #[bench]
 fn bench_block_to_wasm(bencher: &mut test::Bencher) {
