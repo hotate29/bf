@@ -86,7 +86,7 @@ impl<M: Memory> State<M> {
 }
 
 #[derive(Debug)]
-enum FlatInstruction {
+pub enum FlatInstruction {
     Instruction(Op),
     // 行き先
     WhileBegin(usize),
@@ -136,6 +136,12 @@ pub enum Error {
     NegativePointer(isize),
 }
 
+pub struct ProfilingResult {
+    pub count: usize,
+    pub instructions: Vec<FlatInstruction>,
+    pub instruction_count: Vec<i32>,
+}
+
 pub struct InterPreter<R: Read, W: Write, M: Memory> {
     state: State<M>,
     input: R,
@@ -169,13 +175,25 @@ impl<R: Read, W: Write, M: Memory> InterPreter<R, W, M> {
     }
 
     pub fn run(mut self) -> Result<usize> {
+        self._run(|_| {})
+    }
+    pub fn profiling(mut self) -> Result<ProfilingResult> {
         let mut instruction_count = vec![0; self.instructions.len()];
 
+        let count = self._run(|now| instruction_count[now] += 1)?;
+
+        Ok(ProfilingResult {
+            count,
+            instruction_count,
+            instructions: self.instructions,
+        })
+    }
+    fn _run(&mut self, mut before_exec: impl FnMut(usize)) -> Result<usize> {
         let mut now = 0;
         let mut count = 0;
 
         while let Some(ins) = self.instructions.get(now) {
-            instruction_count[now] += 1;
+            before_exec(now);
             count += 1;
             match *ins {
                 FlatInstruction::Instruction(instruction) => {
@@ -198,8 +216,6 @@ impl<R: Read, W: Write, M: Memory> InterPreter<R, W, M> {
                         Op::Mul(to, x, offset) => {
                             let a = self.state.at_offset(offset as isize)? as i32;
                             let a = a.wrapping_mul(x);
-
-                            // eprintln!("{to}, {x}, {offset}, {a}");
 
                             let to = to as isize + offset as isize;
                             let value = (a % MOD).unsigned_abs() as u8;
@@ -234,17 +250,6 @@ impl<R: Read, W: Write, M: Memory> InterPreter<R, W, M> {
                 FlatInstruction::WhileEnd(to) => now = to,
             }
         }
-
-        // プロファイリングした情報を出力する
-        (0..self.instructions.len()).for_each(|i| {
-            // 一千万回以上実行された命令を出力する
-            if instruction_count[i] > 10000000 {
-                eprintln!(
-                    "{:3}: {:?} {}",
-                    i, self.instructions[i], instruction_count[i]
-                );
-            }
-        });
 
         Ok(count)
     }

@@ -10,20 +10,22 @@ use bf::{
     interpreter::AutoExtendMemory, opt::optimize_for_interpreter, transpile, utils::bf_to_block,
     InterPreter,
 };
-use clap::{ArgEnum, StructOpt};
+use clap::{ValueEnum, Parser};
 use log::{info, Level};
 
 #[derive(Debug, clap::Parser)]
+#[command(author, version, about)]
 struct Command {
-    #[clap(subcommand)]
+    #[command(subcommand)]
     subcommand: SubCommand,
-    #[clap(long, env = "RUST_LOG", default_value_t = Level::Info)]
+    #[arg(long, default_value_t = Level::Info)]
     log_level: Level,
 }
 
 #[derive(Debug, clap::Subcommand)]
 enum SubCommand {
     Run(RunArg),
+    Profiling(ProfilingArg),
     Trans(TransArg),
 }
 
@@ -39,10 +41,20 @@ struct RunArg {
 }
 
 #[derive(Debug, clap::Parser)]
-struct TransArg {
-    #[clap(value_parser)]
+struct ProfilingArg {
     file: PathBuf,
-    #[clap(long, short, arg_enum)]
+    #[clap(short, long)]
+    optimize: bool,
+    #[clap(long, default_value_t = NonZeroIsize::try_from(30000).unwrap())]
+    memory_len: NonZeroIsize,
+    #[clap(short, long)]
+    lower_limit: i32,
+}
+
+#[derive(Debug, clap::Parser)]
+struct TransArg {
+    file: PathBuf,
+    #[clap(long, short, value_enum)]
     target: Option<TransTarget>,
     #[clap(short, long)]
     optimize: bool,
@@ -53,7 +65,7 @@ struct TransArg {
     verbose: bool,
 }
 
-#[derive(Debug, Clone, Copy, ArgEnum)]
+#[derive(Debug, Clone, Copy, ValueEnum)]
 enum TransTarget {
     C,
     Wat,
@@ -96,7 +108,6 @@ fn main() -> anyhow::Result<()> {
                         .input(io::stdin())
                         .output(io::stdout())
                         .root_node(&block)
-                        // .memory(AutoExtendMemory::new(vec![0; arg.initial_memory_len.get()]))
                         .memory(AutoExtendMemory::new(vec![0; 300000]))
                         .build();
 
@@ -115,6 +126,36 @@ fn main() -> anyhow::Result<()> {
                 }
             };
             info!("step: {step_count}");
+        }
+        SubCommand::Profiling(arg) => {
+            let code = fs::read_to_string(arg.file)?;
+
+            let mut block = bf_to_block(&code)?;
+            if arg.optimize {
+                block = bf::opt::optimize(&block, true, false);
+                optimize_for_interpreter(&mut block);
+            }
+            let interpreter = InterPreter::builder()
+                .input(io::stdin())
+                .output(io::stdout())
+                .root_node(&block)
+                .memory(AutoExtendMemory::new(vec![0; 300000]))
+                .build();
+
+            let progiling_result = time!(interpreter.profiling()?);
+
+            progiling_result
+                .instruction_count
+                .iter()
+                .zip(progiling_result.instructions)
+                .enumerate()
+                .for_each(|(i, (count, instruction))| {
+                    if *count >= arg.lower_limit {
+                        eprintln!("{}: {:?} {}", i, instruction, count);
+                    }
+                });
+            info!("step: {}", progiling_result.count);
+            info!("count: {:?}", progiling_result.instruction_count);
         }
         SubCommand::Trans(arg) => {
             let code = fs::read_to_string(&arg.file)?;
