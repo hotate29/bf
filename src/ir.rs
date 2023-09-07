@@ -3,7 +3,6 @@ use crate::transpile::wasm::wasm_binary::code::{MemoryImmediate, Op as WOp};
 use crate::transpile::wasm::wasm_binary::type_::Type;
 use crate::transpile::wasm::wasm_binary::var::Var;
 
-// WebAssemblyのメモリ操作命令に付いているoffsetを使いたいので、offsetは正の整数のみ受け入れるようにしている。
 // offsetは負の値もとる事ができる。WebAssemblyメモリ操作命令は正のoffsetしか受け付けないので、出力時によしなにする。
 #[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize)]
 pub enum Op {
