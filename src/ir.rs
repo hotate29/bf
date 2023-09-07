@@ -1,6 +1,6 @@
 use crate::parse::Ast;
 use crate::transpile::wasm::wasm_binary::code::{MemoryImmediate, Op as WOp};
-use crate::transpile::wasm::wasm_binary::type_::Type;
+use crate::transpile::wasm::wasm_binary::type_::ValueType;
 
 // offsetは負の値もとる事ができる。WebAssemblyメモリ操作命令は正のoffsetしか受け付けないので、出力時によしなにする。
 #[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize)]
@@ -229,12 +229,12 @@ impl Block {
                 BlockItem::Loop(loop_block) => {
                     let loop_ops = [
                         WOp::Loop {
-                            block_type: Type::Void,
+                            block_type: ValueType::Void,
                         },
                         WOp::GetLocal { local_index: 0 },
                         WOp::I32Load8U(MemoryImmediate::i8(0)),
                         WOp::If {
-                            block_type: Type::Void,
+                            block_type: ValueType::Void,
                         },
                     ];
 
@@ -251,7 +251,7 @@ impl Block {
                         WOp::GetLocal { local_index: 0 },
                         WOp::I32Load8U(MemoryImmediate::i8(0)),
                         WOp::If {
-                            block_type: Type::Void,
+                            block_type: ValueType::Void,
                         },
                     ];
 

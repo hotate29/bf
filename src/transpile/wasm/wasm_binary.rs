@@ -2,9 +2,9 @@ const WASM_BINARY_MAGIC: u32 = 0x6d736100; // \0asm
 const WASM_BINARY_VERSION: u32 = 1;
 
 pub mod code;
+pub mod leb128;
 pub mod section;
 pub mod type_;
-pub mod leb128;
 
 use std::io::{self, Write};
 
@@ -14,7 +14,7 @@ use self::{
         CodeSection, ExportEntry, ExportSection, ExternalKind, FunctionSection, ImportEntry,
         ImportSection, MemorySection, MemoryType, Section, TypeSection,
     },
-    type_::Type,
+    type_::{FuncSignature, Type},
 };
 
 pub struct Module {
@@ -84,7 +84,7 @@ impl ModuleBuilder {
                     field_name,
                     signature,
                 } => {
-                    let type_index = type_section.push(signature);
+                    let type_index = type_section.push(Type::Func(signature));
 
                     let import_entry =
                         ImportEntry::function(module_name, field_name, type_index as u32);
@@ -95,7 +95,7 @@ impl ModuleBuilder {
 
         // 実関数をぶちこむ
         for function in self.functions {
-            let type_index = type_section.push(function.signature);
+            let type_index = type_section.push(Type::Func(function.signature));
 
             let function_index =
                 function_section.push(type_index as _) + import_section.import_entries.len();
@@ -139,7 +139,7 @@ impl ModuleBuilder {
 }
 
 pub struct Function {
-    pub signature: Type,
+    pub signature: FuncSignature,
     pub body: FunctionBody,
     pub export_name: Option<String>,
 }
@@ -153,7 +153,7 @@ pub enum Import {
     Function {
         module_name: String,
         field_name: String,
-        signature: Type,
+        signature: FuncSignature,
     },
 }
 

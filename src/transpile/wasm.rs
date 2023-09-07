@@ -5,11 +5,12 @@ pub mod wasm_binary;
 use wasm_binary::{
     code::{FunctionBody, LocalEntry, MemoryImmediate, Op as WOp, OpSlice},
     section::{MemoryType, ResizableLimits},
-    type_::Type,
     Function, Import, Memory, ModuleBuilder,
 };
 
 use crate::ir::Block;
+
+use self::wasm_binary::type_::{FuncSignature, ValueType};
 
 pub fn block_to_wat(block: &Block, mut out: impl io::Write) -> io::Result<()> {
     // Base Wasmer
@@ -94,8 +95,8 @@ fn print_char(wd_write_index: u32) -> Function {
     ];
 
     Function {
-        signature: Type::Func {
-            params: vec![Type::I32],
+        signature: FuncSignature {
+            params: vec![ValueType::I32],
             result: None,
         },
         body: FunctionBody::from_ops(print_char_ops.to_vec()),
@@ -125,9 +126,9 @@ fn input_char(fd_read_index: u32) -> Function {
     ];
 
     Function {
-        signature: Type::Func {
+        signature: FuncSignature {
             params: vec![],
-            result: Some(Box::new(Type::I32)),
+            result: Some(ValueType::I32),
         },
         body: FunctionBody::from_ops(input_char_ops.to_vec()),
         export_name: None,
@@ -148,9 +149,14 @@ pub fn block_to_wasm(block: &Block, mut buffer: impl io::Write) -> io::Result<()
     let import_fd_write = Import::Function {
         module_name: "wasi_unstable".to_string(),
         field_name: "fd_write".to_string(),
-        signature: Type::Func {
-            params: vec![Type::I32, Type::I32, Type::I32, Type::I32],
-            result: Some(Box::new(Type::I32)),
+        signature: FuncSignature {
+            params: vec![
+                ValueType::I32,
+                ValueType::I32,
+                ValueType::I32,
+                ValueType::I32,
+            ],
+            result: Some(ValueType::I32),
         },
     };
 
@@ -159,9 +165,14 @@ pub fn block_to_wasm(block: &Block, mut buffer: impl io::Write) -> io::Result<()
     let import_fd_read = Import::Function {
         module_name: "wasi_unstable".to_string(),
         field_name: "fd_read".to_string(),
-        signature: Type::Func {
-            params: vec![Type::I32, Type::I32, Type::I32, Type::I32],
-            result: Some(Box::new(Type::I32)),
+        signature: FuncSignature {
+            params: vec![
+                ValueType::I32,
+                ValueType::I32,
+                ValueType::I32,
+                ValueType::I32,
+            ],
+            result: Some(ValueType::I32),
         },
     };
 
@@ -171,7 +182,7 @@ pub fn block_to_wasm(block: &Block, mut buffer: impl io::Write) -> io::Result<()
     module_builder.push_function(input_char(fd_read));
 
     let mut main = Function {
-        signature: Type::Func {
+        signature: FuncSignature {
             params: vec![],
             result: None,
         },
@@ -181,7 +192,7 @@ pub fn block_to_wasm(block: &Block, mut buffer: impl io::Write) -> io::Result<()
 
     let ptr = LocalEntry {
         count: 2,
-        type_: Type::I32,
+        type_: ValueType::I32,
     };
     main.push_local(ptr);
 

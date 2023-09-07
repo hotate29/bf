@@ -1,6 +1,6 @@
 use std::io::{self, Write};
 
-use super::{type_::Type, leb128::WriteLeb128};
+use super::{leb128::WriteLeb128, type_::ValueType};
 
 pub struct FunctionBody {
     locals: Vec<LocalEntry>,
@@ -43,7 +43,7 @@ impl FunctionBody {
 
 pub struct LocalEntry {
     pub count: u32,
-    pub type_: Type,
+    pub type_: ValueType,
 }
 impl LocalEntry {
     fn write(&self, mut w: impl Write) -> io::Result<()> {
@@ -56,8 +56,8 @@ impl LocalEntry {
 pub enum Op {
     _Nop,
     End,
-    Loop { block_type: Type },
-    If { block_type: Type },
+    Loop { block_type: ValueType },
+    If { block_type: ValueType },
     Br { relative_depth: u32 },
 
     Call { function_index: u32 },
@@ -85,11 +85,11 @@ impl Op {
             Op::_Nop => Ok(()),
             Op::End => write!(s, "end"),
             Op::Loop { block_type } => {
-                assert_eq!(block_type, &Type::Void);
+                assert_eq!(block_type, &ValueType::Void);
                 write!(s, "loop")
             }
             Op::If { block_type } => {
-                assert_eq!(block_type, &Type::Void);
+                assert_eq!(block_type, &ValueType::Void);
                 write!(s, "if")
             }
             Op::Br { relative_depth } => write!(s, "br {}", relative_depth),
