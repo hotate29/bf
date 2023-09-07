@@ -6,7 +6,6 @@ use wasm_binary::{
     code::{FunctionBody, LocalEntry, MemoryImmediate, Op as WOp, OpSlice},
     section::{MemoryType, ResizableLimits},
     type_::Type,
-    var::Var,
     Function, Import, Memory, ModuleBuilder,
 };
 
@@ -57,12 +56,7 @@ pub fn block_to_wat(block: &Block, mut out: impl io::Write) -> io::Result<()> {
     )?;
 
     let mut main = Vec::new();
-    main.extend([
-        WOp::I32Const(Var(40)),
-        WOp::SetLocal {
-            local_index: Var(0),
-        },
-    ]);
+    main.extend([WOp::I32Const(40), WOp::SetLocal { local_index: 0 }]);
     block.to_wasm_ops(&mut main);
     // テキスト形式だといらない
     // ops.push(WOp::End);
@@ -77,23 +71,21 @@ pub fn block_to_wat(block: &Block, mut out: impl io::Write) -> io::Result<()> {
     // let body = block.to_wat(40);
 }
 
-fn print_char(wd_write_index: Var<u32>) -> Function {
+fn print_char(wd_write_index: u32) -> Function {
     let print_char_ops = [
-        WOp::I32Const(Var(0)),
-        WOp::GetLocal {
-            local_index: Var(0),
-        },
+        WOp::I32Const(0),
+        WOp::GetLocal { local_index: 0 },
         WOp::I32Store8(MemoryImmediate::i8(0)),
-        WOp::I32Const(Var(4)),
-        WOp::I32Const(Var(0)),
+        WOp::I32Const(4),
+        WOp::I32Const(0),
         WOp::I32Store(MemoryImmediate::i32(0)),
-        WOp::I32Const(Var(8)),
-        WOp::I32Const(Var(1)),
+        WOp::I32Const(8),
+        WOp::I32Const(1),
         WOp::I32Store(MemoryImmediate::i32(0)),
-        WOp::I32Const(Var(1)),
-        WOp::I32Const(Var(4)),
-        WOp::I32Const(Var(1)),
-        WOp::I32Const(Var(12)),
+        WOp::I32Const(1),
+        WOp::I32Const(4),
+        WOp::I32Const(1),
+        WOp::I32Const(12),
         WOp::Call {
             function_index: wd_write_index,
         },
@@ -111,23 +103,23 @@ fn print_char(wd_write_index: Var<u32>) -> Function {
     }
 }
 
-fn input_char(fd_read_index: Var<u32>) -> Function {
+fn input_char(fd_read_index: u32) -> Function {
     let input_char_ops = [
-        WOp::I32Const(Var(4)),
-        WOp::I32Const(Var(0)),
+        WOp::I32Const(4),
+        WOp::I32Const(0),
         WOp::I32Store(MemoryImmediate::i32(0)),
-        WOp::I32Const(Var(8)),
-        WOp::I32Const(Var(1)),
+        WOp::I32Const(8),
+        WOp::I32Const(1),
         WOp::I32Store8(MemoryImmediate::i8(0)),
-        WOp::I32Const(Var(0)),
-        WOp::I32Const(Var(4)),
-        WOp::I32Const(Var(1)),
-        WOp::I32Const(Var(12)),
+        WOp::I32Const(0),
+        WOp::I32Const(4),
+        WOp::I32Const(1),
+        WOp::I32Const(12),
         WOp::Call {
             function_index: fd_read_index,
         },
         WOp::Drop,
-        WOp::I32Const(Var(0)),
+        WOp::I32Const(0),
         WOp::I32Load8U(MemoryImmediate::i8(0)),
         WOp::End,
     ];
@@ -146,7 +138,7 @@ pub fn block_to_wasm(block: &Block, mut buffer: impl io::Write) -> io::Result<()
     let mut module_builder = ModuleBuilder::new(Memory {
         mem_type: MemoryType {
             limits: ResizableLimits {
-                initial: Var(1),
+                initial: 1,
                 maximum: None,
             },
         },
@@ -188,19 +180,16 @@ pub fn block_to_wasm(block: &Block, mut buffer: impl io::Write) -> io::Result<()
     };
 
     let ptr = LocalEntry {
-        count: Var(2),
+        count: 2,
         type_: Type::I32,
     };
     main.push_local(ptr);
 
     // ポインタの初期値を40に設定する。40未満はI/Oで使うために確保する。
     // 40未満をいじった場合の動作は未定義（I/O関連がこわれるかも？）
-    main.body.code.extend([
-        WOp::I32Const(Var(40)),
-        WOp::SetLocal {
-            local_index: Var(0),
-        },
-    ]);
+    main.body
+        .code
+        .extend([WOp::I32Const(40), WOp::SetLocal { local_index: 0 }]);
 
     block.to_wasm_ops(&mut main.body.code);
 

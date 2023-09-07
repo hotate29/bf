@@ -1,8 +1,8 @@
 use std::io::{self, Write};
 
 use super::code::FunctionBody;
+use super::leb128::WriteLeb128;
 use super::type_::Type;
-use super::var::Var;
 
 pub enum Section {
     Type(TypeSection),
@@ -17,23 +17,23 @@ pub enum Section {
     // Element,
 }
 impl Section {
-    fn section_id(&self) -> Var<u8> {
+    fn section_id(&self) -> u8 {
         match self {
-            Section::Type(_) => Var(1u8),
-            Section::Import(_) => Var(2u8),
-            Section::Function(_) => Var(3u8),
+            Section::Type(_) => 1,
+            Section::Import(_) => 2,
+            Section::Function(_) => 3,
             // Section::Table => todo!(),
-            Section::Memory(_) => Var(5u8),
+            Section::Memory(_) => 5,
             // Section::Global => todo!(),
-            Section::Export(_) => Var(7),
+            Section::Export(_) => 7,
             // Section::Element => todo!(),
-            Section::Code(_) => Var(10),
+            Section::Code(_) => 10,
             // Section::Data => todo!(),
         }
     }
     pub fn write(&self, mut w: impl Write) -> io::Result<()> {
         let section_id = self.section_id();
-        section_id.write(&mut w)?;
+        section_id.write_leb128(&mut w)?;
 
         let mut payload = Vec::new();
 
@@ -47,8 +47,8 @@ impl Section {
             // Section::Table | Section::Data | Section::Global | Section::Element => unimplemented!(),
         }
 
-        let payload_size = Var(payload.len() as u32);
-        payload_size.write(&mut w)?;
+        let payload_size = payload.len() as u32;
+        payload_size.write_leb128(&mut w)?;
 
         w.write_all(&payload)?;
 
@@ -68,8 +68,8 @@ impl TypeSection {
         self.types.len() - 1
     }
     pub fn write(&self, mut w: impl Write) -> io::Result<()> {
-        let type_count = Var(self.types.len() as u32);
-        type_count.write(&mut w)?;
+        let type_count = self.types.len() as u32;
+        type_count.write_leb128(&mut w)?;
 
         for ty in &self.types {
             ty.write(&mut w)?;
@@ -92,8 +92,8 @@ impl ImportSection {
         self.import_entries.push(entry);
     }
     fn write(&self, mut w: impl Write) -> io::Result<()> {
-        let entry_count = Var(self.import_entries.len() as u32);
-        entry_count.write(&mut w)?;
+        let entry_count = self.import_entries.len() as u32;
+        entry_count.write_leb128(&mut w)?;
 
         for entry in &self.import_entries {
             entry.write(&mut w)?;
@@ -108,7 +108,7 @@ pub struct ImportEntry {
     import_type: ImportType,
 }
 impl ImportEntry {
-    pub fn function(module: String, field: String, index: Var<u32>) -> Self {
+    pub fn function(module: String, field: String, index: u32) -> Self {
         Self {
             module_str: module,
             field_str: field,
@@ -116,12 +116,12 @@ impl ImportEntry {
         }
     }
     fn write(&self, mut w: impl Write) -> io::Result<()> {
-        let module_len = Var(self.module_str.len() as u32);
-        module_len.write(&mut w)?;
+        let module_len = self.module_str.len() as u32;
+        module_len.write_leb128(&mut w)?;
         w.write_all(self.module_str.as_bytes())?;
 
-        let field_len = Var(self.field_str.len() as u32);
-        field_len.write(&mut w)?;
+        let field_len = self.field_str.len() as u32;
+        field_len.write_leb128(&mut w)?;
         w.write_all(self.field_str.as_bytes())?;
 
         self.import_type.write(w)
@@ -129,7 +129,7 @@ impl ImportEntry {
 }
 
 enum ImportType {
-    Function { type_: Var<u32> },
+    Function { type_: u32 },
     // Table,
     // Memory,
     // Global,
@@ -145,7 +145,7 @@ impl ImportType {
         w.write_all(&[import_kind])?;
 
         match self {
-            ImportType::Function { type_ } => type_.write(w),
+            ImportType::Function { type_ } => type_.write_leb128(w),
         }
     }
 }
@@ -160,22 +160,22 @@ pub enum ExternalKind {
 }
 
 pub struct FunctionSection {
-    types: Vec<Var<u32>>,
+    types: Vec<u32>,
 }
 impl FunctionSection {
     pub fn new() -> Self {
         Self { types: Vec::new() }
     }
-    pub fn push(&mut self, index: Var<u32>) -> usize {
+    pub fn push(&mut self, index: u32) -> usize {
         self.types.push(index);
         self.types.len() - 1
     }
     fn write(&self, mut w: impl Write) -> io::Result<()> {
-        let count = Var(self.types.len() as u32);
-        count.write(&mut w)?;
+        let count = self.types.len() as u32;
+        count.write_leb128(&mut w)?;
 
         for index in &self.types {
-            index.write(&mut w)?;
+            index.write_leb128(&mut w)?;
         }
         Ok(())
     }
@@ -196,8 +196,8 @@ impl MemorySection {
         self.entries.len() - 1
     }
     fn write(&self, mut w: impl Write) -> io::Result<()> {
-        let count = Var(self.entries.len() as u32);
-        count.write(&mut w)?;
+        let count = self.entries.len() as u32;
+        count.write_leb128(&mut w)?;
 
         for entry in &self.entries {
             entry.write(&mut w)?;
@@ -217,18 +217,18 @@ impl MemoryType {
 }
 
 pub struct ResizableLimits {
-    pub initial: Var<u32>,
-    pub maximum: Option<Var<u32>>,
+    pub initial: u32,
+    pub maximum: Option<u32>,
 }
 impl ResizableLimits {
     fn write(&self, mut w: impl Write) -> io::Result<()> {
-        let flags = Var(self.maximum.is_some());
-        flags.write(&mut w)?;
+        let flags = self.maximum.is_some();
+        flags.write_leb128(&mut w)?;
 
-        self.initial.write(&mut w)?;
+        self.initial.write_leb128(&mut w)?;
 
         if let Some(maximum) = &self.maximum {
-            maximum.write(&mut w)?;
+            maximum.write_leb128(&mut w)?;
         }
         Ok(())
     }
@@ -248,8 +248,8 @@ impl ExportSection {
         self.entries.push(entry)
     }
     fn write(&self, mut w: impl Write) -> io::Result<()> {
-        let count = Var(self.entries.len() as u32);
-        count.write(&mut w)?;
+        let count = self.entries.len() as u32;
+        count.write_leb128(&mut w)?;
         for entry in &self.entries {
             entry.write(&mut w)?
         }
@@ -260,19 +260,19 @@ impl ExportSection {
 pub struct ExportEntry {
     pub field: String,
     pub kind: ExternalKind,
-    pub index: Var<u32>,
+    pub index: u32,
 }
 
 impl ExportEntry {
     fn write(&self, mut w: impl Write) -> io::Result<()> {
-        let field_len = Var(self.field.len() as u32);
-        field_len.write(&mut w)?;
+        let field_len = self.field.len() as u32;
+        field_len.write_leb128(&mut w)?;
 
         w.write_all(self.field.as_bytes())?;
 
         w.write_all(&[self.kind as u8])?;
 
-        self.index.write(w)
+        self.index.write_leb128(w)
     }
 }
 
@@ -289,8 +289,8 @@ impl CodeSection {
         self.function_bodies.push(function_body)
     }
     fn write(&self, mut w: impl Write) -> io::Result<()> {
-        let count = Var(self.function_bodies.len() as u32);
-        count.write(&mut w)?;
+        let count = self.function_bodies.len() as u32;
+        count.write_leb128(&mut w)?;
 
         for body in &self.function_bodies {
             body.write(&mut w)?;

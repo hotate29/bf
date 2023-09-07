@@ -1,6 +1,6 @@
 use std::io::{self, Write};
 
-use super::var::Var;
+use super::leb128::WriteLeb128;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Type {
@@ -16,7 +16,7 @@ pub enum Type {
     Void,
 }
 impl Type {
-    fn opcode_int(&self) -> i8 {
+    fn opcode(&self) -> i8 {
         match self {
             Type::I32 => -0x1,
             // Type::I64 => -0x2,
@@ -27,33 +27,28 @@ impl Type {
             Type::Void => -0x40,
         }
     }
-    fn opcode_var(&self) -> Var<i8> {
-        Var(self.opcode_int())
-    }
-    // 本当はimpl Writeとしたいけど、E0275エラーが発生してコンパイルが通らなかった。かなしい
-    // https://doc.rust-lang.org/error-index.html#E0275
-    pub fn write(&self, mut w: &mut dyn Write) -> io::Result<()> {
+    pub fn write(&self, mut w: impl Write) -> io::Result<()> {
         match self {
-            Type::I32 | Type::Void => self.opcode_var().write(w),
+            Type::I32 | Type::Void => self.opcode().write_leb128(w),
             // AnyFuncを使う予定は無いのでunimplemented!
             // Type::AnyFunc => unimplemented!(),
             Type::Func { params, result } => {
                 // Func
-                self.opcode_var().write(&mut w)?;
+                self.opcode().write_leb128(&mut w)?;
 
                 // Len
-                let params_len = Var(params.len() as u32);
-                params_len.write(&mut w)?;
+                let params_len = params.len() as u32;
+                params_len.write_leb128(&mut w)?;
 
                 for param_type in params {
                     param_type.write(&mut w)?
                 }
 
                 if let Some(result) = result {
-                    Var(true).write(&mut w)?;
+                    true.write_leb128(&mut w)?;
                     result.write(w)?
                 } else {
-                    Var(false).write(w)?;
+                    false.write_leb128(w)?;
                 }
 
                 Ok(())

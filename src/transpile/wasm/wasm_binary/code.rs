@@ -1,6 +1,6 @@
 use std::io::{self, Write};
 
-use super::{type_::Type, var::Var};
+use super::{type_::Type, leb128::WriteLeb128};
 
 pub struct FunctionBody {
     locals: Vec<LocalEntry>,
@@ -25,8 +25,8 @@ impl FunctionBody {
     pub fn write(&self, mut w: impl Write) -> io::Result<()> {
         let mut body_payload = Vec::new();
 
-        let local_count = Var(self.locals.len() as u32);
-        local_count.write(&mut body_payload)?;
+        let local_count = self.locals.len() as u32;
+        local_count.write_leb128(&mut body_payload)?;
 
         for local in &self.locals {
             local.write(&mut body_payload)?;
@@ -34,20 +34,20 @@ impl FunctionBody {
 
         self.code.write(&mut body_payload)?;
 
-        let body_size = Var(body_payload.len() as u32);
-        body_size.write(&mut w)?;
+        let body_size = body_payload.len() as u32;
+        body_size.write_leb128(&mut w)?;
 
         w.write_all(&body_payload)
     }
 }
 
 pub struct LocalEntry {
-    pub count: Var<u32>,
+    pub count: u32,
     pub type_: Type,
 }
 impl LocalEntry {
     fn write(&self, mut w: impl Write) -> io::Result<()> {
-        self.count.write(&mut w)?;
+        self.count.write_leb128(&mut w)?;
         self.type_.write(&mut w)
     }
 }
@@ -58,21 +58,21 @@ pub enum Op {
     End,
     Loop { block_type: Type },
     If { block_type: Type },
-    Br { relative_depth: Var<u32> },
+    Br { relative_depth: u32 },
 
-    Call { function_index: Var<u32> },
+    Call { function_index: u32 },
 
     Drop,
 
-    GetLocal { local_index: Var<u32> },
-    SetLocal { local_index: Var<u32> },
-    TeeLocal { local_index: Var<u32> },
+    GetLocal { local_index: u32 },
+    SetLocal { local_index: u32 },
+    TeeLocal { local_index: u32 },
 
     I32Load8U(MemoryImmediate),
     I32Store(MemoryImmediate),
     I32Store8(MemoryImmediate),
 
-    I32Const(Var<i32>),
+    I32Const(i32),
 
     I32Add,
     I32Sub,
@@ -92,16 +92,16 @@ impl Op {
                 assert_eq!(block_type, &Type::Void);
                 write!(s, "if")
             }
-            Op::Br { relative_depth } => write!(s, "br {}", relative_depth.0),
-            Op::Call { function_index } => write!(s, "call {}", function_index.0),
+            Op::Br { relative_depth } => write!(s, "br {}", relative_depth),
+            Op::Call { function_index } => write!(s, "call {}", function_index),
             Op::Drop => write!(s, "drop"),
-            Op::GetLocal { local_index } => write!(s, "local.get {}", local_index.0),
-            Op::SetLocal { local_index } => write!(s, "local.set {}", local_index.0),
-            Op::TeeLocal { local_index } => write!(s, "local.tee {}", local_index.0),
-            Op::I32Load8U(offset) => write!(s, "i32.load8_u offset={}", offset.offset.0),
-            Op::I32Store(offset) => write!(s, "i32.store offset={}", offset.offset.0),
-            Op::I32Store8(offset) => write!(s, "i32.store8 offset={}", offset.offset.0),
-            Op::I32Const(var) => write!(s, "i32.const {}", var.0),
+            Op::GetLocal { local_index } => write!(s, "local.get {}", local_index),
+            Op::SetLocal { local_index } => write!(s, "local.set {}", local_index),
+            Op::TeeLocal { local_index } => write!(s, "local.tee {}", local_index),
+            Op::I32Load8U(offset) => write!(s, "i32.load8_u offset={}", offset.offset),
+            Op::I32Store(offset) => write!(s, "i32.store offset={}", offset.offset),
+            Op::I32Store8(offset) => write!(s, "i32.store8 offset={}", offset.offset),
+            Op::I32Const(var) => write!(s, "i32.const {}", var),
             Op::I32Add => write!(s, "i32.add"),
             Op::I32Sub => write!(s, "i32.sub"),
             Op::I32Mul => write!(s, "i32.mul"),
@@ -121,24 +121,24 @@ impl Op {
             }
             Op::Br { relative_depth } => {
                 w.write_all(&[0x0c])?;
-                relative_depth.write(&mut w)
+                relative_depth.write_leb128(&mut w)
             }
             Op::Call { function_index } => {
                 w.write_all(&[0x10])?;
-                function_index.write(&mut w)
+                function_index.write_leb128(&mut w)
             }
             Op::Drop => w.write_all(&[0x1a]),
             Op::GetLocal { local_index } => {
                 w.write_all(&[0x20])?;
-                local_index.write(w)
+                local_index.write_leb128(w)
             }
             Op::SetLocal { local_index } => {
                 w.write_all(&[0x21])?;
-                local_index.write(w)
+                local_index.write_leb128(w)
             }
             Op::TeeLocal { local_index } => {
                 w.write_all(&[0x22])?;
-                local_index.write(w)
+                local_index.write_leb128(w)
             }
             Op::I32Load8U(memory_immediate) => {
                 w.write_all(&[0x2d])?;
@@ -154,7 +154,7 @@ impl Op {
             }
             Op::I32Const(literal) => {
                 w.write_all(&[0x41])?;
-                literal.write(w)
+                literal.write_leb128(w)
             }
             Op::I32Add => w.write_all(&[0x6a]),
             Op::I32Sub => w.write_all(&[0x6b]),
@@ -165,25 +165,19 @@ impl Op {
 
 #[derive(Debug, Clone, Copy)]
 pub struct MemoryImmediate {
-    flags: Var<u32>,
-    offset: Var<u32>,
+    flags: u32,
+    offset: u32,
 }
 impl MemoryImmediate {
     pub fn i8(offset: u32) -> Self {
-        Self {
-            flags: Var(0),
-            offset: Var(offset),
-        }
+        Self { flags: 0, offset }
     }
     pub fn i32(offset: u32) -> Self {
-        Self {
-            flags: Var(2),
-            offset: Var(offset),
-        }
+        Self { flags: 2, offset }
     }
     fn write(&self, mut w: impl Write) -> io::Result<()> {
-        self.flags.write(&mut w)?;
-        self.offset.write(&mut w)
+        self.flags.write_leb128(&mut w)?;
+        self.offset.write_leb128(&mut w)
     }
 }
 

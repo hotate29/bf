@@ -4,7 +4,7 @@ const WASM_BINARY_VERSION: u32 = 1;
 pub mod code;
 pub mod section;
 pub mod type_;
-pub mod var;
+pub mod leb128;
 
 use std::io::{self, Write};
 
@@ -15,7 +15,6 @@ use self::{
         ImportSection, MemorySection, MemoryType, Section, TypeSection,
     },
     type_::Type,
-    var::Var,
 };
 
 pub struct Module {
@@ -55,11 +54,11 @@ impl ModuleBuilder {
         }
     }
     /// `push_function`の前に行う
-    pub fn push_import(&mut self, import: Import) -> Var<u32> {
+    pub fn push_import(&mut self, import: Import) -> u32 {
         assert!(self.functions.is_empty());
         self.imports.push(import);
 
-        Var((self.imports.len() - 1) as u32)
+        (self.imports.len() - 1) as u32
     }
     /// `push_import`の後に行う
     pub fn push_function(&mut self, function: Function) {
@@ -88,7 +87,7 @@ impl ModuleBuilder {
                     let type_index = type_section.push(signature);
 
                     let import_entry =
-                        ImportEntry::function(module_name, field_name, Var(type_index as _));
+                        ImportEntry::function(module_name, field_name, type_index as u32);
                     import_section.push(import_entry);
                 }
             }
@@ -99,7 +98,7 @@ impl ModuleBuilder {
             let type_index = type_section.push(function.signature);
 
             let function_index =
-                function_section.push(Var(type_index as _)) + import_section.import_entries.len();
+                function_section.push(type_index as _) + import_section.import_entries.len();
 
             code_section.push(function.body);
 
@@ -107,7 +106,7 @@ impl ModuleBuilder {
                 let export_entry = ExportEntry {
                     field: export_name,
                     kind: ExternalKind::Function,
-                    index: Var(function_index as _),
+                    index: function_index as u32,
                 };
 
                 export_section.push(export_entry);
@@ -121,7 +120,7 @@ impl ModuleBuilder {
                 let export_entry = ExportEntry {
                     field: export_name,
                     kind: ExternalKind::Memory,
-                    index: Var(memory_index as _),
+                    index: memory_index as u32,
                 };
 
                 export_section.push(export_entry);

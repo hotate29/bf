@@ -26,7 +26,11 @@ pub mod c {
                     }
                     BlockItem::Op(instruction) => match instruction {
                         Op::Add(x, offset) => {
-                            write!(c_code, "*({PTR_NAME}+{offset})+={x};").unwrap()
+                            if *x < 0 {
+                                write!(c_code, "*({PTR_NAME}+{offset})-={};", -x).unwrap()
+                            } else {
+                                write!(c_code, "*({PTR_NAME}+{offset})+={x};").unwrap()
+                            }
                         }
                         Op::MovePtr(x) => write!(c_code, "{PTR_NAME}+={x};").unwrap(),
                         Op::Mul(to, x, offset) if *x == 1 => write!(
