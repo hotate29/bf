@@ -10,7 +10,7 @@ use bf::{
     interpreter::AutoExtendMemory, opt::optimize_for_interpreter, transpile, utils::bf_to_block,
     InterPreter,
 };
-use clap::{ValueEnum, Parser};
+use clap::{Parser, ValueEnum};
 use log::{info, Level};
 
 #[derive(Debug, clap::Parser)]
@@ -144,18 +144,27 @@ fn main() -> anyhow::Result<()> {
 
             let progiling_result = time!(interpreter.profiling()?);
 
-            progiling_result
+            let mut skipped = false;
+
+            for (i, (count, instruction)) in progiling_result
                 .instruction_count
                 .iter()
-                .zip(progiling_result.instructions)
+                .zip(&progiling_result.instructions)
                 .enumerate()
-                .for_each(|(i, (count, instruction))| {
-                    if *count >= arg.lower_limit {
-                        eprintln!("{}: {:?} {}", i, instruction, count);
-                    }
-                });
+            {
+                if *count >= arg.lower_limit {
+                    eprintln!("{}: {:?} {}", i, instruction, count);
+                    skipped = false;
+                } else if !skipped {
+                    eprintln!("...");
+                    skipped = true;
+                }
+            }
             info!("step: {}", progiling_result.count);
             info!("count: {:?}", progiling_result.instruction_count);
+
+            let mut output = File::create("profiling_data.json")?;
+            serde_json::to_writer_pretty(&mut output, &progiling_result)?;
         }
         SubCommand::Trans(arg) => {
             let code = fs::read_to_string(&arg.file)?;

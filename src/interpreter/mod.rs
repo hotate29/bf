@@ -85,7 +85,7 @@ impl<M: Memory> State<M> {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, serde::Serialize)]
 pub enum FlatInstruction {
     Instruction(Op),
     // 行き先
@@ -136,6 +136,7 @@ pub enum Error {
     NegativePointer(isize),
 }
 
+#[derive(Debug, serde::Serialize)]
 pub struct ProfilingResult {
     pub count: usize,
     pub instructions: Vec<FlatInstruction>,
