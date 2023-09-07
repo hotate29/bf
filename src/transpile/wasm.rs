@@ -8,9 +8,161 @@ use wasm_binary::{
     Function, Import, Memory, ModuleBuilder,
 };
 
-use crate::ir::Block;
+use crate::ir::{Block, BlockItem, Op};
 
 use self::wasm_binary::type_::{FuncSignature, ValueType};
+
+fn op_to_wop(op: Op, wops: &mut Vec<WOp>) {
+    if let Some(offset) = op.offset() {
+        if offset.is_negative() {
+            panic!();
+        }
+    }
+    match op {
+        Op::Add(value, offset) => {
+            let add_ops = [
+                WOp::GetLocal { local_index: 0 },
+                WOp::GetLocal { local_index: 0 },
+                WOp::I32Load8U(MemoryImmediate::i8(offset as u32)),
+                WOp::I32Const(value),
+                WOp::I32Add,
+                WOp::I32Store8(MemoryImmediate::i8(offset as u32)),
+            ];
+
+            wops.extend(add_ops);
+        }
+        Op::MovePtr(offset) => {
+            let ptr_add_ops = [
+                WOp::GetLocal { local_index: 0 },
+                WOp::I32Const(offset),
+                WOp::I32Add,
+                WOp::SetLocal { local_index: 0 },
+            ];
+
+            wops.extend(ptr_add_ops);
+        }
+        Op::Mul(x, y, offset) => {
+            if y == 1 {
+                let mul_ops = [
+                    WOp::GetLocal { local_index: 0 },
+                    WOp::I32Const(x),
+                    WOp::I32Add,
+                    WOp::TeeLocal { local_index: 1 },
+                    WOp::GetLocal { local_index: 1 },
+                    WOp::I32Load8U(MemoryImmediate::i8(offset as u32)),
+                    WOp::GetLocal { local_index: 0 },
+                    WOp::I32Load8U(MemoryImmediate::i8(offset as u32)),
+                    WOp::I32Add,
+                    WOp::I32Store8(MemoryImmediate::i8(offset as u32)),
+                ];
+                wops.extend(mul_ops);
+            } else if y == -1 {
+                let mul_ops = [
+                    WOp::GetLocal { local_index: 0 },
+                    WOp::I32Const(x),
+                    WOp::I32Add,
+                    WOp::TeeLocal { local_index: 1 },
+                    WOp::GetLocal { local_index: 1 },
+                    WOp::I32Load8U(MemoryImmediate::i8(offset as u32)),
+                    WOp::GetLocal { local_index: 0 },
+                    WOp::I32Load8U(MemoryImmediate::i8(offset as u32)),
+                    WOp::I32Sub,
+                    WOp::I32Store8(MemoryImmediate::i8(offset as u32)),
+                ];
+                wops.extend(mul_ops);
+            } else {
+                let mul_ops = [
+                    WOp::GetLocal { local_index: 0 },
+                    WOp::I32Const(x),
+                    WOp::I32Add,
+                    WOp::TeeLocal { local_index: 1 },
+                    WOp::GetLocal { local_index: 1 },
+                    WOp::I32Load8U(MemoryImmediate::i8(offset as u32)),
+                    WOp::GetLocal { local_index: 0 },
+                    WOp::I32Load8U(MemoryImmediate::i8(offset as u32)),
+                    WOp::I32Const(y),
+                    WOp::I32Mul,
+                    WOp::I32Add,
+                    WOp::I32Store8(MemoryImmediate::i8(offset as u32)),
+                ];
+                wops.extend(mul_ops);
+            }
+        }
+        Op::Set(value, offset) => {
+            let clear_ops = [
+                WOp::GetLocal { local_index: 0 },
+                WOp::I32Const(value),
+                WOp::I32Store8(MemoryImmediate::i8(offset as u32)),
+            ];
+
+            wops.extend(clear_ops);
+        }
+        Op::Out(offset) => {
+            let out_ops = [
+                WOp::GetLocal { local_index: 0 },
+                WOp::I32Load8U(MemoryImmediate::i8(offset as u32)),
+                WOp::Call { function_index: 2 },
+            ];
+
+            wops.extend(out_ops);
+        }
+        Op::Input(offset) => {
+            let input_ops = [
+                WOp::GetLocal { local_index: 0 },
+                WOp::Call { function_index: 3 },
+                WOp::I32Store8(MemoryImmediate::i8(offset as u32)),
+            ];
+
+            wops.extend(input_ops)
+        }
+        Op::Lick(_) => unimplemented!(),
+    }
+}
+
+fn block_to_wop(block: &Block, wops: &mut Vec<WOp>) {
+    for item in &block.items {
+        match item {
+            BlockItem::Op(op) => {
+                op_to_wop(*op, wops);
+            }
+            BlockItem::Loop(loop_block) => {
+                let loop_ops = [
+                    WOp::Loop {
+                        block_type: ValueType::Void,
+                    },
+                    WOp::GetLocal { local_index: 0 },
+                    WOp::I32Load8U(MemoryImmediate::i8(0)),
+                    WOp::If {
+                        block_type: ValueType::Void,
+                    },
+                ];
+
+                wops.extend(loop_ops);
+
+                block_to_wop(loop_block, wops);
+
+                let loop_ops = [WOp::Br { relative_depth: 1 }, WOp::End, WOp::End];
+
+                wops.extend(loop_ops);
+            }
+            BlockItem::If(if_block) => {
+                let if_ops = [
+                    WOp::GetLocal { local_index: 0 },
+                    WOp::I32Load8U(MemoryImmediate::i8(0)),
+                    WOp::If {
+                        block_type: ValueType::Void,
+                    },
+                ];
+
+                wops.extend(if_ops);
+
+                block_to_wop(if_block, wops);
+
+                wops.push(WOp::End);
+            }
+        }
+    }
+}
 
 pub fn block_to_wat(block: &Block, mut out: impl io::Write) -> io::Result<()> {
     // Base Wasmer
@@ -58,7 +210,7 @@ pub fn block_to_wat(block: &Block, mut out: impl io::Write) -> io::Result<()> {
 
     let mut main = Vec::new();
     main.extend([WOp::I32Const(40), WOp::SetLocal { local_index: 0 }]);
-    block.to_wasm_ops(&mut main);
+    block_to_wop(block, &mut main);
     // テキスト形式だといらない
     // ops.push(WOp::End);
 
@@ -202,7 +354,7 @@ pub fn block_to_wasm(block: &Block, mut buffer: impl io::Write) -> io::Result<()
         .code
         .extend([WOp::I32Const(40), WOp::SetLocal { local_index: 0 }]);
 
-    block.to_wasm_ops(&mut main.body.code);
+    block_to_wop(block, &mut main.body.code);
 
     main.body.code.push(WOp::End);
 
