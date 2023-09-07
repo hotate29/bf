@@ -18,22 +18,26 @@ use self::{
 };
 
 pub struct Module {
-    sections: Vec<Section>,
+    type_section: TypeSection,
+    import_section: ImportSection,
+    function_section: FunctionSection,
+    code_section: CodeSection,
+    memory_section: MemorySection,
+    export_section: ExportSection,
+    // 他にもsectionはあるが、上記のものだけで十分
 }
 impl Module {
-    fn new() -> Self {
-        Module {
-            sections: Vec::new(),
-        }
-    }
-
     pub fn write(&self, mut w: impl Write) -> io::Result<()> {
         w.write_all(WASM_BINARY_MAGIC.to_le_bytes().as_slice())?;
         w.write_all(WASM_BINARY_VERSION.to_le_bytes().as_slice())?;
 
-        for section in &self.sections {
-            section.write(&mut w)?;
-        }
+        self.type_section.write_section(&mut w)?;
+        self.import_section.write_section(&mut w)?;
+        self.function_section.write_section(&mut w)?;
+        self.memory_section.write_section(&mut w)?;
+        self.export_section.write_section(&mut w)?;
+        self.code_section.write_section(&mut w)?;
+
         Ok(())
     }
 }
@@ -66,8 +70,6 @@ impl ModuleBuilder {
     }
 
     pub fn into_module(self) -> Module {
-        let mut module = Module::new();
-
         let mut type_section = TypeSection::new();
         let mut import_section = ImportSection::new();
         let mut function_section = FunctionSection::new();
@@ -126,15 +128,14 @@ impl ModuleBuilder {
                 export_section.push(export_entry);
             }
         }
-
-        module.sections.push(Section::Type(type_section));
-        module.sections.push(Section::Import(import_section));
-        module.sections.push(Section::Function(function_section));
-        module.sections.push(Section::Memory(memory_section));
-        module.sections.push(Section::Export(export_section));
-        module.sections.push(Section::Code(code_section));
-
-        module
+        Module {
+            type_section,
+            import_section,
+            function_section,
+            code_section,
+            memory_section,
+            export_section,
+        }
     }
 }
 

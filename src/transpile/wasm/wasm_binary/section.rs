@@ -4,48 +4,16 @@ use super::code::FunctionBody;
 use super::leb128::WriteLeb128;
 use super::type_::Type;
 
-pub enum Section {
-    Type(TypeSection),
-    Import(ImportSection),
-    Function(FunctionSection),
-    Memory(MemorySection),
-    Export(ExportSection),
-    Code(CodeSection),
-    // Table,
-    // Data,
-    // Global,
-    // Element,
-}
-impl Section {
-    fn section_id(&self) -> u8 {
-        match self {
-            Section::Type(_) => 1,
-            Section::Import(_) => 2,
-            Section::Function(_) => 3,
-            // Section::Table => todo!(),
-            Section::Memory(_) => 5,
-            // Section::Global => todo!(),
-            Section::Export(_) => 7,
-            // Section::Element => todo!(),
-            Section::Code(_) => 10,
-            // Section::Data => todo!(),
-        }
-    }
-    pub fn write(&self, mut w: impl Write) -> io::Result<()> {
+pub(crate) trait Section {
+    fn section_id(&self) -> u8;
+    fn write(&self, w: impl Write) -> io::Result<()>;
+    fn write_section(&self, mut w: impl Write) -> io::Result<()> {
         let section_id = self.section_id();
         section_id.write_leb128(&mut w)?;
 
         let mut payload = Vec::new();
 
-        match self {
-            Section::Type(type_section) => type_section.write(&mut payload)?,
-            Section::Import(import_section) => import_section.write(&mut payload)?,
-            Section::Function(function_section) => function_section.write(&mut payload)?,
-            Section::Memory(memory_section) => memory_section.write(&mut payload)?,
-            Section::Export(export_section) => export_section.write(&mut payload)?,
-            Section::Code(code_section) => code_section.write(&mut payload)?,
-            // Section::Table | Section::Data | Section::Global | Section::Element => unimplemented!(),
-        }
+        self.write(&mut payload)?;
 
         let payload_size = payload.len() as u32;
         payload_size.write_leb128(&mut w)?;
@@ -67,7 +35,13 @@ impl TypeSection {
         self.types.push(ty);
         self.types.len() - 1
     }
-    pub fn write(&self, mut w: impl Write) -> io::Result<()> {
+}
+impl Section for TypeSection {
+    fn section_id(&self) -> u8 {
+        1
+    }
+
+    fn write(&self, mut w: impl Write) -> io::Result<()> {
         let type_count = self.types.len() as u32;
         type_count.write_leb128(&mut w)?;
 
@@ -91,6 +65,12 @@ impl ImportSection {
     pub fn push(&mut self, entry: ImportEntry) {
         self.import_entries.push(entry);
     }
+}
+impl Section for ImportSection {
+    fn section_id(&self) -> u8 {
+        2
+    }
+
     fn write(&self, mut w: impl Write) -> io::Result<()> {
         let entry_count = self.import_entries.len() as u32;
         entry_count.write_leb128(&mut w)?;
@@ -170,6 +150,12 @@ impl FunctionSection {
         self.types.push(index);
         self.types.len() - 1
     }
+}
+impl Section for FunctionSection {
+    fn section_id(&self) -> u8 {
+        3
+    }
+
     fn write(&self, mut w: impl Write) -> io::Result<()> {
         let count = self.types.len() as u32;
         count.write_leb128(&mut w)?;
@@ -195,6 +181,12 @@ impl MemorySection {
         self.entries.push(memory_type);
         self.entries.len() - 1
     }
+}
+impl Section for MemorySection {
+    fn section_id(&self) -> u8 {
+        5
+    }
+
     fn write(&self, mut w: impl Write) -> io::Result<()> {
         let count = self.entries.len() as u32;
         count.write_leb128(&mut w)?;
@@ -247,6 +239,12 @@ impl ExportSection {
     pub fn push(&mut self, entry: ExportEntry) {
         self.entries.push(entry)
     }
+}
+impl Section for ExportSection {
+    fn section_id(&self) -> u8 {
+        7
+    }
+
     fn write(&self, mut w: impl Write) -> io::Result<()> {
         let count = self.entries.len() as u32;
         count.write_leb128(&mut w)?;
@@ -288,6 +286,12 @@ impl CodeSection {
     pub fn push(&mut self, function_body: FunctionBody) {
         self.function_bodies.push(function_body)
     }
+}
+impl Section for CodeSection {
+    fn section_id(&self) -> u8 {
+        10
+    }
+
     fn write(&self, mut w: impl Write) -> io::Result<()> {
         let count = self.function_bodies.len() as u32;
         count.write_leb128(&mut w)?;
