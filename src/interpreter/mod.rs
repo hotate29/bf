@@ -100,8 +100,8 @@ fn block_to_flat_instructions(block: &Block) -> Vec<FlatInstruction> {
                 BlockItem::Loop(loop_block) => {
                     let loop_first = flat_instructions.len();
 
+                    let begin_index = flat_instructions.len();
                     flat_instructions.push(FlatInstruction::WhileBegin(0));
-                    let begin_index = flat_instructions.len() - 1;
 
                     inner(flat_instructions, loop_block);
 
@@ -113,10 +113,14 @@ fn block_to_flat_instructions(block: &Block) -> Vec<FlatInstruction> {
                 }
                 BlockItem::Op(op) => flat_instructions.push(FlatInstruction::Instruction(*op)),
                 BlockItem::If(if_block) => {
-                    let begin_index = flat_instructions.len() + if_block.items.len() + 1;
-                    flat_instructions.push(FlatInstruction::WhileBegin(begin_index));
+                    let begin_index = flat_instructions.len();
+                    flat_instructions.push(FlatInstruction::WhileBegin(0));
 
                     inner(flat_instructions, if_block);
+
+                    flat_instructions[begin_index] =
+                        FlatInstruction::WhileBegin(flat_instructions.len());
+                    // ifではWhileEndは不要。
                 }
             }
         }
@@ -215,16 +219,15 @@ impl<R: Read, W: Write, M: Memory> InterPreter<R, W, M> {
                             }
                         }
                         Op::Mul(to, x, offset) => {
-                            let a = self.state.at_offset(offset as isize)? as i32;
-                            let a = a.wrapping_mul(x);
+                            let value = self.state.at_offset(offset as isize)? as i32;
+                            let value = value.wrapping_mul(x) % MOD;
 
                             let to = to as isize + offset as isize;
-                            let value = (a % MOD).unsigned_abs() as u8;
 
-                            if a < 0 {
-                                self.state.sub(to, value)?;
+                            if value < 0 {
+                                self.state.sub(to, value.unsigned_abs() as u8)?;
                             } else {
-                                self.state.add(to, value)?;
+                                self.state.add(to, value.unsigned_abs() as u8)?;
                             }
                         }
                         Op::Out(offset) => self.state.output(offset as isize, &mut self.output)?,
