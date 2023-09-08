@@ -104,7 +104,7 @@ fn main() -> anyhow::Result<()> {
             }
             let step_count = match arg.memory_len.get().cmp(&0) {
                 std::cmp::Ordering::Less => {
-                    let interpreter = InterPreter::builder()
+                    let mut interpreter = InterPreter::builder()
                         .input(io::stdin())
                         .output(io::stdout())
                         .root_node(&block)
@@ -115,7 +115,7 @@ fn main() -> anyhow::Result<()> {
                 }
                 std::cmp::Ordering::Equal => unreachable!(),
                 std::cmp::Ordering::Greater => {
-                    let interpreter = InterPreter::builder()
+                    let mut interpreter = InterPreter::builder()
                         .input(io::stdin())
                         .output(io::stdout())
                         .root_node(&block)

@@ -397,9 +397,76 @@ fn opt_lick(block: &mut Block) {
 
 #[cfg(test)]
 mod tests {
-    use crate::utils::bf_to_block;
+    use std::io;
+
+    use crate::{utils::bf_to_block, InterPreter};
 
     use super::*;
+
+    fn run(block: &Block) -> (Vec<u8>, usize) {
+        let mut interpreter = InterPreter::builder()
+            .memory(vec![0u8; 300000])
+            .input(io::empty())
+            .output(io::sink())
+            .root_node(block)
+            .build();
+
+        interpreter.run().unwrap();
+        let memory = interpreter.memory().to_vec();
+        let pointer = interpreter.pointer();
+        (memory, pointer)
+    }
+
+    #[test]
+    fn same_state() {
+        let block = bf_to_block("+++[>+++<-]>.").unwrap();
+        let optimized_block = optimize(&block, true, false);
+        assert_eq!(run(&block), run(&optimized_block));
+
+        let block = bf_to_block("+++++++>>>>>>>>>--------<<<<<<<<<++++++").unwrap();
+        let optimized_block = optimize(&block, true, false);
+        assert_eq!(run(&block), run(&optimized_block));
+
+        let block = bf_to_block("+[-]-[-]+[+]").unwrap();
+        let optimized_block = optimize(&block, true, false);
+        assert_eq!(run(&block), run(&optimized_block));
+
+        let block = bf_to_block("+++[[[[[>+++<-]]]]]>.").unwrap();
+        let optimized_block = optimize(&block, true, false);
+        assert_eq!(run(&block), run(&optimized_block));
+
+        let block = bf_to_block("+++++[[-]>++++++<]").unwrap();
+        let optimized_block = optimize(&block, true, false);
+        assert_eq!(run(&block), run(&optimized_block));
+
+        let block = bf_to_block(">>>+++>>>+++[-<+++>]").unwrap();
+        let optimized_block = optimize(&block, true, false);
+        assert_eq!(run(&block), run(&optimized_block));
+
+        // let block = bf_to_block("[-]>[<+>>+<-]>[-]<<[>>+<+<-]>[<+>-]>>++++[<<+++++>>-]<[-<[>>+>+<<<-]>>>[<<<+>>>-]+<[<<->>>-<[-]]>[<<[-]>>-]<<]<[>+<[-]]>").unwrap();
+        // let optimized_block = optimize(&block, true, false);
+        // assert_eq!(run(&block), run(&optimized_block));
+    }
+
+    #[test]
+    fn test_offset_opt() {
+        let block = bf_to_block("+>+>+>+[-]<<<->>>").unwrap();
+        let mut optimized_block = block.clone();
+        clear(&mut optimized_block);
+        let optimized_block = offset_opt(&optimized_block);
+        assert_eq!(
+            &[
+                BlockItem::Op(Op::Add(1, 0)),
+                BlockItem::Op(Op::Add(1, 1)),
+                BlockItem::Op(Op::Add(1, 2)),
+                BlockItem::Op(Op::Add(1, 3)),
+                BlockItem::Op(Op::Set(0, 3)),
+                BlockItem::Op(Op::Add(-1, 0)),
+                BlockItem::Op(Op::ptr(3)),
+            ],
+            optimized_block.items.as_slice()
+        );
+    }
 
     #[test]
     fn test_unwrap() {

@@ -132,7 +132,7 @@ fn block_to_flat_instructions(block: &Block) -> Vec<FlatInstruction> {
 pub enum Error {
     #[error("I/O Error: {0}")]
     IoError(#[from] io::Error),
-    #[error("{0}")]
+    #[error("Pointer is Negative: {0}")]
     NegativePointer(isize),
 }
 
@@ -175,7 +175,7 @@ impl<R: Read, W: Write, M: Memory> InterPreter<R, W, M> {
         InterPreterIter(self)
     }
 
-    pub fn run(mut self) -> Result<usize> {
+    pub fn run(&mut self) -> Result<usize> {
         self._run(|_| {})
     }
     pub fn profiling(mut self) -> Result<ProfilingResult> {
