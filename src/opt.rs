@@ -35,6 +35,7 @@ impl Add for Op {
             (Op::MovePtr(n), Op::MovePtr(m)) => Some(Op::ptr(n + m)),
             (Op::Set(0, o), Op::Mul(_, _, f)) if o == f => Some(Op::Set(0, o)),
             (Op::Set(_, o), Op::Set(_, f)) if o == f => Some(rhs),
+            (Op::Add(_, o), Op::Set(_, f)) if o == f => Some(rhs),
             (Op::Set(x, o), Op::Add(y, f)) if o == f => Some(Op::Set(x + y, o)),
             // 0を足し引きするのは無駄なので、適当な機会に消滅してほしい。
             (op, rhs) if rhs.is_nop() => Some(op),
