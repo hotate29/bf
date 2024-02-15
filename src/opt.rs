@@ -272,6 +272,15 @@ pub(crate) fn mul(block: &mut Block) {
                         }
                         mul_ops.push_item(BlockItem::Op(Op::Set(0, 0)));
 
+                        // 「このif、いらなくない？」と思うじゃろ？
+                        // ところがどっこい、このifがないと、配列外参照を起こす可能性があるぞい。
+                        // 例としては、`[<+>]`を最適化すると、C言語相当で
+                        // ```c
+                        // int idx = 0;
+                        // mem[idx-1] += mem[idx];
+                        // mem[idx] = 0;
+                        // ```
+                        // となり、mem[-1]にアクセスしてしまうというものがあるぞい。
                         *item = BlockItem::If(mul_ops);
                     }
                     None => {
